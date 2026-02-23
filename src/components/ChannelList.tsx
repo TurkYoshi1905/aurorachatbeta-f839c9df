@@ -8,6 +8,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import CreateChannelDialog from '@/components/CreateChannelDialog';
+import SettingsDialog from '@/components/SettingsDialog';
 
 interface ChannelListProps {
   serverName: string;
@@ -39,6 +40,7 @@ const statusOptions: { value: DbMember['status']; label: string; icon: React.Rea
 const ChannelList = ({ serverName, serverId, channels, activeChannel, onChannelChange, currentUserStatus = 'offline', onStatusChange, isOwner, onChannelCreated, isMobile }: ChannelListProps) => {
   const { profile } = useAuth();
   const [statusOpen, setStatusOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
   const [channelDialogType, setChannelDialogType] = useState<'text' | 'voice'>('text');
   const textChannels = channels.filter((c) => c.type === 'text');
@@ -149,10 +151,11 @@ const ChannelList = ({ serverName, serverId, channels, activeChannel, onChannelC
           <button className="p-1.5 rounded hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors">
             <Headphones className="w-4 h-4" />
           </button>
-          <button className="p-1.5 rounded hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={() => setSettingsOpen(true)} className="p-1.5 rounded hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors">
             <Settings className="w-4 h-4" />
           </button>
-        </div>
+      </div>
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       </div>
       {isOwner && (
         <CreateChannelDialog
