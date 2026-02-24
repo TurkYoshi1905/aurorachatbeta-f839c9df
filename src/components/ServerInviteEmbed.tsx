@@ -1,0 +1,86 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+
+interface ServerInviteEmbedProps {
+  code: string;
+}
+
+const ServerInviteEmbed = ({ code }: ServerInviteEmbedProps) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [server, setServer] = useState<{ id: string; name: string; icon: string } | null>(null);
+  const [invite, setInvite] = useState<any>(null);
+  const [alreadyMember, setAlreadyMember] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const fetch = async () => {
+      const { data } = await supabase
+        .from('server_invites')
+        .select('*, servers(id, name, icon)')
+        .eq('code', code)
+        .maybeSingle();
+
+      if (data) {
+        setInvite(data);
+        setServer((data as any).servers);
+
+        if (user) {
+          const { data: membership } = await supabase
+            .from('server_members')
+            .select('id')
+            .eq('server_id', data.server_id)
+            .eq('user_id', user.id)
+            .maybeSingle();
+          setAlreadyMember(!!membership);
+        }
+      }
+      setLoaded(true);
+    };
+    fetch();
+  }, [code, user]);
+
+  if (!loaded || !server) return null;
+
+  const handleJoin = async () => {
+    if (!user || !invite) return;
+    setJoining(true);
+    const { error } = await supabase
+      .from('server_members')
+      .insert({ server_id: invite.server_id, user_id: user.id });
+
+    if (!error) {
+      setAlreadyMember(true);
+      toast.success(`${server.name} sunucusuna katıldın!`);
+    } else {
+      toast.error('Katılırken hata oluştu');
+    }
+    setJoining(false);
+  };
+
+  return (
+    <div className="mt-1 inline-flex items-center gap-3 bg-secondary/60 border border-border rounded-lg px-3 py-2.5 max-w-xs">
+      <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-lg font-bold text-primary-foreground shrink-0">
+        {server.icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-foreground truncate">{server.name}</p>
+        <p className="text-[10px] text-muted-foreground">Sunucu Daveti</p>
+      </div>
+      {alreadyMember ? (
+        <Button size="sm" variant="secondary" disabled className="text-xs shrink-0">Katıldın</Button>
+      ) : (
+        <Button size="sm" onClick={handleJoin} disabled={joining} className="text-xs shrink-0">
+          {joining ? '...' : 'Katıl'}
+        </Button>
+      )}
+    </div>
+  );
+};
+
+export default ServerInviteEmbed;

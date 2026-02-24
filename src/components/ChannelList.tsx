@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DbChannel, DbMember } from '@/pages/Index';
-import { Hash, Volume2, Mic, Headphones, Settings, Circle, Moon, MinusCircle, EyeOff, Plus } from 'lucide-react';
+import { Hash, Volume2, Mic, Headphones, Settings, Circle, Moon, MinusCircle, EyeOff, Plus, UserPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Popover,
@@ -9,6 +9,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import CreateChannelDialog from '@/components/CreateChannelDialog';
+import InviteDialog from '@/components/InviteDialog';
 
 interface ChannelListProps {
   serverName: string;
@@ -43,6 +44,7 @@ const ChannelList = ({ serverName, serverId, channels, activeChannel, onChannelC
   const [statusOpen, setStatusOpen] = useState(false);
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
   const [channelDialogType, setChannelDialogType] = useState<'text' | 'voice'>('text');
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const textChannels = channels.filter((c) => c.type === 'text');
   const voiceChannels = channels.filter((c) => c.type === 'voice');
 
@@ -53,8 +55,17 @@ const ChannelList = ({ serverName, serverId, channels, activeChannel, onChannelC
 
   return (
     <div className={`${isMobile ? 'flex-1' : 'w-60'} bg-sidebar flex flex-col`}>
-      <div className="h-12 flex items-center px-4 border-b border-border shadow-sm font-semibold text-foreground cursor-pointer hover:bg-secondary/50 transition-colors">
-        {serverName}
+      <div className="h-12 flex items-center px-4 border-b border-border shadow-sm font-semibold text-foreground cursor-pointer hover:bg-secondary/50 transition-colors justify-between">
+        <span className="truncate">{serverName}</span>
+        {isOwner && (
+          <button
+            onClick={() => setInviteDialogOpen(true)}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            title="Davet Oluştur"
+          >
+            <UserPlus className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin px-2 py-3">
@@ -157,14 +168,22 @@ const ChannelList = ({ serverName, serverId, channels, activeChannel, onChannelC
       </div>
       </div>
       {isOwner && (
-        <CreateChannelDialog
-          open={channelDialogOpen}
-          onOpenChange={setChannelDialogOpen}
-          serverId={serverId}
-          defaultType={channelDialogType}
-          existingCount={channels.length}
-          onChannelCreated={() => onChannelCreated?.()}
-        />
+        <>
+          <CreateChannelDialog
+            open={channelDialogOpen}
+            onOpenChange={setChannelDialogOpen}
+            serverId={serverId}
+            defaultType={channelDialogType}
+            existingCount={channels.length}
+            onChannelCreated={() => onChannelCreated?.()}
+          />
+          <InviteDialog
+            open={inviteDialogOpen}
+            onOpenChange={setInviteDialogOpen}
+            serverId={serverId}
+            serverName={serverName}
+          />
+        </>
       )}
     </div>
   );
