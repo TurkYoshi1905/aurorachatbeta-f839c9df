@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { DbMessage } from '@/pages/Index';
 import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft } from 'lucide-react';
+import ServerInviteEmbed from './ServerInviteEmbed';
 
 interface ChatAreaProps {
   channelName: string;
@@ -11,6 +12,55 @@ interface ChatAreaProps {
   isMobile?: boolean;
   onBack?: () => void;
 }
+
+// Parse message content: detect URLs and invite links
+const renderMessageContent = (content: string) => {
+  // Match invite links first
+  const inviteRegex = /https?:\/\/[^\s]+\/invite\/([a-zA-Z0-9]+)/g;
+  // General URL regex
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+  // Find all invite codes
+  const inviteCodes: string[] = [];
+  let inviteMatch;
+  while ((inviteMatch = inviteRegex.exec(content)) !== null) {
+    inviteCodes.push(inviteMatch[1]);
+  }
+
+  // Split by URLs
+  const parts = content.split(urlRegex);
+
+  const elements = parts.map((part, i) => {
+    if (urlRegex.test(part)) {
+      // Reset regex lastIndex
+      urlRegex.lastIndex = 0;
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline break-all"
+        >
+          {part}
+        </a>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+
+  // Render invite embeds below
+  const embeds = inviteCodes.map((code) => (
+    <ServerInviteEmbed key={code} code={code} />
+  ));
+
+  return (
+    <>
+      <p className="text-sm text-secondary-foreground leading-relaxed">{elements}</p>
+      {embeds.length > 0 && <div className="flex flex-col gap-1">{embeds}</div>}
+    </>
+  );
+};
 
 const ChatArea = ({ channelName, messages, onSendMessage, onToggleMembers, showMembers, isMobile, onBack }: ChatAreaProps) => {
   const [input, setInput] = useState('');
@@ -78,7 +128,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onToggleMembers, showM
             }`}>
               {msg.avatar}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-2">
                 <span className={`font-medium text-sm ${msg.isBot ? 'text-primary' : 'text-foreground'}`}>
                   {msg.author}
@@ -88,7 +138,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onToggleMembers, showM
                 )}
                 <span className="text-[11px] text-muted-foreground">{msg.timestamp}</span>
               </div>
-              <p className="text-sm text-secondary-foreground leading-relaxed">{msg.content}</p>
+              {renderMessageContent(msg.content)}
             </div>
           </div>
         ))}
