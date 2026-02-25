@@ -145,6 +145,7 @@ const Index = () => {
     fetchMessages();
   }, [activeServer, activeChannel]);
 
+  // Realtime messages
   useEffect(() => {
     const channel = supabase
       .channel('realtime-messages')
@@ -176,6 +177,22 @@ const Index = () => {
 
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  // Realtime channel changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('realtime-channels')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'channels' },
+        () => {
+          fetchServers();
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchServers]);
 
   useEffect(() => {
     if (!user) return;
