@@ -1,9 +1,11 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, X, User, Shield, Megaphone, Sparkles, Wrench, Bug } from 'lucide-react';
+import { LogOut, X, User, Shield, Megaphone, Sparkles, Wrench, Bug, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const tabs = [
   { id: 'account', label: 'Hesabım', icon: User },
@@ -12,6 +14,39 @@ const tabs = [
 ];
 
 const changelogData = [
+  {
+    version: '0.0.2',
+    date: '25 Şubat 2026',
+    sections: [
+      {
+        title: 'Güncellemeler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Profil fotoğrafı yükleme özelliği eklendi',
+          'Mesajlardaki linkler için Discord tarzı embed önizleme eklendi',
+          'Kanal oluşturma artık gerçek zamanlı olarak diğer üyelere yansıyor',
+        ],
+      },
+      {
+        title: 'Küçük İyileştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Sunucu yükleme hızı optimize edildi',
+          'Avatar görüntüleme tüm bileşenlere entegre edildi',
+        ],
+      },
+      {
+        title: 'Düzeltilen Hatalar',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Kanal listesi gerçek zamanlı güncellenmeme sorunu giderildi',
+        ],
+      },
+    ],
+  },
   {
     version: '0.0.1',
     date: '25 Şubat 2026',
@@ -52,10 +87,53 @@ const changelogData = [
 ];
 
 const Settings = () => {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('account');
   const isMobile = useIsMobile();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+  }, [profile]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Lütfen bir resim dosyası seçin');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Dosya boyutu 5MB\'dan küçük olmalı');
+      return;
+    }
+
+    setUploading(true);
+    const ext = file.name.split('.').pop();
+    const path = `${user.id}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) {
+      toast.error('Yükleme başarısız');
+      setUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('user_id', user.id);
+    setAvatarUrl(publicUrl);
+    toast.success('Profil fotoğrafı güncellendi!');
+    setUploading(false);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -148,8 +226,28 @@ const Settings = () => {
 
               <div className="rounded-lg border border-border bg-card p-4 md:p-5 space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary flex items-center justify-center text-xl md:text-2xl font-bold text-primary-foreground shrink-0">
-                    {profile?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                  <div className="relative group">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Avatar" className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary flex items-center justify-center text-xl md:text-2xl font-bold text-primary-foreground shrink-0">
+                        {profile?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    >
+                      <Camera className="w-5 h-5 text-white" />
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                    />
                   </div>
                   <div className="min-w-0">
                     <p className="text-lg font-semibold text-foreground truncate">{profile?.display_name || 'Kullanıcı'}</p>

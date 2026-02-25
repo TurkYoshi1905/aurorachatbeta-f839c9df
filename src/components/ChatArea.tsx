@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { DbMessage } from '@/pages/Index';
 import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft } from 'lucide-react';
 import ServerInviteEmbed from './ServerInviteEmbed';
+import LinkEmbed from './LinkEmbed';
 
 interface ChatAreaProps {
   channelName: string;
@@ -54,10 +55,23 @@ const renderMessageContent = (content: string) => {
     <ServerInviteEmbed key={code} code={code} />
   ));
 
+  // Find non-invite URLs for generic link embeds
+  const allUrls: string[] = [];
+  let urlMatch;
+  const urlScanRegex = /(https?:\/\/[^\s]+)/g;
+  while ((urlMatch = urlScanRegex.exec(content)) !== null) {
+    allUrls.push(urlMatch[1]);
+  }
+  const inviteUrlRegex = /https?:\/\/[^\s]+\/invite\/[a-zA-Z0-9]+/;
+  const nonInviteUrls = allUrls.filter((u) => !inviteUrlRegex.test(u));
+
   return (
     <>
       <p className="text-sm text-secondary-foreground leading-relaxed">{elements}</p>
       {embeds.length > 0 && <div className="flex flex-col gap-1">{embeds}</div>}
+      {nonInviteUrls.map((u) => (
+        <LinkEmbed key={u} url={u} />
+      ))}
     </>
   );
 };
