@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, X, User, Shield } from 'lucide-react';
+import { LogOut, X, User, Shield, Megaphone, Sparkles, Wrench, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -8,6 +8,47 @@ import { useIsMobile } from '@/hooks/use-mobile';
 const tabs = [
   { id: 'account', label: 'Hesabım', icon: User },
   { id: 'privacy', label: 'Gizlilik', icon: Shield },
+  { id: 'changelog', label: 'Güncelleme Notları', icon: Megaphone },
+];
+
+const changelogData = [
+  {
+    version: '0.0.1',
+    date: '25 Şubat 2026',
+    sections: [
+      {
+        title: 'Güncellemeler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Sunucu oluşturma ve katılma sistemi eklendi',
+          'Davet linki oluşturma ve paylaşma özelliği eklendi',
+          'Gerçek zamanlı mesajlaşma altyapısı kuruldu',
+          'Kullanıcı durumu (çevrimiçi/meşgul/rahatsız etmeyin) desteği eklendi',
+          'Güncelleme notları sayfası eklendi',
+        ],
+      },
+      {
+        title: 'Küçük İyileştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Sunucular artık sadece üyelere görünür (Discord benzeri)',
+          'Mobil arayüz iyileştirmeleri yapıldı',
+          'Ayarlar sayfası responsive tasarımı güncellendi',
+        ],
+      },
+      {
+        title: 'Düzeltilen Hatalar',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Farklı hesaplardan sunucu görünürlük sorunu düzeltildi',
+          'Kanal listesi sıralama hatası giderildi',
+        ],
+      },
+    ],
+  },
 ];
 
 const Settings = () => {
@@ -30,7 +71,7 @@ const Settings = () => {
 
   return (
     <div className="h-screen flex flex-col md:flex-row bg-background text-foreground">
-      {/* Mobil üst bar: kapat + tab'lar */}
+      {/* Mobil üst bar */}
       {isMobile && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-sidebar overflow-x-auto shrink-0">
           <button
@@ -144,6 +185,38 @@ const Settings = () => {
               <div className="rounded-lg border border-border bg-card p-4 md:p-5">
                 <p className="text-sm text-muted-foreground">Yakında eklenecek.</p>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'changelog' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold">Güncelleme Notları</h2>
+              {changelogData.map((release) => (
+                <div key={release.version} className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-xs font-bold">
+                      v{release.version}
+                    </span>
+                    <span className="text-sm text-muted-foreground">{release.date}</span>
+                  </div>
+
+                  {release.sections.map((section) => (
+                    <div key={section.title} className="rounded-lg border border-border bg-card p-4 md:p-5 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <section.icon className={`w-4 h-4 ${section.color}`} />
+                        <p className="text-sm font-semibold text-foreground">{section.title}</p>
+                      </div>
+                      <ul className="space-y-1.5 ml-6">
+                        {section.items.map((item, i) => (
+                          <li key={i} className="text-sm text-muted-foreground list-disc">
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
           )}
         </div>
