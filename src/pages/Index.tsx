@@ -11,6 +11,7 @@ export interface DbMessage {
   id: string;
   author: string;
   avatar: string;
+  avatarUrl?: string | null;
   content: string;
   timestamp: string;
   isBot?: boolean;
@@ -20,6 +21,7 @@ export interface DbMember {
   id: string;
   name: string;
   avatar: string;
+  avatarUrl?: string | null;
   status: 'online' | 'idle' | 'dnd' | 'offline';
   role?: string;
 }
@@ -109,6 +111,7 @@ const Index = () => {
             id: p.user_id,
             name: p.display_name,
             avatar: p.display_name?.charAt(0)?.toUpperCase() || '?',
+            avatarUrl: p.avatar_url || null,
             status: 'offline' as const,
           }))
         );
@@ -128,11 +131,20 @@ const Index = () => {
         .order('created_at', { ascending: true });
 
       if (data) {
+        // Fetch profiles for avatar urls
+        const userIds = [...new Set(data.map((m) => m.user_id))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, avatar_url')
+          .in('user_id', userIds);
+        const avatarMap = new Map(profiles?.map((p) => [p.user_id, p.avatar_url]) || []);
+
         setMessages(
           data.map((m) => ({
             id: m.id,
             author: m.author_name,
             avatar: m.author_name?.charAt(0)?.toUpperCase() || '?',
+            avatarUrl: avatarMap.get(m.user_id) || null,
             content: m.content,
             timestamp: new Date(m.created_at).toLocaleTimeString('tr-TR', {
               hour: '2-digit',
@@ -152,18 +164,25 @@ const Index = () => {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
+        async (payload) => {
           const m = payload.new as {
             id: string; server_id: string; channel_id: string;
-            author_name: string; content: string; created_at: string;
+            author_name: string; content: string; created_at: string; user_id: string;
           };
           if (m.server_id === serverRef.current && m.channel_id === channelRef.current) {
+            // Fetch avatar url for the message author
+            const { data: prof } = await supabase
+              .from('profiles')
+              .select('avatar_url')
+              .eq('user_id', m.user_id)
+              .maybeSingle();
             setMessages((prev) => [
               ...prev,
               {
                 id: m.id,
                 author: m.author_name,
                 avatar: m.author_name?.charAt(0)?.toUpperCase() || '?',
+                avatarUrl: prof?.avatar_url || null,
                 content: m.content,
                 timestamp: new Date(m.created_at).toLocaleTimeString('tr-TR', {
                   hour: '2-digit', minute: '2-digit',
@@ -185,6 +204,22 @@ const Index = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'channels' },
+        () => {
+          fetchServers();
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchServers]);
+
+  // Realtime server changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('realtime-servers')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'servers' },
         () => {
           fetchServers();
         }
@@ -285,6 +320,12 @@ const Index = () => {
     }
   }, []);
 
+  const handleServerDeleted = useCallback(() => {
+    setActiveServer('');
+    setActiveChannel('');
+    fetchServers();
+  }, [fetchServers]);
+
   const handleChannelChange = useCallback((id: string) => {
     setActiveChannel(id);
     if (isMobile) setMobileView('chat');
@@ -335,6 +376,7 @@ const Index = () => {
             <ChannelList
               serverName={server.name}
               serverId={server.id}
+              serverIcon={server.icon}
               channels={server.channels}
               activeChannel={activeChannel}
               onChannelChange={handleChannelChange}
@@ -342,6 +384,8 @@ const Index = () => {
               onStatusChange={setMyStatus}
               isOwner={isOwner}
               onChannelCreated={fetchServers}
+              onServerDeleted={handleServerDeleted}
+              onServerUpdated={fetchServers}
               isMobile
             />
           </div>
@@ -370,6 +414,7 @@ const Index = () => {
       <ChannelList
         serverName={server.name}
         serverId={server.id}
+        serverIcon={server.icon}
         channels={server.channels}
         activeChannel={activeChannel}
         onChannelChange={handleChannelChange}
@@ -377,6 +422,8 @@ const Index = () => {
         onStatusChange={setMyStatus}
         isOwner={isOwner}
         onChannelCreated={fetchServers}
+        onServerDeleted={handleServerDeleted}
+        onServerUpdated={fetchServers}
       />
       <ChatArea
         channelName={channel.name}

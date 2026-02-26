@@ -24,8 +24,12 @@ const MemberList = ({ members, isMobile, onBack }: MemberListProps) => {
       className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-secondary/50 cursor-pointer transition-colors"
     >
       <div className="relative">
-        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm">
-          {member.avatar}
+        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm overflow-hidden">
+          {member.avatarUrl ? (
+            <img src={member.avatarUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            member.avatar
+          )}
         </div>
         <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-sidebar ${statusColor[member.status]}`} />
       </div>
