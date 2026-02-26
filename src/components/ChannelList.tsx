@@ -10,10 +10,12 @@ import {
 } from '@/components/ui/popover';
 import CreateChannelDialog from '@/components/CreateChannelDialog';
 import InviteDialog from '@/components/InviteDialog';
+import ServerSettingsDialog from '@/components/ServerSettingsDialog';
 
 interface ChannelListProps {
   serverName: string;
   serverId: string;
+  serverIcon: string;
   channels: DbChannel[];
   activeChannel: string;
   onChannelChange: (id: string) => void;
@@ -21,6 +23,8 @@ interface ChannelListProps {
   onStatusChange?: (status: DbMember['status']) => void;
   isOwner?: boolean;
   onChannelCreated?: () => void;
+  onServerDeleted?: () => void;
+  onServerUpdated?: () => void;
   isMobile?: boolean;
 }
 
@@ -38,13 +42,14 @@ const statusOptions: { value: DbMember['status']; label: string; icon: React.Rea
   { value: 'offline', label: 'Görünmez', icon: <EyeOff className="w-4 h-4 text-muted-foreground" />, desc: 'Çevrimdışı görünürsünüz' },
 ];
 
-const ChannelList = ({ serverName, serverId, channels, activeChannel, onChannelChange, currentUserStatus = 'offline', onStatusChange, isOwner, onChannelCreated, isMobile }: ChannelListProps) => {
+const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel, onChannelChange, currentUserStatus = 'offline', onStatusChange, isOwner, onChannelCreated, onServerDeleted, onServerUpdated, isMobile }: ChannelListProps) => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [statusOpen, setStatusOpen] = useState(false);
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
   const [channelDialogType, setChannelDialogType] = useState<'text' | 'voice'>('text');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const textChannels = channels.filter((c) => c.type === 'text');
   const voiceChannels = channels.filter((c) => c.type === 'voice');
 
@@ -57,15 +62,26 @@ const ChannelList = ({ serverName, serverId, channels, activeChannel, onChannelC
     <div className={`${isMobile ? 'flex-1' : 'w-60'} bg-sidebar flex flex-col`}>
       <div className="h-12 flex items-center px-4 border-b border-border shadow-sm font-semibold text-foreground cursor-pointer hover:bg-secondary/50 transition-colors justify-between">
         <span className="truncate">{serverName}</span>
-        {isOwner && (
-          <button
-            onClick={() => setInviteDialogOpen(true)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            title="Davet Oluştur"
-          >
-            <UserPlus className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-1.5">
+          {isOwner && (
+            <>
+              <button
+                onClick={() => setInviteDialogOpen(true)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="Davet Oluştur"
+              >
+                <UserPlus className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setSettingsOpen(true)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="Sunucu Ayarları"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin px-2 py-3">
@@ -182,6 +198,15 @@ const ChannelList = ({ serverName, serverId, channels, activeChannel, onChannelC
             onOpenChange={setInviteDialogOpen}
             serverId={serverId}
             serverName={serverName}
+          />
+          <ServerSettingsDialog
+            open={settingsOpen}
+            onOpenChange={setSettingsOpen}
+            serverId={serverId}
+            serverName={serverName}
+            serverIcon={serverIcon}
+            onServerDeleted={() => onServerDeleted?.()}
+            onServerUpdated={() => onServerUpdated?.()}
           />
         </>
       )}
