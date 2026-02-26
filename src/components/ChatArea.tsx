@@ -126,7 +126,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onToggleMembers, showM
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin px-4 py-4 space-y-4" style={{ minHeight: 0 }}>
         <div className="mb-6">
           <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-3xl mb-3">
             <Hash className="w-8 h-8 text-foreground" />
