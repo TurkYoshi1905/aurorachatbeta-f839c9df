@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { DbMessage } from '@/pages/Index';
-import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft } from 'lucide-react';
+import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft, Trash2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import ServerInviteEmbed from './ServerInviteEmbed';
 import LinkEmbed from './LinkEmbed';
 
@@ -8,8 +9,10 @@ interface ChatAreaProps {
   channelName: string;
   messages: DbMessage[];
   onSendMessage: (content: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
   onToggleMembers: () => void;
   showMembers: boolean;
+  isOwner?: boolean;
   isMobile?: boolean;
   onBack?: () => void;
 }
@@ -76,7 +79,8 @@ const renderMessageContent = (content: string) => {
   );
 };
 
-const ChatArea = ({ channelName, messages, onSendMessage, onToggleMembers, showMembers, isMobile, onBack }: ChatAreaProps) => {
+const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack }: ChatAreaProps) => {
+  const { user } = useAuth();
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -136,7 +140,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onToggleMembers, showM
         </div>
 
         {messages.map((msg) => (
-          <div key={msg.id} className="flex gap-3 group hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors">
+          <div key={msg.id} className="flex gap-3 group hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors relative">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 font-semibold overflow-hidden ${
               msg.isBot ? 'bg-primary/20 aurora-glow' : 'bg-secondary'
             }`}>
@@ -158,6 +162,15 @@ const ChatArea = ({ channelName, messages, onSendMessage, onToggleMembers, showM
               </div>
               {renderMessageContent(msg.content)}
             </div>
+            {(msg.userId === user?.id || isOwner) && onDeleteMessage && (
+              <button
+                onClick={() => onDeleteMessage(msg.id)}
+                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
+                title="Mesajı Sil"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         ))}
         <div ref={bottomRef} />

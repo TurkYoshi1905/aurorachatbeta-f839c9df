@@ -12,6 +12,7 @@ export interface DbMessage {
   author: string;
   avatar: string;
   avatarUrl?: string | null;
+  userId: string;
   content: string;
   timestamp: string;
   isBot?: boolean;
@@ -145,6 +146,7 @@ const Index = () => {
             author: m.author_name,
             avatar: m.author_name?.charAt(0)?.toUpperCase() || '?',
             avatarUrl: avatarMap.get(m.user_id) || null,
+            userId: m.user_id,
             content: m.content,
             timestamp: new Date(m.created_at).toLocaleTimeString('tr-TR', {
               hour: '2-digit',
@@ -183,12 +185,23 @@ const Index = () => {
                 author: m.author_name,
                 avatar: m.author_name?.charAt(0)?.toUpperCase() || '?',
                 avatarUrl: prof?.avatar_url || null,
+                userId: m.user_id,
                 content: m.content,
                 timestamp: new Date(m.created_at).toLocaleTimeString('tr-TR', {
                   hour: '2-digit', minute: '2-digit',
                 }),
               },
             ]);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'messages' },
+        (payload) => {
+          const old = payload.old as { id: string };
+          if (old?.id) {
+            setMessages((prev) => prev.filter((m) => m.id !== old.id));
           }
         }
       )
@@ -345,6 +358,27 @@ const Index = () => {
     [user, profile, activeServer, activeChannel]
   );
 
+  const handleDeleteMessage = useCallback(
+    async (messageId: string) => {
+      const { error } = await supabase.from('messages').delete().eq('id', messageId);
+      if (!error) {
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      }
+    },
+    []
+  );
+
+  const handleLeaveServer = useCallback(
+    async () => {
+      if (!user) return;
+      await supabase.from('server_members').delete().eq('server_id', activeServer).eq('user_id', user.id);
+      setActiveServer('');
+      setActiveChannel('');
+      fetchServers();
+    },
+    [user, activeServer, fetchServers]
+  );
+
   if (servers.length === 0) {
     return (
       <div className="h-screen flex overflow-hidden">
@@ -386,6 +420,7 @@ const Index = () => {
               onChannelCreated={fetchServers}
               onServerDeleted={handleServerDeleted}
               onServerUpdated={fetchServers}
+              onLeaveServer={handleLeaveServer}
               isMobile
             />
           </div>
@@ -395,8 +430,10 @@ const Index = () => {
             channelName={channel.name}
             messages={messages}
             onSendMessage={handleSendMessage}
+            onDeleteMessage={handleDeleteMessage}
             onToggleMembers={() => setMobileView('members')}
             showMembers={false}
+            isOwner={isOwner}
             isMobile
             onBack={() => setMobileView('channels')}
           />
@@ -424,13 +461,16 @@ const Index = () => {
         onChannelCreated={fetchServers}
         onServerDeleted={handleServerDeleted}
         onServerUpdated={fetchServers}
+        onLeaveServer={handleLeaveServer}
       />
       <ChatArea
         channelName={channel.name}
         messages={messages}
         onSendMessage={handleSendMessage}
+        onDeleteMessage={handleDeleteMessage}
         onToggleMembers={() => setShowMembers((p) => !p)}
         showMembers={showMembers}
+        isOwner={isOwner}
       />
       {showMembers && <MemberList members={members} />}
     </div>
