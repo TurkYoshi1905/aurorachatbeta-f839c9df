@@ -142,8 +142,12 @@ const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel
         <Popover open={statusOpen} onOpenChange={setStatusOpen}>
           <PopoverTrigger asChild>
             <button className="relative flex-shrink-0 cursor-pointer rounded-full hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-sm font-medium text-primary-foreground">
-                {profile?.display_name?.charAt(0)?.toUpperCase() || '?'}
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-sm font-medium text-primary-foreground overflow-hidden">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  profile?.display_name?.charAt(0)?.toUpperCase() || '?'
+                )}
               </div>
               <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-server-bg ${statusColor[currentUserStatus]}`} />
             </button>
