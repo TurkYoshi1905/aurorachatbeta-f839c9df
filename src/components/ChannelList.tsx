@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DbChannel, DbMember } from '@/pages/Index';
-import { Hash, Volume2, Mic, Headphones, Settings, Circle, Moon, MinusCircle, EyeOff, Plus, UserPlus } from 'lucide-react';
+import { Hash, Volume2, Mic, Headphones, Settings, Circle, Moon, MinusCircle, EyeOff, Plus, UserPlus, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Popover,
@@ -25,6 +25,7 @@ interface ChannelListProps {
   onChannelCreated?: () => void;
   onServerDeleted?: () => void;
   onServerUpdated?: () => void;
+  onLeaveServer?: () => void;
   isMobile?: boolean;
 }
 
@@ -42,7 +43,7 @@ const statusOptions: { value: DbMember['status']; label: string; icon: React.Rea
   { value: 'offline', label: 'Görünmez', icon: <EyeOff className="w-4 h-4 text-muted-foreground" />, desc: 'Çevrimdışı görünürsünüz' },
 ];
 
-const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel, onChannelChange, currentUserStatus = 'offline', onStatusChange, isOwner, onChannelCreated, onServerDeleted, onServerUpdated, isMobile }: ChannelListProps) => {
+const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel, onChannelChange, currentUserStatus = 'offline', onStatusChange, isOwner, onChannelCreated, onServerDeleted, onServerUpdated, onLeaveServer, isMobile }: ChannelListProps) => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [statusOpen, setStatusOpen] = useState(false);
@@ -63,6 +64,15 @@ const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel
       <div className="h-12 flex items-center px-4 border-b border-border shadow-sm font-semibold text-foreground cursor-pointer hover:bg-secondary/50 transition-colors justify-between">
         <span className="truncate">{serverName}</span>
         <div className="flex items-center gap-1.5">
+          {!isOwner && onLeaveServer && (
+            <button
+              onClick={onLeaveServer}
+              className="text-destructive hover:text-destructive/80 transition-colors"
+              title="Sunucudan Ayrıl"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
           {isOwner && (
             <>
               <button
