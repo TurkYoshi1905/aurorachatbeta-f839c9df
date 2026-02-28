@@ -103,23 +103,32 @@ const Index = () => {
     fetchServers();
   }, []);
 
+  const fetchMembers = useCallback(async () => {
+    if (!activeServer) return;
+    const { data: memberRows } = await supabase
+      .from('server_members')
+      .select('user_id')
+      .eq('server_id', activeServer);
+    if (!memberRows) return;
+    const userIds = memberRows.map((m) => m.user_id);
+    if (userIds.length === 0) { setMembers([]); return; }
+    const { data } = await supabase.from('profiles').select('*').in('user_id', userIds);
+    if (data) {
+      setMembers(
+        data.map((p) => ({
+          id: p.user_id,
+          name: p.display_name,
+          avatar: p.display_name?.charAt(0)?.toUpperCase() || '?',
+          avatarUrl: p.avatar_url || null,
+          status: 'offline' as const,
+        }))
+      );
+    }
+  }, [activeServer]);
+
   useEffect(() => {
-    const fetchMembers = async () => {
-      const { data } = await supabase.from('profiles').select('*');
-      if (data) {
-        setMembers(
-          data.map((p) => ({
-            id: p.user_id,
-            name: p.display_name,
-            avatar: p.display_name?.charAt(0)?.toUpperCase() || '?',
-            avatarUrl: p.avatar_url || null,
-            status: 'offline' as const,
-          }))
-        );
-      }
-    };
     fetchMembers();
-  }, []);
+  }, [fetchMembers]);
 
   useEffect(() => {
     if (!activeServer || !activeChannel) return;
@@ -241,6 +250,22 @@ const Index = () => {
 
     return () => { supabase.removeChannel(channel); };
   }, [fetchServers]);
+
+  // Realtime server_members changes — refresh member list on kick/leave/join
+  useEffect(() => {
+    const channel = supabase
+      .channel('realtime-server-members')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'server_members' },
+        () => {
+          fetchMembers();
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchMembers]);
 
   useEffect(() => {
     if (!user) return;
@@ -403,7 +428,7 @@ const Index = () => {
 
   if (isMobile) {
     return (
-      <div className="h-screen flex flex-col overflow-hidden">
+      <div className="h-screen flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
         {mobileView === 'channels' && (
           <div className="flex h-full">
             <ServerSidebar activeServer={activeServer} onServerChange={handleServerChange} servers={servers} onServerCreated={handleServerCreated} />
