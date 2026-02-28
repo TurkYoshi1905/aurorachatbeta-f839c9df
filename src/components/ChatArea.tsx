@@ -95,7 +95,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onTog
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0">
+    <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
       <div className="h-12 flex items-center px-4 border-b border-border shadow-sm gap-2">
         {isMobile && onBack && (
           <button onClick={onBack} className="mr-1 text-muted-foreground hover:text-foreground transition-colors">

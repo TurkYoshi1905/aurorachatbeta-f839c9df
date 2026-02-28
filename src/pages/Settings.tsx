@@ -15,6 +15,33 @@ const tabs = [
 
 const changelogData = [
   {
+    version: '0.0.3',
+    date: '28 Şubat 2026',
+    sections: [
+      {
+        title: 'Güncellemeler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Kullanıcılar kendi mesajlarını silebilir',
+          'Sunucu sahipleri herhangi bir mesajı silebilir',
+          'Üyeler sunucudan ayrılabilir',
+          'Sunucu sahipleri üyeleri atabilir',
+          'Sunucu ayarları (ad, simge güncelleme) eklendi',
+        ],
+      },
+      {
+        title: 'Düzeltilen Hatalar',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Mobil arayüzde sohbet alanı kaydırma sorunu giderildi',
+          'Üye atıldığında üye listesinin güncellenmeme sorunu düzeltildi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.0.2',
     date: '25 Şubat 2026',
     sections: [
