@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { DbMessage } from '@/pages/Index';
-import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft, Trash2 } from 'lucide-react';
+import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ServerInviteEmbed from './ServerInviteEmbed';
 import LinkEmbed from './LinkEmbed';
@@ -10,6 +10,7 @@ interface ChatAreaProps {
   messages: DbMessage[];
   onSendMessage: (content: string) => void;
   onDeleteMessage?: (messageId: string) => void;
+  onEditMessage?: (messageId: string, newContent: string) => void;
   onToggleMembers: () => void;
   showMembers: boolean;
   isOwner?: boolean;
@@ -19,33 +20,22 @@ interface ChatAreaProps {
 
 // Parse message content: detect URLs and invite links
 const renderMessageContent = (content: string) => {
-  // Match invite links first
   const inviteRegex = /https?:\/\/[^\s]+\/invite\/([a-zA-Z0-9]+)/g;
-  // General URL regex
   const urlRegex = /(https?:\/\/[^\s]+)/g;
 
-  // Find all invite codes
   const inviteCodes: string[] = [];
   let inviteMatch;
   while ((inviteMatch = inviteRegex.exec(content)) !== null) {
     inviteCodes.push(inviteMatch[1]);
   }
 
-  // Split by URLs
   const parts = content.split(urlRegex);
 
   const elements = parts.map((part, i) => {
     if (urlRegex.test(part)) {
-      // Reset regex lastIndex
       urlRegex.lastIndex = 0;
       return (
-        <a
-          key={i}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary hover:underline break-all"
-        >
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
           {part}
         </a>
       );
@@ -53,12 +43,10 @@ const renderMessageContent = (content: string) => {
     return <span key={i}>{part}</span>;
   });
 
-  // Render invite embeds below
   const embeds = inviteCodes.map((code) => (
     <ServerInviteEmbed key={code} code={code} />
   ));
 
-  // Find non-invite URLs for generic link embeds
   const allUrls: string[] = [];
   let urlMatch;
   const urlScanRegex = /(https?:\/\/[^\s]+)/g;
@@ -79,19 +67,43 @@ const renderMessageContent = (content: string) => {
   );
 };
 
-const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack }: ChatAreaProps) => {
+const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack }: ChatAreaProps) => {
   const { user } = useAuth();
   const [input, setInput] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    if (editingId) editInputRef.current?.focus();
+  }, [editingId]);
+
   const handleSend = () => {
     if (!input.trim()) return;
     onSendMessage(input.trim());
     setInput('');
+  };
+
+  const startEdit = (msg: DbMessage) => {
+    setEditingId(msg.id);
+    setEditContent(msg.content);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditContent('');
+  };
+
+  const confirmEdit = () => {
+    if (!editingId || !editContent.trim()) return;
+    onEditMessage?.(editingId, editContent.trim());
+    setEditingId(null);
+    setEditContent('');
   };
 
   return (
@@ -159,17 +171,54 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onTog
                   <span className="text-[9px] bg-primary text-primary-foreground px-1 py-0.5 rounded font-bold uppercase">Bot</span>
                 )}
                 <span className="text-[11px] text-muted-foreground">{msg.timestamp}</span>
+                {msg.edited && (
+                  <span className="text-[10px] text-muted-foreground italic">(Düzenlendi)</span>
+                )}
               </div>
-              {renderMessageContent(msg.content)}
+              {editingId === msg.id ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    ref={editInputRef}
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') confirmEdit();
+                      if (e.key === 'Escape') cancelEdit();
+                    }}
+                    className="flex-1 bg-input rounded px-2 py-1 text-sm outline-none text-foreground"
+                  />
+                  <button onClick={confirmEdit} className="text-green-500 hover:text-green-400 transition-colors">
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                renderMessageContent(msg.content)
+              )}
             </div>
-            {(msg.userId === user?.id || isOwner) && onDeleteMessage && (
-              <button
-                onClick={() => onDeleteMessage(msg.id)}
-                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
-                title="Mesajı Sil"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+            {editingId !== msg.id && (
+              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
+                {msg.userId === user?.id && onEditMessage && (
+                  <button
+                    onClick={() => startEdit(msg)}
+                    className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
+                    title="Mesajı Düzenle"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {(msg.userId === user?.id || isOwner) && onDeleteMessage && (
+                  <button
+                    onClick={() => onDeleteMessage(msg.id)}
+                    className="p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
+                    title="Mesajı Sil"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             )}
           </div>
         ))}

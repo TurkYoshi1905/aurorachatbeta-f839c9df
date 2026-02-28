@@ -16,7 +16,18 @@ export interface DbMessage {
   content: string;
   timestamp: string;
   isBot?: boolean;
+  edited?: boolean;
 }
+
+const formatTimestamp = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const hour = String(d.getHours()).padStart(2, '0');
+  const minute = String(d.getMinutes()).padStart(2, '0');
+  return `${day}.${month}.${year} ${hour}:${minute}`;
+};
 
 export interface DbMember {
   id: string;
@@ -157,10 +168,8 @@ const Index = () => {
             avatarUrl: avatarMap.get(m.user_id) || null,
             userId: m.user_id,
             content: m.content,
-            timestamp: new Date(m.created_at).toLocaleTimeString('tr-TR', {
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
+            timestamp: formatTimestamp(m.created_at),
+            edited: !!(m as any).updated_at,
           }))
         );
       }
@@ -196,11 +205,29 @@ const Index = () => {
                 avatarUrl: prof?.avatar_url || null,
                 userId: m.user_id,
                 content: m.content,
-                timestamp: new Date(m.created_at).toLocaleTimeString('tr-TR', {
-                  hour: '2-digit', minute: '2-digit',
-                }),
+                timestamp: formatTimestamp(m.created_at),
+                edited: false,
               },
             ]);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        (payload) => {
+          const m = payload.new as {
+            id: string; content: string; updated_at: string | null;
+            server_id: string; channel_id: string;
+          };
+          if (m.server_id === serverRef.current && m.channel_id === channelRef.current) {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === m.id
+                  ? { ...msg, content: m.content, edited: !!m.updated_at }
+                  : msg
+              )
+            );
           }
         }
       )
@@ -393,6 +420,16 @@ const Index = () => {
     []
   );
 
+  const handleEditMessage = useCallback(
+    async (messageId: string, newContent: string) => {
+      await supabase
+        .from('messages')
+        .update({ content: newContent, updated_at: new Date().toISOString() } as any)
+        .eq('id', messageId);
+    },
+    []
+  );
+
   const handleLeaveServer = useCallback(
     async () => {
       if (!user) return;
@@ -456,6 +493,7 @@ const Index = () => {
             messages={messages}
             onSendMessage={handleSendMessage}
             onDeleteMessage={handleDeleteMessage}
+            onEditMessage={handleEditMessage}
             onToggleMembers={() => setMobileView('members')}
             showMembers={false}
             isOwner={isOwner}
@@ -493,6 +531,7 @@ const Index = () => {
         messages={messages}
         onSendMessage={handleSendMessage}
         onDeleteMessage={handleDeleteMessage}
+        onEditMessage={handleEditMessage}
         onToggleMembers={() => setShowMembers((p) => !p)}
         showMembers={showMembers}
         isOwner={isOwner}
