@@ -15,6 +15,33 @@ const tabs = [
 
 const changelogData = [
   {
+    version: '0.0.4',
+    date: '1 Mart 2026',
+    sections: [
+      {
+        title: 'Güncellemeler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Mesajlara emoji tepki özelliği eklendi (Discord tarzı)',
+          'Emoji tepkileri gerçek zamanlı olarak tüm kullanıcılara yansıyor',
+          'Mesaj düzenleme özelliği eklendi — kullanıcılar kendi mesajlarını düzenleyebilir',
+          'Düzenlenen mesajlarda "(Düzenlendi)" etiketi gösteriliyor',
+        ],
+      },
+      {
+        title: 'Küçük İyileştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Mesaj zaman formatı GG.AA.YYYY SS:DD olarak güncellendi',
+          'Emoji seçici popover ile kolay erişim sağlandı',
+          'Tepki toggle mantığı: aynı emojiye tekrar tıklayınca tepki kaldırılıyor',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.0.3',
     date: '28 Şubat 2026',
     sections: [
