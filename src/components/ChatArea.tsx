@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { DbMessage } from '@/pages/Index';
+import { DbMessage, DbReaction } from '@/pages/Index';
 import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ServerInviteEmbed from './ServerInviteEmbed';
 import LinkEmbed from './LinkEmbed';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
+const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👀', '💯', '✅', '❌', '🤔', '👏', '💪', '🙏', '😎', '🥳', '💀', '😭', '🫡', '👎', '💜', '🧡'];
 
 interface ChatAreaProps {
   channelName: string;
@@ -16,6 +19,8 @@ interface ChatAreaProps {
   isOwner?: boolean;
   isMobile?: boolean;
   onBack?: () => void;
+  reactions?: Record<string, DbReaction[]>;
+  onToggleReaction?: (messageId: string, emoji: string) => void;
 }
 
 // Parse message content: detect URLs and invite links
@@ -67,7 +72,7 @@ const renderMessageContent = (content: string) => {
   );
 };
 
-const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack }: ChatAreaProps) => {
+const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction }: ChatAreaProps) => {
   const { user } = useAuth();
   const [input, setInput] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -151,77 +156,128 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
           <p className="text-muted-foreground text-sm mt-1">Bu #{channelName} kanalının başlangıcıdır.</p>
         </div>
 
-        {messages.map((msg) => (
-          <div key={msg.id} className="flex gap-3 group hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors relative">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 font-semibold overflow-hidden ${
-              msg.isBot ? 'bg-primary/20 aurora-glow' : 'bg-secondary'
-            }`}>
-              {msg.avatarUrl ? (
-                <img src={msg.avatarUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                msg.avatar
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline gap-2">
-                <span className={`font-medium text-sm ${msg.isBot ? 'text-primary' : 'text-foreground'}`}>
-                  {msg.author}
-                </span>
-                {msg.isBot && (
-                  <span className="text-[9px] bg-primary text-primary-foreground px-1 py-0.5 rounded font-bold uppercase">Bot</span>
-                )}
-                <span className="text-[11px] text-muted-foreground">{msg.timestamp}</span>
-                {msg.edited && (
-                  <span className="text-[10px] text-muted-foreground italic">(Düzenlendi)</span>
+        {messages.map((msg) => {
+          const msgReactions = reactions?.[msg.id] || [];
+          return (
+            <div key={msg.id} className="flex gap-3 group hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors relative">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 font-semibold overflow-hidden ${
+                msg.isBot ? 'bg-primary/20 aurora-glow' : 'bg-secondary'
+              }`}>
+                {msg.avatarUrl ? (
+                  <img src={msg.avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  msg.avatar
                 )}
               </div>
-              {editingId === msg.id ? (
-                <div className="flex items-center gap-2 mt-1">
-                  <input
-                    ref={editInputRef}
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') confirmEdit();
-                      if (e.key === 'Escape') cancelEdit();
-                    }}
-                    className="flex-1 bg-input rounded px-2 py-1 text-sm outline-none text-foreground"
-                  />
-                  <button onClick={confirmEdit} className="text-green-500 hover:text-green-400 transition-colors">
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground transition-colors">
-                    <X className="w-4 h-4" />
-                  </button>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-2">
+                  <span className={`font-medium text-sm ${msg.isBot ? 'text-primary' : 'text-foreground'}`}>
+                    {msg.author}
+                  </span>
+                  {msg.isBot && (
+                    <span className="text-[9px] bg-primary text-primary-foreground px-1 py-0.5 rounded font-bold uppercase">Bot</span>
+                  )}
+                  <span className="text-[11px] text-muted-foreground">{msg.timestamp}</span>
+                  {msg.edited && (
+                    <span className="text-[10px] text-muted-foreground italic">(Düzenlendi)</span>
+                  )}
                 </div>
-              ) : (
-                renderMessageContent(msg.content)
-              )}
-            </div>
-            {editingId !== msg.id && (
-              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
-                {msg.userId === user?.id && onEditMessage && (
-                  <button
-                    onClick={() => startEdit(msg)}
-                    className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
-                    title="Mesajı Düzenle"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
+                {editingId === msg.id ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      ref={editInputRef}
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') confirmEdit();
+                        if (e.key === 'Escape') cancelEdit();
+                      }}
+                      className="flex-1 bg-input rounded px-2 py-1 text-sm outline-none text-foreground"
+                    />
+                    <button onClick={confirmEdit} className="text-green-500 hover:text-green-400 transition-colors">
+                      <Check className="w-4 h-4" />
+                    </button>
+                    <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  renderMessageContent(msg.content)
                 )}
-                {(msg.userId === user?.id || isOwner) && onDeleteMessage && (
-                  <button
-                    onClick={() => onDeleteMessage(msg.id)}
-                    className="p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
-                    title="Mesajı Sil"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+
+                {/* Reaction badges */}
+                {msgReactions.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {msgReactions.map((r) => {
+                      const hasReacted = user ? r.userIds.includes(user.id) : false;
+                      return (
+                        <button
+                          key={r.emoji}
+                          onClick={() => onToggleReaction?.(msg.id, r.emoji)}
+                          className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md border transition-colors ${
+                            hasReacted
+                              ? 'bg-primary/20 border-primary/40 text-primary'
+                              : 'bg-secondary/50 border-border text-muted-foreground hover:bg-secondary'
+                          }`}
+                        >
+                          <span>{r.emoji}</span>
+                          <span className="font-medium">{r.count}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        ))}
+              {editingId !== msg.id && (
+                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
+                  {onToggleReaction && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
+                          title="Tepki Ekle"
+                        >
+                          <SmilePlus className="w-3.5 h-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-2" side="top" align="end">
+                        <div className="grid grid-cols-6 gap-1">
+                          {EMOJI_LIST.map((emoji) => (
+                            <button
+                              key={emoji}
+                              onClick={() => onToggleReaction(msg.id, emoji)}
+                              className="w-8 h-8 flex items-center justify-center rounded hover:bg-secondary text-lg transition-colors"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                  {msg.userId === user?.id && onEditMessage && (
+                    <button
+                      onClick={() => startEdit(msg)}
+                      className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
+                      title="Mesajı Düzenle"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {(msg.userId === user?.id || isOwner) && onDeleteMessage && (
+                    <button
+                      onClick={() => onDeleteMessage(msg.id)}
+                      className="p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
+                      title="Mesajı Sil"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
         <div ref={bottomRef} />
       </div>
 

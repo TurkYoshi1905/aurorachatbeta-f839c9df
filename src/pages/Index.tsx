@@ -19,6 +19,12 @@ export interface DbMessage {
   edited?: boolean;
 }
 
+export interface DbReaction {
+  emoji: string;
+  userIds: string[];
+  count: number;
+}
+
 const formatTimestamp = (dateStr: string) => {
   const d = new Date(dateStr);
   const day = String(d.getDate()).padStart(2, '0');
@@ -66,6 +72,7 @@ const Index = () => {
   const [members, setMembers] = useState<DbMember[]>([]);
   const [myStatus, setMyStatus] = useState<DbMember['status']>('online');
   const [mobileView, setMobileView] = useState<MobileView>('channels');
+  const [reactions, setReactions] = useState<Record<string, DbReaction[]>>({});
   const channelRef = useRef(activeChannel);
   const serverRef = useRef(activeServer);
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -278,7 +285,108 @@ const Index = () => {
     return () => { supabase.removeChannel(channel); };
   }, [fetchServers]);
 
-  // Realtime server_members changes — refresh member list on kick/leave/join
+  // Fetch reactions when channel changes
+  useEffect(() => {
+    if (!activeChannel) return;
+    const fetchReactions = async () => {
+      const messageIds = messages.map((m) => m.id);
+      if (messageIds.length === 0) { setReactions({}); return; }
+      const { data } = await supabase
+        .from('message_reactions')
+        .select('*')
+        .in('message_id', messageIds);
+      if (data) {
+        const grouped: Record<string, DbReaction[]> = {};
+        for (const r of data) {
+          if (!grouped[r.message_id]) grouped[r.message_id] = [];
+          const existing = grouped[r.message_id].find((e) => e.emoji === r.emoji);
+          if (existing) {
+            existing.userIds.push(r.user_id);
+            existing.count++;
+          } else {
+            grouped[r.message_id].push({ emoji: r.emoji, userIds: [r.user_id], count: 1 });
+          }
+        }
+        setReactions(grouped);
+      }
+    };
+    fetchReactions();
+  }, [activeChannel, messages.length]);
+
+  // Realtime reactions
+  useEffect(() => {
+    const channel = supabase
+      .channel('realtime-reactions')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'message_reactions' },
+        (payload) => {
+          const r = payload.new as { message_id: string; user_id: string; emoji: string };
+          setReactions((prev) => {
+            const copy = { ...prev };
+            const list = [...(copy[r.message_id] || [])];
+            const existing = list.find((e) => e.emoji === r.emoji);
+            if (existing) {
+              if (!existing.userIds.includes(r.user_id)) {
+                existing.userIds = [...existing.userIds, r.user_id];
+                existing.count++;
+              }
+            } else {
+              list.push({ emoji: r.emoji, userIds: [r.user_id], count: 1 });
+            }
+            copy[r.message_id] = list;
+            return copy;
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'message_reactions' },
+        (payload) => {
+          const r = payload.old as { message_id: string; user_id: string; emoji: string };
+          setReactions((prev) => {
+            const copy = { ...prev };
+            const list = (copy[r.message_id] || [])
+              .map((e) =>
+                e.emoji === r.emoji
+                  ? { ...e, userIds: e.userIds.filter((id) => id !== r.user_id), count: e.count - 1 }
+                  : e
+              )
+              .filter((e) => e.count > 0);
+            copy[r.message_id] = list;
+            return copy;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const handleToggleReaction = useCallback(
+    async (messageId: string, emoji: string) => {
+      if (!user) return;
+      const msgReactions = reactions[messageId] || [];
+      const existing = msgReactions.find((r) => r.emoji === emoji);
+      const hasReacted = existing?.userIds.includes(user.id);
+
+      if (hasReacted) {
+        await supabase
+          .from('message_reactions')
+          .delete()
+          .eq('message_id', messageId)
+          .eq('user_id', user.id)
+          .eq('emoji', emoji);
+      } else {
+        await supabase
+          .from('message_reactions')
+          .insert({ message_id: messageId, user_id: user.id, emoji });
+      }
+    },
+    [user, reactions]
+  );
+
+
   useEffect(() => {
     const channel = supabase
       .channel('realtime-server-members')
@@ -499,6 +607,8 @@ const Index = () => {
             isOwner={isOwner}
             isMobile
             onBack={() => setMobileView('channels')}
+            reactions={reactions}
+            onToggleReaction={handleToggleReaction}
           />
         )}
         {mobileView === 'members' && (
@@ -535,6 +645,8 @@ const Index = () => {
         onToggleMembers={() => setShowMembers((p) => !p)}
         showMembers={showMembers}
         isOwner={isOwner}
+        reactions={reactions}
+        onToggleReaction={handleToggleReaction}
       />
       {showMembers && <MemberList members={members} />}
     </div>
