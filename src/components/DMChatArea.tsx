@@ -74,9 +74,13 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
   }, [user, dmUser.userId, profile]);
 
   // Realtime subscription
+  const dmUserId = dmUser.userId;
+  const dmDisplayName = dmUser.displayName;
+  const dmAvatarUrl = dmUser.avatarUrl;
+
   useEffect(() => {
     if (!user) return;
-    const channelName = `dm-live-${[user.id, dmUser.userId].sort().join('-')}`;
+    const channelName = `dm-realtime-${[user.id, dmUserId].sort().join('-')}`;
     const channel = supabase
       .channel(channelName)
       .on(
@@ -86,14 +90,13 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
           const m = payload.new as any;
           // Only show messages between these two users
           const isRelevant =
-            (m.sender_id === user.id && m.receiver_id === dmUser.userId) ||
-            (m.sender_id === dmUser.userId && m.receiver_id === user.id);
+            (m.sender_id === user.id && m.receiver_id === dmUserId) ||
+            (m.sender_id === dmUserId && m.receiver_id === user.id);
           if (!isRelevant) return;
           // Skip own messages (already added optimistically)
           if (m.sender_id === user.id) return;
 
           setMessages((prev) => {
-            // Prevent duplicates
             if (prev.some((msg) => msg.id === m.id)) return prev;
             return [
               ...prev,
@@ -102,19 +105,23 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
                 senderId: m.sender_id,
                 content: m.content,
                 createdAt: m.created_at,
-                senderName: dmUser.displayName,
-                senderAvatar: dmUser.avatarUrl,
+                senderName: dmDisplayName,
+                senderAvatar: dmAvatarUrl,
               },
             ];
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error('DM realtime channel error:', channelName);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, dmUser]);
+  }, [user, dmUserId, dmDisplayName, dmAvatarUrl]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || !user || !profile) return;
