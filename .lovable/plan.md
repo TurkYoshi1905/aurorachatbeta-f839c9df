@@ -1,67 +1,62 @@
 
 
-## Emoji Tepki Özelliği — Uygulama Planı
+## Sorun Analizi ve Cozum Plani
 
-### Veritabanı Değişiklikleri
+### Sorun 1: Emoji Tepkileri Gercek Zamanli Guncellenmiyor
 
-Yeni bir `message_reactions` tablosu oluşturulacak:
+**Temel Neden:** `handleToggleReaction` fonksiyonu veritabanina istek gonderip cevap bekliyor ama UI'yi hemen guncellemiyor. Realtime listener calisiyor olsa bile, `INSERT` handler'inda mevcut nesne dogrudan mutate ediliyor (immutable update yapilmiyor), bu da React'in degisikligi algilamamasina neden oluyor.
 
-```text
-message_reactions
-├── id (uuid, PK)
-├── message_id (uuid, NOT NULL)
-├── user_id (uuid, NOT NULL)
-├── emoji (text, NOT NULL)
-├── created_at (timestamptz, default now())
-└── UNIQUE(message_id, user_id, emoji)
+**Cozum:**
+- `handleToggleReaction` icine **optimistik UI guncellemesi** eklenecek — veritabanina istek gitmeden once reactions state'i hemen guncellenecek
+- Realtime INSERT handler'inda `existing` nesnesi mutate edilmek yerine yeni bir nesne olusturulacak (spread operator ile)
+- Hata durumunda optimistik guncelleme geri alinacak
+
+### Sorun 2: Kullanici Statusu "Cevrimdisi" Olarak Gorunuyor
+
+**Temel Neden:** `fetchMembers` fonksiyonu her calistiginda tum uyelerin statusunu `'offline'` olarak sifirliyor (satir 142). Presence verisi ayri bir kanalda tutuluyor ve `fetchMembers` calistiktan sonra presence sync event'i tekrar tetiklenmeyebiliyor, bu da statusun kaybolmasina neden oluyor.
+
+**Cozum:**
+- `fetchMembers` icinde status'u her zaman `'offline'` yapmak yerine, mevcut `members` state'indeki status degerini koruyacak sekilde guncelleme yapilacak
+- Ilk yukleme sirasinda presence state'i henuz gelmemisse `'offline'` kalacak, ancak sonraki fetchMembers cagrilarinda mevcut presence bilgisi korunacak
+
+### Teknik Degisiklikler
+
+**Dosya: `src/pages/Index.tsx`**
+
+1. **`fetchMembers` duzeltmesi (satir 134-144):** Mevcut uyelerin status bilgisini koruyacak sekilde guncelleme:
+```typescript
+setMembers((prevMembers) => {
+  const statusMap = new Map(prevMembers.map(m => [m.id, m.status]));
+  return data.map((p) => ({
+    id: p.user_id,
+    name: p.display_name,
+    avatar: p.display_name?.charAt(0)?.toUpperCase() || '?',
+    avatarUrl: p.avatar_url || null,
+    status: statusMap.get(p.user_id) || 'offline',
+  }));
+});
 ```
 
-RLS politikaları:
-- **SELECT**: Mesajın bulunduğu sunucunun üyeleri görebilir (`server_members` üzerinden kontrol)
-- **INSERT**: Giriş yapmış kullanıcılar tepki ekleyebilir (`auth.uid() = user_id`)
-- **DELETE**: Kullanıcılar kendi tepkilerini kaldırabilir (`auth.uid() = user_id`)
+2. **`handleToggleReaction` optimistik guncelleme (satir 366-387):** Veritabanina istek gitmeden once UI'yi hemen guncelleyecek:
+```typescript
+// Once state'i hemen guncelle (optimistik)
+setReactions(prev => { ... guncellenmis reactions ... });
+// Sonra veritabanina istek gonder
+const { error } = await supabase...;
+// Hata varsa geri al
+if (error) setReactions(oncekiState);
+```
 
-Realtime için: `ALTER PUBLICATION supabase_realtime ADD TABLE public.message_reactions;`
-
-### Kod Değişiklikleri
-
-**1. `src/pages/Index.tsx`**
-- Yeni bir `reactions` state'i eklenecek (Map veya obje: `messageId → [{emoji, userId, count}]`)
-- Kanal değiştiğinde `message_reactions` tablosundan ilgili mesajların tepkileri çekilecek
-- Realtime listener: `message_reactions` tablosu için INSERT/DELETE dinleyicisi — anlık güncelleme
-- `handleAddReaction(messageId, emoji)` ve `handleRemoveReaction(messageId, emoji)` fonksiyonları
-- Reactions verisi `ChatArea`'ya prop olarak geçilecek
-
-**2. `src/components/ChatArea.tsx`**
-- Her mesajın altına tepki butonları gösterilecek
-- Mevcut tepkiler: emoji + sayı şeklinde küçük butonlar (tıklanınca toggle — ekle/kaldır)
-- Hover'da görünen bir 😀 butonu ile emoji seçici açılacak
-- Emoji seçici: Popover içinde sık kullanılan ~30 emoji grid'i (harici kütüphane gerekmez)
-- Kullanıcının kendi tepkisi varsa buton vurgulanacak (farklı arka plan rengi)
-
-**3. Yeni tip tanımları (`Index.tsx` içinde)**
-
-```text
-interface DbReaction {
-  emoji: string;
-  userIds: string[];
-  count: number;
+3. **Realtime reactions INSERT handler duzeltmesi (satir 328-333):** Mevcut nesneyi mutate etmek yerine yeni nesne olusturma:
+```typescript
+if (existing) {
+  // Mutate yerine spread ile yeni nesne
+  const updated = {
+    ...existing,
+    userIds: [...existing.userIds, r.user_id],
+    count: existing.count + 1
+  };
+  list[list.indexOf(existing)] = updated;
 }
-// reactions: Record<string, DbReaction[]>  (messageId → tepkiler)
 ```
-
-### Kullanıcı Deneyimi
-
-- Mesajın üzerine gelince mevcut düzenle/sil butonlarının yanında bir 😀 (SmilePlus) butonu görünür
-- Tıklanınca küçük bir emoji grid popover'ı açılır
-- Emoji seçildiğinde mesajın altında `😀 1` şeklinde bir buton belirir
-- Aynı emojiye tekrar tıklanırsa tepki kaldırılır (toggle)
-- Başka kullanıcıların tepkileri gerçek zamanlı olarak güncellenir
-
-### Teknik Detaylar
-
-- Emoji seçici harici kütüphane kullanmadan, sabit bir emoji listesiyle yapılacak (👍 ❤️ 😂 😮 😢 😡 🎉 🔥 👀 💯 vb.)
-- Mevcut `@radix-ui/react-popover` bileşeni kullanılacak
-- `message_reactions` tablosunda `UNIQUE(message_id, user_id, emoji)` constraint ile aynı kullanıcının aynı emojiye birden fazla tepki vermesi engellenecek
-- Toggle mantığı: Tepki varsa DELETE, yoksa INSERT
 
