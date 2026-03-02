@@ -3,6 +3,8 @@ import ServerSidebar from '@/components/ServerSidebar';
 import ChannelList from '@/components/ChannelList';
 import ChatArea from '@/components/ChatArea';
 import MemberList from '@/components/MemberList';
+import DMDashboard from '@/components/DMDashboard';
+import DMChatArea from '@/components/DMChatArea';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -75,6 +77,7 @@ const Index = () => {
   const [reactions, setReactions] = useState<Record<string, DbReaction[]>>({});
   const [typingUsers, setTypingUsers] = useState<{ userId: string; displayName: string }[]>([]);
   const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const [activeDMUser, setActiveDMUser] = useState<{ userId: string; displayName: string; username: string; avatarUrl: string | null } | null>(null);
   const channelRef = useRef(activeChannel);
   const serverRef = useRef(activeServer);
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -558,10 +561,15 @@ const Index = () => {
   const isOwner = server?.owner_id === user?.id;
 
   const handleServerChange = useCallback((id: string) => {
-    if (id === 'home') return;
+    if (id === 'home') {
+      setActiveServer('home');
+      setActiveDMUser(null);
+      return;
+    }
     const s = servers.find((s) => s.id === id);
     if (s) {
       setActiveServer(id);
+      setActiveDMUser(null);
       const firstChannel = s.channels[0];
       if (firstChannel) setActiveChannel(firstChannel.id);
     }
@@ -651,6 +659,21 @@ const Index = () => {
     },
     [user, activeServer, fetchServers]
   );
+
+  if (activeServer === 'home') {
+    const dmContent = activeDMUser ? (
+      <DMChatArea dmUser={activeDMUser} onBack={() => setActiveDMUser(null)} />
+    ) : (
+      <DMDashboard onOpenDM={(u) => setActiveDMUser(u)} />
+    );
+
+    return (
+      <div className="h-screen flex overflow-hidden">
+        <ServerSidebar activeServer={activeServer} onServerChange={handleServerChange} servers={servers} onServerCreated={handleServerCreated} />
+        {dmContent}
+      </div>
+    );
+  }
 
   if (servers.length === 0) {
     return (
