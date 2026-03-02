@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { DbMessage, DbReaction } from '@/pages/Index';
 import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +21,9 @@ interface ChatAreaProps {
   onBack?: () => void;
   reactions?: Record<string, DbReaction[]>;
   onToggleReaction?: (messageId: string, emoji: string) => void;
+  typingUsers?: { userId: string; displayName: string }[];
+  onTypingStart?: () => void;
+  onTypingStop?: () => void;
 }
 
 // Parse message content: detect URLs and invite links
@@ -72,13 +75,40 @@ const renderMessageContent = (content: string) => {
   );
 };
 
-const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction }: ChatAreaProps) => {
+const TypingIndicator = ({ typingUsers }: { typingUsers: { userId: string; displayName: string }[] }) => {
+  if (typingUsers.length === 0) return null;
+
+  let text = '';
+  if (typingUsers.length === 1) {
+    text = `${typingUsers[0].displayName} yazıyor`;
+  } else if (typingUsers.length === 2) {
+    text = `${typingUsers[0].displayName} ve ${typingUsers[1].displayName} yazıyor`;
+  } else if (typingUsers.length === 3) {
+    text = `${typingUsers[0].displayName}, ${typingUsers[1].displayName} ve ${typingUsers[2].displayName} yazıyor`;
+  } else {
+    text = `${typingUsers.length} kullanıcı yazıyor`;
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 px-4 py-1 text-xs text-muted-foreground h-6">
+      <span className="inline-flex gap-0.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+      </span>
+      <span className="font-medium">{text}</span>
+    </div>
+  );
+};
+
+const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop }: ChatAreaProps) => {
   const { user } = useAuth();
   const [input, setInput] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const lastTypingSentRef = useRef<number>(0);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,10 +118,25 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
     if (editingId) editInputRef.current?.focus();
   }, [editingId]);
 
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInput(val);
+    if (val.trim()) {
+      const now = Date.now();
+      if (now - lastTypingSentRef.current > 2000) {
+        lastTypingSentRef.current = now;
+        onTypingStart?.();
+      }
+    } else {
+      onTypingStop?.();
+    }
+  }, [onTypingStart, onTypingStop]);
+
   const handleSend = () => {
     if (!input.trim()) return;
     onSendMessage(input.trim());
     setInput('');
+    onTypingStop?.();
   };
 
   const startEdit = (msg: DbMessage) => {
@@ -281,6 +326,8 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
         <div ref={bottomRef} />
       </div>
 
+      <TypingIndicator typingUsers={typingUsers || []} />
+
       <div className="px-4 pb-6">
         <div className="bg-input rounded-lg flex items-center px-3 gap-2">
           <button className="text-muted-foreground hover:text-foreground transition-colors">
@@ -289,7 +336,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
           <input
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder={`#${channelName} kanalına mesaj gönder`}
             className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground"
