@@ -15,6 +15,30 @@ const tabs = [
 
 const changelogData = [
   {
+    version: '0.0.7',
+    date: '2 Mart 2026',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Gelişmiş davet sistemi: sunucu üyesi olmayan kullanıcılar da davet linklerini ve sunucu bilgilerini görebiliyor',
+          'Embed önizleme iyileştirmeleri: davet kartları tüm kullanıcılar için çalışıyor',
+        ],
+      },
+      {
+        title: 'Düzeltilen Hatalar',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Davet linkleri misafir kullanıcılar için artık "Geçersiz" dönmüyor',
+          'Ana sayfa (home) seçiliyken oluşan 400 hataları giderildi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.0.6',
     date: '2 Mart 2026',
     sections: [

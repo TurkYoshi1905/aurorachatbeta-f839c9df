@@ -128,7 +128,7 @@ const Index = () => {
   }, []);
 
   const fetchMembers = useCallback(async () => {
-    if (!activeServer) return;
+    if (!activeServer || activeServer === 'home') return;
     const { data: memberRows } = await supabase
       .from('server_members')
       .select('user_id')
@@ -156,7 +156,7 @@ const Index = () => {
   }, [fetchMembers]);
 
   useEffect(() => {
-    if (!activeServer || !activeChannel) return;
+    if (!activeServer || activeServer === 'home' || !activeChannel) return;
     const fetchMessages = async () => {
       const { data } = await supabase
         .from('messages')
