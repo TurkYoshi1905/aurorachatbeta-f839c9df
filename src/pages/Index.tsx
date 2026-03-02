@@ -132,15 +132,16 @@ const Index = () => {
     if (userIds.length === 0) { setMembers([]); return; }
     const { data } = await supabase.from('profiles').select('*').in('user_id', userIds);
     if (data) {
-      setMembers(
-        data.map((p) => ({
+      setMembers((prevMembers) => {
+        const statusMap = new Map(prevMembers.map(m => [m.id, m.status]));
+        return data.map((p) => ({
           id: p.user_id,
           name: p.display_name,
           avatar: p.display_name?.charAt(0)?.toUpperCase() || '?',
           avatarUrl: p.avatar_url || null,
-          status: 'offline' as const,
-        }))
-      );
+          status: statusMap.get(p.user_id) || 'offline' as const,
+        }));
+      });
     }
   }, [activeServer]);
 
@@ -325,11 +326,15 @@ const Index = () => {
           setReactions((prev) => {
             const copy = { ...prev };
             const list = [...(copy[r.message_id] || [])];
-            const existing = list.find((e) => e.emoji === r.emoji);
-            if (existing) {
+          const existingIdx = list.findIndex((e) => e.emoji === r.emoji);
+            if (existingIdx !== -1) {
+              const existing = list[existingIdx];
               if (!existing.userIds.includes(r.user_id)) {
-                existing.userIds = [...existing.userIds, r.user_id];
-                existing.count++;
+                list[existingIdx] = {
+                  ...existing,
+                  userIds: [...existing.userIds, r.user_id],
+                  count: existing.count + 1,
+                };
               }
             } else {
               list.push({ emoji: r.emoji, userIds: [r.user_id], count: 1 });
@@ -370,17 +375,49 @@ const Index = () => {
       const existing = msgReactions.find((r) => r.emoji === emoji);
       const hasReacted = existing?.userIds.includes(user.id);
 
-      if (hasReacted) {
-        await supabase
-          .from('message_reactions')
-          .delete()
-          .eq('message_id', messageId)
-          .eq('user_id', user.id)
-          .eq('emoji', emoji);
-      } else {
-        await supabase
-          .from('message_reactions')
-          .insert({ message_id: messageId, user_id: user.id, emoji });
+      // Save previous state for rollback
+      const previousReactions = { ...reactions };
+
+      // Optimistic update
+      setReactions((prev) => {
+        const copy = { ...prev };
+        const list = [...(copy[messageId] || [])];
+        if (hasReacted) {
+          const updated = list
+            .map((e) =>
+              e.emoji === emoji
+                ? { ...e, userIds: e.userIds.filter((id) => id !== user.id), count: e.count - 1 }
+                : e
+            )
+            .filter((e) => e.count > 0);
+          copy[messageId] = updated;
+        } else {
+          const idx = list.findIndex((e) => e.emoji === emoji);
+          if (idx !== -1) {
+            list[idx] = { ...list[idx], userIds: [...list[idx].userIds, user.id], count: list[idx].count + 1 };
+          } else {
+            list.push({ emoji, userIds: [user.id], count: 1 });
+          }
+          copy[messageId] = list;
+        }
+        return copy;
+      });
+
+      // Send to database
+      const { error } = hasReacted
+        ? await supabase
+            .from('message_reactions')
+            .delete()
+            .eq('message_id', messageId)
+            .eq('user_id', user.id)
+            .eq('emoji', emoji)
+        : await supabase
+            .from('message_reactions')
+            .insert({ message_id: messageId, user_id: user.id, emoji });
+
+      // Rollback on error
+      if (error) {
+        setReactions(previousReactions);
       }
     },
     [user, reactions]
