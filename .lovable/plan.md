@@ -1,92 +1,49 @@
 
 
-## Plan: UI/UX Modernizasyonu + Dinamik Changelog Sistemi + v0.0.8
+## Plan: Mobil Arayuz Duzeltmeleri ve UI Polish
 
-Bu plan 4 ana bölümden oluşuyor: global UI iyileştirmeleri, mobil bottom navigation bar, dinamik changelog sayfaları ve v0.0.8 sürüm notu.
+Ekran goruntuleri sorunlari net gosteriyor: kanal listesi ve profil bari mobilde icerik alanini kapliyor, uyeler sayfasi ust kismda kalip alta yayilmiyor, bottom nav ile icerik arasinda bosluk/z-index sorunlari var.
 
 ---
 
-### 1. Dinamik Changelog Sistemi
+### 1. MobileBottomNav Duzeltmeleri (`src/pages/Index.tsx`)
 
-**Yeni dosyalar:**
-- `src/data/changelogData.ts` — Tüm sürüm notlarını içeren dizi (Settings.tsx'ten taşınacak). v0.0.8 eklenecek.
-- `src/pages/Changelog.tsx` — `/changelog` ana sayfası: sürümleri kartlar halinde listeler (sürüm no, tarih, kısa özet). Her karta tıklayınca detay sayfasına gider.
-- `src/pages/ChangelogDetail.tsx` — `/changelog/:version` dinamik sayfası: "Yenilikler", "Düzeltmeler", "Geliştirmeler" başlıklarıyla detaylı görünüm.
+- Bottom nav'a `fixed bottom-0 left-0 right-0 z-50` ekle, boylece her zaman ekranin altinda sabit kalsin
+- Icerik alanina `pb-14` (bottom nav yuksekligi kadar padding) ekle, icerik nav'in altina girmesin
+- `100dvh` kullanimi zaten var, bunu koruyoruz
+- Bottom nav'da `flex-1` ile ikonlarin esit dagilmasini sagla, `text-xs` ile yazilari kucult
 
-**Değişiklikler:**
-- `src/App.tsx` — `/changelog` ve `/changelog/:version` rotaları eklenir (public, auth gerekmez).
-- `src/pages/Settings.tsx` — Changelog verisini `changelogData.ts`'den import eder, kendi içindeki hardcoded diziyi kaldırır. Changelog sekmesine "/changelog sayfasına git" linki eklenir.
+### 2. Kanal Listesi Mobil Duzeltmesi (`src/components/ChannelList.tsx`)
 
-### 2. v0.0.8 Sürüm Notu İçeriği
+- Mobilde `isMobile` prop'u zaten mevcut ve `flex-1` kullaniyor — dogru
+- Profil barini (`h-[52px]` alt kisim) `sticky bottom-0` yap, kaydirma alaninin altinda sabit kalsin (su an zaten altta ama flex yapisinda sorun olabilir)
+- Mobilde kanal listesi tam ekran kaplayacak sekilde `h-full` ekle
 
-```
-v0.0.8 — 2 Mart 2026
-Yenilikler:
-- Dinamik sürüm notları sistemi (/changelog sayfası)
-- Mobil bottom navigation bar eklendi
-- 100 sunucu limiti ve sabit alt butonlar
+### 3. Uyeler Listesi Duzeltmesi (`src/components/MemberList.tsx`)
 
-Düzeltmeler:
-- DM ve kanal mesajlarında realtime sorunları giderildi
+- Mobilde `flex-1` yerine `h-full` kullan, boylece tam icerik alanini kaplasin
+- Ust kisimdaki "Geri" butonu ve icerik arasindaki boslugu optimize et
 
-Geliştirmeler:
-- Tüm sayfalar mobil cihazlar için optimize edildi
-- UI modernizasyonu: rounded-xl, tutarlı spacing
-```
-
-### 3. Global UI Modernizasyonu
+### 4. Gorsel Iyilestirmeler
 
 **`src/index.css`:**
-- `--radius` değerini `0.75rem` yap (rounded-xl efekti).
-- `.server-icon` border-radius'u `rounded-2xl` yap.
+- Kanal arka plani ve sidebar arka plani arasindaki kontrasti artir: sidebar `hsl(228, 14%, 11%)`, kanal listesi `hsl(228, 12%, 14%)`, chat alani `hsl(228, 12%, 17%)` — Discord'un karartma hiyerarsisine benzer sekilde
+- Aktif bottom nav item'a `border-top` veya `bg-primary/10` ile belirgin active state ekle
 
-**Bileşen bazlı iyileştirmeler:**
-- `ChatArea.tsx` — Mesaj input alanına `rounded-xl` ve hafif glow border ekle.
-- `ChannelList.tsx` — Kanal butonlarına `rounded-lg` ve daha fazla padding.
-- `DMDashboard.tsx` — Tab list ve kart alanlarına `rounded-xl`.
-- `MemberList.tsx` — Üye satırlarına `rounded-lg`.
-- `ServerSidebar.tsx` — Tooltip ve buton stillerinde tutarlılık.
+**`src/pages/Index.tsx` - MobileBottomNav:**
+- Aktif sekmeye `bg-primary/10 rounded-lg` ve `font-medium` ekle
+- Border-top rengini daha belirgin yap
 
-### 4. Mobil Bottom Navigation Bar + Hamburger
+**`src/components/ChannelList.tsx`:**
+- "METIN KANALLARI" basligiyla kanallar arasi bosluklari optimize et (`mb-1` yerine `mb-0.5`)
+- Kanal arka plan rengini sidebar'dan farkli tut
 
-**`src/pages/Index.tsx` mobil görünüm değişiklikleri:**
+### 5. Dosya Degisiklikleri
 
-Mevcut mobil yapı `mobileView` state'i ile çalışıyor. Bunu geliştiriyoruz:
-
-- Mobil layouta sabit bir bottom navigation bar eklenir (Home, Kanallar, Sohbet, Üyeler, Ayarlar ikonları).
-- `ServerSidebar` mobilde hamburger menu ile açılır/kapanır (Sheet bileşeni kullanılarak).
-- Bottom bar her zaman görünür, aktif sekme vurgulanır.
-
-**Yapı:**
-```text
-┌─────────────────────┐
-│    Header           │
-├─────────────────────┤
-│                     │
-│    Content Area     │
-│    (dynamic)        │
-│                     │
-├─────────────────────┤
-│ 🏠  📋  💬  👥  ⚙️  │  ← Bottom Nav (mobil)
-└─────────────────────┘
-```
-
-**Masaüstü:** Sidebar zaten sabit ve `min-w-[72px]`. Değişiklik yok, sadece stil iyileştirmeleri.
-
-### 5. Dosya Değişiklikleri Özeti
-
-| Dosya | İşlem |
+| Dosya | Islem |
 |---|---|
-| `src/data/changelogData.ts` | **Yeni** — changelog verisi |
-| `src/pages/Changelog.tsx` | **Yeni** — changelog listesi |
-| `src/pages/ChangelogDetail.tsx` | **Yeni** — sürüm detayı |
-| `src/App.tsx` | Yeni rotalar ekle |
-| `src/pages/Settings.tsx` | Changelog verisini import et, v0.0.8 ekle |
-| `src/pages/Index.tsx` | Mobil bottom nav bar ekle, hamburger menu |
-| `src/index.css` | radius ve stil güncellemeleri |
-| `src/components/ChatArea.tsx` | Input ve mesaj stili modernizasyonu |
-| `src/components/ChannelList.tsx` | Buton ve spacing iyileştirmeleri |
-| `src/components/DMDashboard.tsx` | Kart ve tab stili |
-| `src/components/MemberList.tsx` | Rounded ve spacing |
-| `src/components/ServerSidebar.tsx` | Mobilde Sheet içinde açılma |
+| `src/pages/Index.tsx` | Bottom nav'i fixed yap, icerik padding ekle, aktif state guclendir |
+| `src/components/ChannelList.tsx` | Profil bar pozisyonu, mobil yukseklik, spacing |
+| `src/components/MemberList.tsx` | Mobil tam ekran, spacing |
+| `src/index.css` | Renk kontrast hiyerarsisi, aktif state stilleri |
 
