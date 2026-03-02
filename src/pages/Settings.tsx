@@ -15,6 +15,31 @@ const tabs = [
 
 const changelogData = [
   {
+    version: '0.0.5',
+    date: '2 Mart 2026',
+    sections: [
+      {
+        title: 'Düzeltilen Hatalar',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Emoji tepkileri artık anında güncelleniyor — sayfa yenilemeye gerek kalmadan ekleme/kaldırma yapılabiliyor',
+          'Kullanıcılar uygulamaya giriş yaptığında artık çevrimiçi olarak doğru görünüyor',
+          'Diğer kullanıcıların çevrimiçi durumu artık gerçek zamanlı olarak doğru yansıyor',
+        ],
+      },
+      {
+        title: 'Küçük İyileştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Emoji tepkilerinde optimistik güncelleme — anlık UI yanıtı',
+          'Presence sistemi yeniden yapılandırıldı — yarış durumu (race condition) giderildi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.0.4',
     date: '1 Mart 2026',
     sections: [
