@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 
 interface ServerInviteEmbedProps {
   code: string;
@@ -11,30 +10,24 @@ interface ServerInviteEmbedProps {
 
 const ServerInviteEmbed = ({ code }: ServerInviteEmbedProps) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [server, setServer] = useState<{ id: string; name: string; icon: string } | null>(null);
-  const [invite, setInvite] = useState<any>(null);
   const [alreadyMember, setAlreadyMember] = useState(false);
   const [joining, setJoining] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase
-        .from('server_invites')
-        .select('*, servers(id, name, icon)')
-        .eq('code', code)
-        .maybeSingle();
+    const fetchInvite = async () => {
+      const { data } = await supabase.rpc('get_server_by_invite_code', { _code: code });
 
-      if (data) {
-        setInvite(data);
-        setServer((data as any).servers);
+      if (data && data.length > 0) {
+        const s = data[0];
+        setServer({ id: s.id, name: s.name, icon: s.icon });
 
         if (user) {
           const { data: membership } = await supabase
             .from('server_members')
             .select('id')
-            .eq('server_id', data.server_id)
+            .eq('server_id', s.id)
             .eq('user_id', user.id)
             .maybeSingle();
           setAlreadyMember(!!membership);
@@ -42,17 +35,17 @@ const ServerInviteEmbed = ({ code }: ServerInviteEmbedProps) => {
       }
       setLoaded(true);
     };
-    fetch();
+    fetchInvite();
   }, [code, user]);
 
   if (!loaded || !server) return null;
 
   const handleJoin = async () => {
-    if (!user || !invite) return;
+    if (!user || !server) return;
     setJoining(true);
     const { error } = await supabase
       .from('server_members')
-      .insert({ server_id: invite.server_id, user_id: user.id });
+      .insert({ server_id: server.id, user_id: user.id });
 
     if (!error) {
       setAlreadyMember(true);

@@ -306,7 +306,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_server_by_invite_code: {
+        Args: { _code: string }
+        Returns: {
+          icon: string
+          id: string
+          name: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

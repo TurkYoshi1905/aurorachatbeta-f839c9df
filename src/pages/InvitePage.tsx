@@ -9,8 +9,7 @@ const InvitePage = () => {
   const { code } = useParams<{ code: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [invite, setInvite] = useState<any>(null);
-  const [server, setServer] = useState<any>(null);
+  const [server, setServer] = useState<{ id: string; name: string; icon: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [alreadyMember, setAlreadyMember] = useState(false);
@@ -19,25 +18,21 @@ const InvitePage = () => {
     const fetchInvite = async () => {
       if (!code) { setLoading(false); return; }
 
-      const { data } = await supabase
-        .from('server_invites')
-        .select('*, servers(id, name, icon)')
-        .eq('code', code)
-        .maybeSingle();
+      const { data } = await supabase.rpc('get_server_by_invite_code', { _code: code });
 
-      if (!data) {
+      if (!data || data.length === 0) {
         setLoading(false);
         return;
       }
 
-      setInvite(data);
-      setServer((data as any).servers);
+      const s = data[0];
+      setServer({ id: s.id, name: s.name, icon: s.icon });
 
       if (user) {
         const { data: membership } = await supabase
           .from('server_members')
           .select('id')
-          .eq('server_id', data.server_id)
+          .eq('server_id', s.id)
           .eq('user_id', user.id)
           .maybeSingle();
         setAlreadyMember(!!membership);
@@ -49,12 +44,12 @@ const InvitePage = () => {
   }, [code, user]);
 
   const handleJoin = async () => {
-    if (!user || !invite) return;
+    if (!user || !server || !code) return;
     setJoining(true);
 
     const { error } = await supabase
       .from('server_members')
-      .insert({ server_id: invite.server_id, user_id: user.id });
+      .insert({ server_id: server.id, user_id: user.id });
 
     if (error) {
       toast.error('Katılırken hata oluştu');
@@ -62,12 +57,21 @@ const InvitePage = () => {
       return;
     }
 
-    await supabase
+    // Update invite uses
+    const { data: inviteData } = await supabase
       .from('server_invites')
-      .update({ uses: invite.uses + 1 })
-      .eq('id', invite.id);
+      .select('id, uses')
+      .eq('code', code)
+      .maybeSingle();
 
-    toast.success(`${server?.name} sunucusuna katıldın!`);
+    if (inviteData) {
+      await supabase
+        .from('server_invites')
+        .update({ uses: inviteData.uses + 1 })
+        .eq('id', inviteData.id);
+    }
+
+    toast.success(`${server.name} sunucusuna katıldın!`);
     navigate('/');
   };
 
@@ -79,7 +83,7 @@ const InvitePage = () => {
     );
   }
 
-  if (!invite || !server) {
+  if (!server) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-background gap-4">
         <p className="text-xl font-semibold text-foreground">Geçersiz Davet</p>
