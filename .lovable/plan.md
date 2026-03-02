@@ -1,47 +1,92 @@
 
 
-## Plan: Sidebar Modernizasyonu + DM Realtime Fix
+## Plan: UI/UX Modernizasyonu + Dinamik Changelog Sistemi + v0.0.8
 
-### 1. ServerSidebar Modernizasyonu
+Bu plan 4 ana bölümden oluşuyor: global UI iyileştirmeleri, mobil bottom navigation bar, dinamik changelog sayfaları ve v0.0.8 sürüm notu.
 
-**Mevcut sorun:** Tüm öğeler tek bir `overflow-y-auto` div içinde, butonlar kaydırma alanıyla birlikte kayıyor.
+---
 
-**Çözüm:** Sidebar'ı 3 bölüme ayır:
-- **Üst (sabit):** Home/DM butonu + ayırıcı
-- **Orta (kaydırılabilir, flex-1):** Sunucu listesi — `overflow-y-auto scrollbar-thin`
-- **Alt (sabit):** "Sunucu Oluştur" ve "Sunucuya Katıl" butonları
+### 1. Dinamik Changelog Sistemi
 
-100 sunucu limiti: `servers.length >= 100` kontrolü ile butonları deaktif et ve tooltip ile uyarı göster.
+**Yeni dosyalar:**
+- `src/data/changelogData.ts` — Tüm sürüm notlarını içeren dizi (Settings.tsx'ten taşınacak). v0.0.8 eklenecek.
+- `src/pages/Changelog.tsx` — `/changelog` ana sayfası: sürümleri kartlar halinde listeler (sürüm no, tarih, kısa özet). Her karta tıklayınca detay sayfasına gider.
+- `src/pages/ChangelogDetail.tsx` — `/changelog/:version` dinamik sayfası: "Yenilikler", "Düzeltmeler", "Geliştirmeler" başlıklarıyla detaylı görünüm.
 
-Layout sabitleme: `min-w-[72px] max-w-[72px] h-screen` ile taşma engellenir.
+**Değişiklikler:**
+- `src/App.tsx` — `/changelog` ve `/changelog/:version` rotaları eklenir (public, auth gerekmez).
+- `src/pages/Settings.tsx` — Changelog verisini `changelogData.ts`'den import eder, kendi içindeki hardcoded diziyi kaldırır. Changelog sekmesine "/changelog sayfasına git" linki eklenir.
 
-```text
-┌──────────┐
-│  Home 🏠  │  ← sabit üst
-│ ──────── │
-│  srv1    │
-│  srv2    │  ← kaydırılabilir orta (flex-1)
-│  srv3    │
-│  ...     │
-│ ──────── │
-│   +      │  ← sabit alt
-│   →      │
-└──────────┘
+### 2. v0.0.8 Sürüm Notu İçeriği
+
+```
+v0.0.8 — 2 Mart 2026
+Yenilikler:
+- Dinamik sürüm notları sistemi (/changelog sayfası)
+- Mobil bottom navigation bar eklendi
+- 100 sunucu limiti ve sabit alt butonlar
+
+Düzeltmeler:
+- DM ve kanal mesajlarında realtime sorunları giderildi
+
+Geliştirmeler:
+- Tüm sayfalar mobil cihazlar için optimize edildi
+- UI modernizasyonu: rounded-xl, tutarlı spacing
 ```
 
-### 2. DM Realtime Fix
+### 3. Global UI Modernizasyonu
 
-**Mevcut sorun:** `DMChatArea.tsx` realtime subscription'ı doğru görünüyor ama filtreleme eksik olabilir. Realtime subscription filter ekleyerek sadece ilgili mesajları dinleyelim ve channel adını unique yapalım.
+**`src/index.css`:**
+- `--radius` değerini `0.75rem` yap (rounded-xl efekti).
+- `.server-icon` border-radius'u `rounded-2xl` yap.
 
-**Değişiklik:** `DMChatArea.tsx`'te realtime subscription'a `filter` parametresi eklenmeli. Şu an tüm `direct_messages` INSERT'leri dinleniyor ve sonra client-side filtreleme yapılıyor. Bu doğru bir yaklaşım ama kanalın doğru subscribe olup olmadığından emin olmak için:
-- Channel adını daha belirgin yap
-- Subscribe callback'te status kontrolü ekle
-- `dmUser` dependency'sini `dmUser.userId` olarak daralt (referans değişikliği sorununu önle)
+**Bileşen bazlı iyileştirmeler:**
+- `ChatArea.tsx` — Mesaj input alanına `rounded-xl` ve hafif glow border ekle.
+- `ChannelList.tsx` — Kanal butonlarına `rounded-lg` ve daha fazla padding.
+- `DMDashboard.tsx` — Tab list ve kart alanlarına `rounded-xl`.
+- `MemberList.tsx` — Üye satırlarına `rounded-lg`.
+- `ServerSidebar.tsx` — Tooltip ve buton stillerinde tutarlılık.
 
-### Dosya Değişiklikleri
+### 4. Mobil Bottom Navigation Bar + Hamburger
+
+**`src/pages/Index.tsx` mobil görünüm değişiklikleri:**
+
+Mevcut mobil yapı `mobileView` state'i ile çalışıyor. Bunu geliştiriyoruz:
+
+- Mobil layouta sabit bir bottom navigation bar eklenir (Home, Kanallar, Sohbet, Üyeler, Ayarlar ikonları).
+- `ServerSidebar` mobilde hamburger menu ile açılır/kapanır (Sheet bileşeni kullanılarak).
+- Bottom bar her zaman görünür, aktif sekme vurgulanır.
+
+**Yapı:**
+```text
+┌─────────────────────┐
+│    Header           │
+├─────────────────────┤
+│                     │
+│    Content Area     │
+│    (dynamic)        │
+│                     │
+├─────────────────────┤
+│ 🏠  📋  💬  👥  ⚙️  │  ← Bottom Nav (mobil)
+└─────────────────────┘
+```
+
+**Masaüstü:** Sidebar zaten sabit ve `min-w-[72px]`. Değişiklik yok, sadece stil iyileştirmeleri.
+
+### 5. Dosya Değişiklikleri Özeti
 
 | Dosya | İşlem |
 |---|---|
-| `src/components/ServerSidebar.tsx` | 3 bölümlü layout, sabit butonlar, 100 limit |
-| `src/components/DMChatArea.tsx` | Realtime subscription fix — dependency daraltma, status kontrolü |
+| `src/data/changelogData.ts` | **Yeni** — changelog verisi |
+| `src/pages/Changelog.tsx` | **Yeni** — changelog listesi |
+| `src/pages/ChangelogDetail.tsx` | **Yeni** — sürüm detayı |
+| `src/App.tsx` | Yeni rotalar ekle |
+| `src/pages/Settings.tsx` | Changelog verisini import et, v0.0.8 ekle |
+| `src/pages/Index.tsx` | Mobil bottom nav bar ekle, hamburger menu |
+| `src/index.css` | radius ve stil güncellemeleri |
+| `src/components/ChatArea.tsx` | Input ve mesaj stili modernizasyonu |
+| `src/components/ChannelList.tsx` | Buton ve spacing iyileştirmeleri |
+| `src/components/DMDashboard.tsx` | Kart ve tab stili |
+| `src/components/MemberList.tsx` | Rounded ve spacing |
+| `src/components/ServerSidebar.tsx` | Mobilde Sheet içinde açılma |
 
