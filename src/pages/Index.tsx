@@ -76,6 +76,7 @@ const Index = () => {
   const channelRef = useRef(activeChannel);
   const serverRef = useRef(activeServer);
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const presenceStatusRef = useRef<Map<string, DbMember['status']>>(new Map());
 
   useEffect(() => {
     channelRef.current = activeChannel;
@@ -133,13 +134,13 @@ const Index = () => {
     const { data } = await supabase.from('profiles').select('*').in('user_id', userIds);
     if (data) {
       setMembers((prevMembers) => {
-        const statusMap = new Map(prevMembers.map(m => [m.id, m.status]));
+        const prevStatusMap = new Map(prevMembers.map(m => [m.id, m.status]));
         return data.map((p) => ({
           id: p.user_id,
           name: p.display_name,
           avatar: p.display_name?.charAt(0)?.toUpperCase() || '?',
           avatarUrl: p.avatar_url || null,
-          status: statusMap.get(p.user_id) || 'offline' as const,
+          status: presenceStatusRef.current.get(p.user_id) || prevStatusMap.get(p.user_id) || 'offline' as const,
         }));
       });
     }
@@ -454,6 +455,8 @@ const Index = () => {
           const latest = presences[presences.length - 1];
           presenceMap.set(userId, latest?.status || 'online');
         }
+        // Update the persistent ref so fetchMembers can use it
+        presenceStatusRef.current = presenceMap;
         setMembers((prev) =>
           prev.map((m) => ({
             ...m,
@@ -467,6 +470,11 @@ const Index = () => {
             display_name: profile?.display_name || 'Kullanıcı',
             status: myStatus,
           });
+          // Immediately reflect own status in ref and members
+          presenceStatusRef.current.set(user.id, myStatus);
+          setMembers((prev) =>
+            prev.map((m) => (m.id === user.id ? { ...m, status: myStatus } : m))
+          );
         }
       });
 
@@ -482,6 +490,7 @@ const Index = () => {
       display_name: profile?.display_name || 'Kullanıcı',
       status: myStatus,
     });
+    presenceStatusRef.current.set(user.id, myStatus);
     setMembers((prev) =>
       prev.map((m) => (m.id === user.id ? { ...m, status: myStatus } : m))
     );
