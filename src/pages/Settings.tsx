@@ -1,217 +1,17 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, X, User, Shield, Megaphone, Sparkles, Wrench, Bug, Camera } from 'lucide-react';
+import { LogOut, X, User, Shield, Megaphone, Camera, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { changelogData } from '@/data/changelogData';
 
 const tabs = [
   { id: 'account', label: 'Hesabım', icon: User },
   { id: 'privacy', label: 'Gizlilik', icon: Shield },
   { id: 'changelog', label: 'Güncelleme Notları', icon: Megaphone },
-];
-
-const changelogData = [
-  {
-    version: '0.0.7',
-    date: '2 Mart 2026',
-    sections: [
-      {
-        title: 'Yeni Özellikler',
-        icon: Sparkles,
-        color: 'text-primary',
-        items: [
-          'Gelişmiş davet sistemi: sunucu üyesi olmayan kullanıcılar da davet linklerini ve sunucu bilgilerini görebiliyor',
-          'Embed önizleme iyileştirmeleri: davet kartları tüm kullanıcılar için çalışıyor',
-        ],
-      },
-      {
-        title: 'Düzeltilen Hatalar',
-        icon: Bug,
-        color: 'text-destructive',
-        items: [
-          'Davet linkleri misafir kullanıcılar için artık "Geçersiz" dönmüyor',
-          'Ana sayfa (home) seçiliyken oluşan 400 hataları giderildi',
-        ],
-      },
-    ],
-  },
-  {
-    version: '0.0.6',
-    date: '2 Mart 2026',
-    sections: [
-      {
-        title: 'Yeni Özellikler',
-        icon: Sparkles,
-        color: 'text-primary',
-        items: [
-          'DM (Direkt Mesajlaşma) sistemi eklendi — arkadaşlarla özel sohbet',
-          'Arkadaşlık sistemi: kullanıcı adı ile istek gönderme, kabul/reddetme',
-          'Arkadaş listesi sekmeleri: Tümü, Bekleyen İstekler, Arkadaş Ekle',
-          'Discord stili gerçek zamanlı "yazıyor..." göstergesi eklendi',
-        ],
-      },
-      {
-        title: 'Düzeltilen Hatalar',
-        icon: Bug,
-        color: 'text-destructive',
-        items: [
-          'Emoji tepkileri realtime senkronizasyonu düzeltildi — kendi aksiyonlarınız artık çift sayılmıyor',
-        ],
-      },
-    ],
-  },
-  {
-    version: '0.0.5',
-    date: '2 Mart 2026',
-    sections: [
-      {
-        title: 'Düzeltilen Hatalar',
-        icon: Bug,
-        color: 'text-destructive',
-        items: [
-          'Emoji tepkileri artık anında güncelleniyor — sayfa yenilemeye gerek kalmadan ekleme/kaldırma yapılabiliyor',
-          'Kullanıcılar uygulamaya giriş yaptığında artık çevrimiçi olarak doğru görünüyor',
-          'Diğer kullanıcıların çevrimiçi durumu artık gerçek zamanlı olarak doğru yansıyor',
-        ],
-      },
-      {
-        title: 'Küçük İyileştirmeler',
-        icon: Wrench,
-        color: 'text-accent-foreground',
-        items: [
-          'Emoji tepkilerinde optimistik güncelleme — anlık UI yanıtı',
-          'Presence sistemi yeniden yapılandırıldı — yarış durumu (race condition) giderildi',
-        ],
-      },
-    ],
-  },
-  {
-    version: '0.0.4',
-    date: '1 Mart 2026',
-    sections: [
-      {
-        title: 'Güncellemeler',
-        icon: Sparkles,
-        color: 'text-primary',
-        items: [
-          'Mesajlara emoji tepki özelliği eklendi (Discord tarzı)',
-          'Emoji tepkileri gerçek zamanlı olarak tüm kullanıcılara yansıyor',
-          'Mesaj düzenleme özelliği eklendi — kullanıcılar kendi mesajlarını düzenleyebilir',
-          'Düzenlenen mesajlarda "(Düzenlendi)" etiketi gösteriliyor',
-        ],
-      },
-      {
-        title: 'Küçük İyileştirmeler',
-        icon: Wrench,
-        color: 'text-accent-foreground',
-        items: [
-          'Mesaj zaman formatı GG.AA.YYYY SS:DD olarak güncellendi',
-          'Emoji seçici popover ile kolay erişim sağlandı',
-          'Tepki toggle mantığı: aynı emojiye tekrar tıklayınca tepki kaldırılıyor',
-        ],
-      },
-    ],
-  },
-  {
-    version: '0.0.3',
-    date: '28 Şubat 2026',
-    sections: [
-      {
-        title: 'Güncellemeler',
-        icon: Sparkles,
-        color: 'text-primary',
-        items: [
-          'Kullanıcılar kendi mesajlarını silebilir',
-          'Sunucu sahipleri herhangi bir mesajı silebilir',
-          'Üyeler sunucudan ayrılabilir',
-          'Sunucu sahipleri üyeleri atabilir',
-          'Sunucu ayarları (ad, simge güncelleme) eklendi',
-        ],
-      },
-      {
-        title: 'Düzeltilen Hatalar',
-        icon: Bug,
-        color: 'text-destructive',
-        items: [
-          'Mobil arayüzde sohbet alanı kaydırma sorunu giderildi',
-          'Üye atıldığında üye listesinin güncellenmeme sorunu düzeltildi',
-        ],
-      },
-    ],
-  },
-  {
-    version: '0.0.2',
-    date: '25 Şubat 2026',
-    sections: [
-      {
-        title: 'Güncellemeler',
-        icon: Sparkles,
-        color: 'text-primary',
-        items: [
-          'Profil fotoğrafı yükleme özelliği eklendi',
-          'Mesajlardaki linkler için Discord tarzı embed önizleme eklendi',
-          'Kanal oluşturma artık gerçek zamanlı olarak diğer üyelere yansıyor',
-        ],
-      },
-      {
-        title: 'Küçük İyileştirmeler',
-        icon: Wrench,
-        color: 'text-accent-foreground',
-        items: [
-          'Sunucu yükleme hızı optimize edildi',
-          'Avatar görüntüleme tüm bileşenlere entegre edildi',
-        ],
-      },
-      {
-        title: 'Düzeltilen Hatalar',
-        icon: Bug,
-        color: 'text-destructive',
-        items: [
-          'Kanal listesi gerçek zamanlı güncellenmeme sorunu giderildi',
-        ],
-      },
-    ],
-  },
-  {
-    version: '0.0.1',
-    date: '25 Şubat 2026',
-    sections: [
-      {
-        title: 'Güncellemeler',
-        icon: Sparkles,
-        color: 'text-primary',
-        items: [
-          'Sunucu oluşturma ve katılma sistemi eklendi',
-          'Davet linki oluşturma ve paylaşma özelliği eklendi',
-          'Gerçek zamanlı mesajlaşma altyapısı kuruldu',
-          'Kullanıcı durumu (çevrimiçi/meşgul/rahatsız etmeyin) desteği eklendi',
-          'Güncelleme notları sayfası eklendi',
-        ],
-      },
-      {
-        title: 'Küçük İyileştirmeler',
-        icon: Wrench,
-        color: 'text-accent-foreground',
-        items: [
-          'Sunucular artık sadece üyelere görünür (Discord benzeri)',
-          'Mobil arayüz iyileştirmeleri yapıldı',
-          'Ayarlar sayfası responsive tasarımı güncellendi',
-        ],
-      },
-      {
-        title: 'Düzeltilen Hatalar',
-        icon: Bug,
-        color: 'text-destructive',
-        items: [
-          'Farklı hesaplardan sunucu görünürlük sorunu düzeltildi',
-          'Kanal listesi sıralama hatası giderildi',
-        ],
-      },
-    ],
-  },
 ];
 
 const Settings = () => {
@@ -282,7 +82,7 @@ const Settings = () => {
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-sidebar overflow-x-auto shrink-0">
           <button
             onClick={() => navigate('/')}
-            className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0"
+            className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
@@ -290,7 +90,7 @@ const Settings = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition-colors shrink-0 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors shrink-0 ${
                 activeTab === tab.id
                   ? 'bg-secondary text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
@@ -302,7 +102,7 @@ const Settings = () => {
           ))}
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm text-destructive whitespace-nowrap shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-destructive whitespace-nowrap shrink-0"
           >
             <LogOut className="w-4 h-4" />
             Çıkış
@@ -321,7 +121,7 @@ const Settings = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors ${
                   activeTab === tab.id
                     ? 'bg-secondary text-foreground'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
@@ -336,7 +136,7 @@ const Settings = () => {
 
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Çıkış Yap
@@ -352,7 +152,7 @@ const Settings = () => {
             <div className="space-y-6">
               <h2 className="text-xl font-semibold">Hesabım</h2>
 
-              <div className="rounded-lg border border-border bg-card p-4 md:p-5 space-y-4">
+              <div className="rounded-xl border border-border bg-card p-4 md:p-5 space-y-4">
                 <div className="flex items-center gap-4">
                   <div className="relative group">
                     {avatarUrl ? (
@@ -395,7 +195,7 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-destructive/30 bg-card p-4 md:p-5 space-y-3">
+              <div className="rounded-xl border border-destructive/30 bg-card p-4 md:p-5 space-y-3">
                 <p className="text-sm font-semibold text-foreground">Hesap Silme</p>
                 <p className="text-xs text-muted-foreground">Hesabınızı silmek geri alınamaz bir işlemdir.</p>
                 <Button variant="destructive" size="sm" disabled>
@@ -408,7 +208,7 @@ const Settings = () => {
           {activeTab === 'privacy' && (
             <div className="space-y-6">
               <h2 className="text-xl font-semibold">Gizlilik & Güvenlik</h2>
-              <div className="rounded-lg border border-border bg-card p-4 md:p-5">
+              <div className="rounded-xl border border-border bg-card p-4 md:p-5">
                 <p className="text-sm text-muted-foreground">Yakında eklenecek.</p>
               </div>
             </div>
@@ -416,18 +216,26 @@ const Settings = () => {
 
           {activeTab === 'changelog' && (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold">Güncelleme Notları</h2>
-              {changelogData.map((release) => (
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Güncelleme Notları</h2>
+                <button
+                  onClick={() => navigate('/changelog')}
+                  className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+                >
+                  Tümünü Gör <ExternalLink className="w-3 h-3" />
+                </button>
+              </div>
+              {changelogData.slice(0, 3).map((release) => (
                 <div key={release.version} className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <span className="px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-xs font-bold">
+                    <span className="px-2.5 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-bold">
                       v{release.version}
                     </span>
                     <span className="text-sm text-muted-foreground">{release.date}</span>
                   </div>
 
                   {release.sections.map((section) => (
-                    <div key={section.title} className="rounded-lg border border-border bg-card p-4 md:p-5 space-y-3">
+                    <div key={section.title} className="rounded-xl border border-border bg-card p-4 md:p-5 space-y-3">
                       <div className="flex items-center gap-2">
                         <section.icon className={`w-4 h-4 ${section.color}`} />
                         <p className="text-sm font-semibold text-foreground">{section.title}</p>
@@ -452,7 +260,7 @@ const Settings = () => {
           <div className="py-10 pr-6 shrink-0">
             <button
               onClick={() => navigate('/')}
-              className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
+              className="w-9 h-9 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
             >
               <X className="w-5 h-5" />
             </button>

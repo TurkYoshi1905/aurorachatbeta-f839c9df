@@ -21,7 +21,7 @@ const MemberList = ({ members, isMobile, onBack }: MemberListProps) => {
   const renderMember = (member: DbMember) => (
     <div
       key={member.id}
-      className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-secondary/50 cursor-pointer transition-colors"
+      className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors"
     >
       <div className="relative">
         <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm overflow-hidden">

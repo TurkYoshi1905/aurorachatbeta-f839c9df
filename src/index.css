@@ -34,7 +34,7 @@
     --input: 228 10% 25%;
     --ring: 175 70% 50%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-bg: 228 14% 11%;
     --server-bg: 228 14% 9%;
@@ -81,10 +81,10 @@
     box-shadow: 0 0 20px hsl(var(--aurora-glow) / 0.15);
   }
   .server-icon {
-    @apply w-12 h-12 rounded-[24px] flex items-center justify-center cursor-pointer transition-all duration-200;
+    @apply w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-200;
   }
   .server-icon:hover, .server-icon.active {
-    @apply rounded-[16px];
+    @apply rounded-xl;
   }
   .scrollbar-thin::-webkit-scrollbar {
     width: 4px;
