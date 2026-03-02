@@ -1,107 +1,58 @@
 
 
-## Plan: v0.0.6 Sürüm Notu + DM & Arkadaşlık Sistemi
+## Plan: v0.0.7 Davet/Embed Fix + Sürüm Notu
 
-### 1. Veritabanı Değişiklikleri (Migration)
+### Sorun Analizi
 
-**`friends` tablosu:**
+1. **`servers` tablosu RLS**: SELECT politikasi sadece `server_members` olan kullanicilara izin veriyor. Bu yuzden `ServerInviteEmbed` ve `InvitePage` bilesenlerinde `server_invites` join `servers(...)` sorgusu, sunucu uyesi olmayan kullanicilar icin bos donuyor.
+
+2. **`activeServer === 'home'` hatasi**: Index.tsx'te `fetchMembers` ve mesaj fetch `'home'` stringini UUID olarak gonderiyor, 400 hatasi olusuyor.
+
+### Degisiklikler
+
+#### 1. Veritabani Migrasyonu — Servers icin yeni RLS politikasi
+
+Mevcut `Servers viewable by members` politikasini degistirmeden, davet kodu uzerinden sunucu bilgilerine erisim saglayan bir **security definer fonksiyonu** olustur:
+
 ```sql
-CREATE TABLE public.friends (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  sender_id uuid NOT NULL,
-  receiver_id uuid NOT NULL,
-  status text NOT NULL DEFAULT 'pending', -- 'pending' | 'accepted'
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(sender_id, receiver_id)
-);
-ALTER TABLE public.friends ENABLE ROW LEVEL SECURITY;
+CREATE OR REPLACE FUNCTION public.get_server_by_invite_code(_code text)
+RETURNS TABLE(id uuid, name text, icon text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT s.id, s.name, s.icon
+  FROM servers s
+  JOIN server_invites si ON si.server_id = s.id
+  WHERE si.code = _code
+    AND (si.expires_at IS NULL OR si.expires_at > now())
+    AND (si.max_uses IS NULL OR si.uses < si.max_uses);
+$$;
 ```
 
-RLS politikaları:
-- SELECT: `auth.uid() = sender_id OR auth.uid() = receiver_id`
-- INSERT: `auth.uid() = sender_id`
-- UPDATE: `auth.uid() = receiver_id` (sadece alıcı kabul edebilir)
-- DELETE: `auth.uid() = sender_id OR auth.uid() = receiver_id`
+Bu fonksiyon RLS'i bypass eder ve sadece gecerli invite kodu ile sunucu ad/ikon bilgisini dondurur.
 
-**`direct_messages` tablosu:**
-```sql
-CREATE TABLE public.direct_messages (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  sender_id uuid NOT NULL,
-  receiver_id uuid NOT NULL,
-  content text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.direct_messages ENABLE ROW LEVEL SECURITY;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.direct_messages;
-```
+#### 2. `ServerInviteEmbed.tsx` — RPC kullan
 
-RLS politikaları:
-- SELECT: `auth.uid() = sender_id OR auth.uid() = receiver_id`
-- INSERT: `auth.uid() = sender_id`
+Mevcut `server_invites` + `servers(...)` join sorgusunu `supabase.rpc('get_server_by_invite_code', { _code: code })` ile degistir. Boylece kullanici sunucu uyesi olmasa bile embed karti gorunur.
 
-### 2. Navigasyon — Mesaj Simgesi (ServerSidebar)
+#### 3. `InvitePage.tsx` — RPC kullan
 
-`ServerSidebar` içindeki mevcut mesaj simgesi (satır 19-28, `onServerChange('home')`) zaten var. `handleServerChange` içinde `id === 'home'` şu an `return` ile atlanıyor (satır 561). Bu mantık değişecek:
-- `activeServer === 'home'` olduğunda `Index.tsx` ana içerik alanı sunucu görünümü yerine **DM Dashboard** gösterecek.
+Ayni sekilde `server_invites` join sorgusunu RPC'ye cevir. Gecersiz/suresi dolmus davetler icin uyari goster, gecerli olanlar icin sunucu onizlemesi goster.
 
-### 3. Yeni Bileşenler
+#### 4. Index.tsx — `fetchMembers` guard
 
-**`src/components/DMDashboard.tsx`** — Ana DM sayfası:
-- Üst kısımda sekmeler: "Tümü", "Çevrimiçi", "Bekleyen İstekler", "Arkadaş Ekle"
-- Arkadaş listesi (profiles'tan display_name ve avatar çekilerek)
-- Boş durum: "Henüz kimseyle arkadaş değilsin" + "Arkadaş Ekle" butonu
-- Arkadaş ekleme: kullanıcı adı ile arama, istek gönderme
-- Bekleyen isteklerde kabul/reddet butonları
-- Arkadaşa tıklanınca DM sohbetine geçiş
+`fetchMembers` fonksiyonuna `if (activeServer === 'home') return;` guard'i ekle. Ayni sekilde mesaj fetch useEffect'ine de `activeServer === 'home'` kontrolu ekle (zaten `activeServer && activeChannel` var ama `'home'` truthy).
 
-**`src/components/DMChatArea.tsx`** — Direkt mesaj sohbet alanı:
-- `ChatArea`'ya benzer yapı ama kanal yerine kişi bazlı
-- `direct_messages` tablosundan geçmiş mesajları çek
-- Supabase Realtime ile yeni mesajları anlık dinle (postgres_changes INSERT on direct_messages)
-- Mesaj gönderme
+#### 5. Settings.tsx — v0.0.7 surumu
 
-### 4. Index.tsx Değişiklikleri
+Changelog'a v0.0.7 entry ekle: "Gelismis Davet Sistemi ve Embed Onizleme Iyilestirmeleri"
 
-- `handleServerChange`: `id === 'home'` durumunda `setActiveServer('home')` yapılacak
-- Render mantığı: `activeServer === 'home'` ise `ChannelList + ChatArea` yerine `DMDashboard` render edilecek
-- DM Dashboard'dan bir arkadaş seçilince `DMChatArea`'ya geçiş (yeni state: `activeDMUser`)
-- `activeDMUser` set edilmişse `DMChatArea`, değilse arkadaş listesi gösterilecek
+### Dosya Degisiklikleri
 
-### 5. Settings.tsx — v0.0.6 Sürüm Notu
-
-`changelogData` dizisinin başına yeni entry:
-```
-version: '0.0.6'
-date: '2 Mart 2026'
-sections:
-  - Yeni Özellikler: DM sistemi, Arkadaşlık sistemi, Yazıyor göstergesi
-  - Düzeltilen Hatalar: Emoji reaksiyon realtime fix
-```
-
-### 6. Görsel Düzen (Desktop)
-
-```text
-┌──────┬────────────────────────────────────────────┐
-│  DM  │  Arkadaşlar  │ Tümü │ Çevrimiçi │ Bekleyen │ Ekle │
-│ icon ├────────────────────────────────────────────┤
-│      │  [Avatar] Ahmet          Mesaj Gönder →    │
-│ srv1 │  [Avatar] Mehmet         Mesaj Gönder →    │
-│      │                                            │
-│ srv2 │  — veya DM sohbet açıksa —                 │
-│      │  [Mesaj geçmişi]                           │
-│  +   │  [Input alanı]                             │
-└──────┴────────────────────────────────────────────┘
-```
-
-### Dosya Değişiklikleri Özeti
-
-| Dosya | İşlem |
+| Dosya | Islem |
 |---|---|
-| Migration SQL | `friends` + `direct_messages` tabloları + RLS + realtime |
-| `src/components/DMDashboard.tsx` | Yeni — Arkadaş listesi, sekmeler, arkadaş ekleme |
-| `src/components/DMChatArea.tsx` | Yeni — DM sohbet alanı |
-| `src/pages/Index.tsx` | `home` server seçimi DM'e yönlendirme, yeni state'ler |
-| `src/components/ServerSidebar.tsx` | Küçük güncelleme (aktif `home` stili) |
-| `src/pages/Settings.tsx` | v0.0.6 changelog entry |
+| Migration SQL | `get_server_by_invite_code` fonksiyonu |
+| `src/components/ServerInviteEmbed.tsx` | RPC ile sunucu bilgisi cek |
+| `src/pages/InvitePage.tsx` | RPC ile sunucu bilgisi cek |
+| `src/pages/Index.tsx` | `fetchMembers` ve mesaj fetch'te `'home'` guard |
+| `src/pages/Settings.tsx` | v0.0.7 changelog entry |
 
