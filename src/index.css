@@ -63,16 +63,13 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-family: 'Inter', sans-serif;
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
-    height: 100%;
     touch-action: manipulation;
+    margin: 0;
+    padding: 0;
   }
   #root {
     width: 100%;
-    height: 100%;
-    overflow: hidden;
+    min-height: 100%;
   }
 }
 

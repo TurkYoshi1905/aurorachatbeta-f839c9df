@@ -6,7 +6,7 @@ const Changelog = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground overflow-y-auto">
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="flex items-center gap-3 mb-8">
           <button
