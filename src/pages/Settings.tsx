@@ -1,7 +1,8 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, X, User, Shield, Megaphone, Camera, ExternalLink } from 'lucide-react';
+import { LogOut, X, User, Shield, Megaphone, Camera, ExternalLink, Pencil, Check, XIcon, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useState, useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,6 +23,11 @@ const Settings = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Inline editing states
+  const [editingField, setEditingField] = useState<'display_name' | 'username' | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
@@ -63,20 +69,59 @@ const Settings = () => {
     setUploading(false);
   };
 
+  const startEdit = (field: 'display_name' | 'username') => {
+    setEditingField(field);
+    setEditValue(field === 'display_name' ? (profile?.display_name || '') : (profile?.username || ''));
+  };
+
+  const cancelEdit = () => {
+    setEditingField(null);
+    setEditValue('');
+  };
+
+  const saveEdit = async () => {
+    if (!user || !editingField || !editValue.trim()) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ [editingField]: editValue.trim() })
+      .eq('user_id', user.id);
+    setSaving(false);
+    if (error) {
+      toast.error('Güncelleme başarısız');
+    } else {
+      toast.success(editingField === 'display_name' ? 'Görünen ad güncellendi!' : 'Kullanıcı adı güncellendi!');
+      setEditingField(null);
+      // Profile will refresh via AuthContext
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') navigate('/');
+      if (e.key === 'Escape') {
+        if (editingField) {
+          cancelEdit();
+        } else {
+          navigate('/');
+        }
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate]);
+  }, [navigate, editingField]);
 
   const handleSignOut = async () => {
     await signOut();
   };
 
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('tr-TR', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+  };
+
   return (
-    <div className="h-screen flex flex-col md:flex-row bg-background text-foreground">
+    <div className="h-screen flex flex-col md:flex-row bg-background text-foreground overflow-hidden">
       {/* Mobil üst bar */}
       {isMobile && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-sidebar overflow-x-auto shrink-0">
@@ -183,14 +228,81 @@ const Settings = () => {
                   </div>
                 </div>
 
-                <div className="border-t border-border pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs uppercase text-muted-foreground font-semibold mb-1">Görünen Ad</p>
-                    <p className="text-sm text-foreground">{profile?.display_name || '—'}</p>
+                <div className="border-t border-border pt-4 space-y-3">
+                  {/* Görünen Ad */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs uppercase text-muted-foreground font-semibold mb-1">Görünen Ad</p>
+                      {editingField === 'display_name' ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="h-8 bg-input border-border text-sm"
+                            autoFocus
+                            onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
+                          />
+                          <button onClick={saveEdit} disabled={saving} className="text-primary hover:text-primary/80 shrink-0">
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground shrink-0">
+                            <XIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-foreground">{profile?.display_name || '—'}</p>
+                      )}
+                    </div>
+                    {editingField !== 'display_name' && (
+                      <button onClick={() => startEdit('display_name')} className="text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
+
+                  {/* Kullanıcı Adı */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs uppercase text-muted-foreground font-semibold mb-1">Kullanıcı Adı</p>
+                      {editingField === 'username' ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="h-8 bg-input border-border text-sm"
+                            autoFocus
+                            onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
+                          />
+                          <button onClick={saveEdit} disabled={saving} className="text-primary hover:text-primary/80 shrink-0">
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground shrink-0">
+                            <XIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-foreground">@{profile?.username || '—'}</p>
+                      )}
+                    </div>
+                    {editingField !== 'username' && (
+                      <button onClick={() => startEdit('username')} className="text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* E-posta (salt okunur) */}
                   <div>
-                    <p className="text-xs uppercase text-muted-foreground font-semibold mb-1">Kullanıcı Adı</p>
-                    <p className="text-sm text-foreground">{profile?.username || '—'}</p>
+                    <p className="text-xs uppercase text-muted-foreground font-semibold mb-1">E-posta</p>
+                    <p className="text-sm text-foreground">{user?.email || '—'}</p>
+                  </div>
+
+                  {/* Hesap Oluşturma Tarihi */}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">
+                      {user?.created_at ? formatDate(user.created_at) : '—'} tarihinden beri üye
+                    </p>
                   </div>
                 </div>
               </div>

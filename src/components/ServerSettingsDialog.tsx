@@ -111,7 +111,7 @@ const ServerSettingsDialog = ({
     }
 
     const ext = file.name.split('.').pop();
-    const path = `${serverId}/icon.${ext}`;
+    const path = `${user?.id}/servers/${serverId}/icon.${ext}`;
     const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
     if (error) {
       toast.error('Yükleme başarısız');
