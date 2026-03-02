@@ -15,6 +15,31 @@ const tabs = [
 
 const changelogData = [
   {
+    version: '0.0.6',
+    date: '2 Mart 2026',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'DM (Direkt Mesajlaşma) sistemi eklendi — arkadaşlarla özel sohbet',
+          'Arkadaşlık sistemi: kullanıcı adı ile istek gönderme, kabul/reddetme',
+          'Arkadaş listesi sekmeleri: Tümü, Bekleyen İstekler, Arkadaş Ekle',
+          'Discord stili gerçek zamanlı "yazıyor..." göstergesi eklendi',
+        ],
+      },
+      {
+        title: 'Düzeltilen Hatalar',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Emoji tepkileri realtime senkronizasyonu düzeltildi — kendi aksiyonlarınız artık çift sayılmıyor',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.0.5',
     date: '2 Mart 2026',
     sections: [
