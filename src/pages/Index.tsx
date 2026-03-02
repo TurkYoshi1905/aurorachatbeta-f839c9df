@@ -92,15 +92,15 @@ const MobileBottomNav = ({ activeView, onHome, onChannels, onChat, onMembers, on
   }
 
   return (
-    <div className="h-14 bg-server-bg border-t border-border flex items-center justify-around px-2 shrink-0">
+    <div className="fixed bottom-0 left-0 right-0 z-50 h-14 bg-server-bg border-t border-border/50 flex items-center px-1 shrink-0">
       {items.map((item) => {
         const isActive = activeView === item.id || (isHome && item.id === 'home' && activeView === 'home');
         return (
           <button
             key={item.id}
             onClick={item.action}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${
-              isActive ? 'text-primary' : 'text-muted-foreground'
+            className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-colors ${
+              isActive ? 'text-primary bg-primary/10 font-medium' : 'text-muted-foreground'
             }`}
           >
             <item.icon className="w-5 h-5" />
@@ -723,7 +723,7 @@ const Index = () => {
 
     if (isMobile) {
       return (
-        <div className="h-screen flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
+        <div className="h-screen flex flex-col overflow-hidden pb-14" style={{ height: '100dvh' }}>
           <div className="flex-1 min-h-0 overflow-hidden">
             {dmContent}
           </div>
@@ -778,7 +778,7 @@ const Index = () => {
 
   if (isMobile) {
     return (
-      <div className="h-screen flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
+      <div className="h-screen flex flex-col overflow-hidden pb-14" style={{ height: '100dvh' }}>
         <div className="flex-1 min-h-0 overflow-hidden">
           {mobileView === 'channels' && (
             <ChannelList
