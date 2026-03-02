@@ -73,6 +73,8 @@ const Index = () => {
   const [myStatus, setMyStatus] = useState<DbMember['status']>('online');
   const [mobileView, setMobileView] = useState<MobileView>('channels');
   const [reactions, setReactions] = useState<Record<string, DbReaction[]>>({});
+  const [typingUsers, setTypingUsers] = useState<{ userId: string; displayName: string }[]>([]);
+  const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const channelRef = useRef(activeChannel);
   const serverRef = useRef(activeServer);
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -315,7 +317,7 @@ const Index = () => {
     fetchReactions();
   }, [activeChannel, messages.length]);
 
-  // Realtime reactions
+  // Realtime reactions — skip own user's events (optimistic update already applied)
   useEffect(() => {
     const channel = supabase
       .channel('realtime-reactions')
@@ -324,10 +326,11 @@ const Index = () => {
         { event: 'INSERT', schema: 'public', table: 'message_reactions' },
         (payload) => {
           const r = payload.new as { message_id: string; user_id: string; emoji: string };
+          if (r.user_id === user?.id) return; // skip own — already optimistically applied
           setReactions((prev) => {
             const copy = { ...prev };
             const list = [...(copy[r.message_id] || [])];
-          const existingIdx = list.findIndex((e) => e.emoji === r.emoji);
+            const existingIdx = list.findIndex((e) => e.emoji === r.emoji);
             if (existingIdx !== -1) {
               const existing = list[existingIdx];
               if (!existing.userIds.includes(r.user_id)) {
@@ -350,6 +353,7 @@ const Index = () => {
         { event: 'DELETE', schema: 'public', table: 'message_reactions' },
         (payload) => {
           const r = payload.old as { message_id: string; user_id: string; emoji: string };
+          if (r.user_id === user?.id) return; // skip own — already optimistically applied
           setReactions((prev) => {
             const copy = { ...prev };
             const list = (copy[r.message_id] || [])
@@ -367,7 +371,7 @@ const Index = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [user?.id]);
 
   const handleToggleReaction = useCallback(
     async (messageId: string, emoji: string) => {
@@ -495,6 +499,59 @@ const Index = () => {
       prev.map((m) => (m.id === user.id ? { ...m, status: myStatus } : m))
     );
   }, [myStatus]);
+
+  // Typing indicator broadcast channel
+  useEffect(() => {
+    if (!activeChannel || !user) {
+      setTypingUsers([]);
+      return;
+    }
+    const typingChannel = supabase.channel(`typing-${activeChannel}`);
+    typingChannel
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        const { userId, displayName } = payload.payload as { userId: string; displayName: string };
+        if (userId === user.id) return;
+        setTypingUsers((prev) => {
+          const exists = prev.some((t) => t.userId === userId);
+          if (!exists) return [...prev, { userId, displayName }];
+          return prev;
+        });
+        // Clear existing timeout for this user
+        const existing = typingTimeoutsRef.current.get(userId);
+        if (existing) clearTimeout(existing);
+        const timeout = setTimeout(() => {
+          setTypingUsers((prev) => prev.filter((t) => t.userId !== userId));
+          typingTimeoutsRef.current.delete(userId);
+        }, 3000);
+        typingTimeoutsRef.current.set(userId, timeout);
+      })
+      .on('broadcast', { event: 'stop_typing' }, (payload) => {
+        const { userId } = payload.payload as { userId: string };
+        setTypingUsers((prev) => prev.filter((t) => t.userId !== userId));
+        const existing = typingTimeoutsRef.current.get(userId);
+        if (existing) { clearTimeout(existing); typingTimeoutsRef.current.delete(userId); }
+      })
+      .subscribe();
+
+    return () => {
+      setTypingUsers([]);
+      typingTimeoutsRef.current.forEach((t) => clearTimeout(t));
+      typingTimeoutsRef.current.clear();
+      supabase.removeChannel(typingChannel);
+    };
+  }, [activeChannel, user?.id]);
+
+  const handleTypingStart = useCallback(() => {
+    if (!activeChannel || !user || !profile) return;
+    const ch = supabase.channel(`typing-${activeChannel}`);
+    ch.send({ type: 'broadcast', event: 'typing', payload: { userId: user.id, displayName: profile.display_name } });
+  }, [activeChannel, user, profile]);
+
+  const handleTypingStop = useCallback(() => {
+    if (!activeChannel || !user) return;
+    const ch = supabase.channel(`typing-${activeChannel}`);
+    ch.send({ type: 'broadcast', event: 'stop_typing', payload: { userId: user.id } });
+  }, [activeChannel, user]);
 
   const server = servers.find((s) => s.id === activeServer) || servers[0];
   const channel = server?.channels.find((c) => c.id === activeChannel) || server?.channels[0];
@@ -655,6 +712,9 @@ const Index = () => {
             onBack={() => setMobileView('channels')}
             reactions={reactions}
             onToggleReaction={handleToggleReaction}
+            typingUsers={typingUsers}
+            onTypingStart={handleTypingStart}
+            onTypingStop={handleTypingStop}
           />
         )}
         {mobileView === 'members' && (
@@ -693,6 +753,9 @@ const Index = () => {
         isOwner={isOwner}
         reactions={reactions}
         onToggleReaction={handleToggleReaction}
+        typingUsers={typingUsers}
+        onTypingStart={handleTypingStart}
+        onTypingStop={handleTypingStop}
       />
       {showMembers && <MemberList members={members} />}
     </div>
