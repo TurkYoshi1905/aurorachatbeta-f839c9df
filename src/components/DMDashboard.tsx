@@ -167,7 +167,7 @@ const DMDashboard = ({ onOpenDM }: DMDashboardProps) => {
   );
 
   const FriendRow = ({ friend, showMessage = true }: { friend: FriendRequest; showMessage?: boolean }) => (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/30 rounded-lg transition-colors group">
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/30 rounded-xl transition-colors group">
       <Avatar className="h-10 w-10">
         {friend.profile.avatarUrl && <AvatarImage src={friend.profile.avatarUrl} />}
         <AvatarFallback className="bg-secondary text-foreground font-semibold">
@@ -212,7 +212,7 @@ const DMDashboard = ({ onOpenDM }: DMDashboardProps) => {
       <div className="flex-1 overflow-y-auto">
         <Tabs defaultValue="all" className="w-full">
           <div className="px-4 pt-4">
-            <TabsList className="bg-secondary/50">
+            <TabsList className="bg-secondary/50 rounded-xl">
               <TabsTrigger value="all">Tümü</TabsTrigger>
               <TabsTrigger value="pending" className="relative">
                 Bekleyen

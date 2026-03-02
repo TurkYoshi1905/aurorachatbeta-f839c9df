@@ -11,6 +11,8 @@ import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
 import Settings from "./pages/Settings";
 import InvitePage from "./pages/InvitePage";
+import Changelog from "./pages/Changelog";
+import ChangelogDetail from "./pages/ChangelogDetail";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +56,8 @@ const App = () => (
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/invite/:code" element={<InvitePage />} />
+            <Route path="/changelog" element={<Changelog />} />
+            <Route path="/changelog/:version" element={<ChangelogDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

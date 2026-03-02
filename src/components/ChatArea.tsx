@@ -329,7 +329,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
       <TypingIndicator typingUsers={typingUsers || []} />
 
       <div className="px-4 pb-6">
-        <div className="bg-input rounded-lg flex items-center px-3 gap-2">
+        <div className="bg-input rounded-xl flex items-center px-4 gap-2 ring-1 ring-border focus-within:ring-primary/40 transition-all">
           <button className="text-muted-foreground hover:text-foreground transition-colors">
             <PlusCircle className="w-5 h-5" />
           </button>

@@ -2,12 +2,15 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import ServerSidebar from '@/components/ServerSidebar';
 import ChannelList from '@/components/ChannelList';
 import ChatArea from '@/components/ChatArea';
+import { Home, MessageSquare, Users, Settings, Hash } from 'lucide-react';
 import MemberList from '@/components/MemberList';
 import DMDashboard from '@/components/DMDashboard';
 import DMChatArea from '@/components/DMChatArea';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNavigate } from 'react-router-dom';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export interface DbMessage {
   id: string;
@@ -63,9 +66,56 @@ export interface DbServer {
 
 type MobileView = 'channels' | 'chat' | 'members';
 
+interface MobileBottomNavProps {
+  activeView: string;
+  onHome: () => void;
+  onChannels: () => void;
+  onChat: () => void;
+  onMembers: () => void;
+  onSettings: () => void;
+  onOpenSidebar: () => void;
+  isHome?: boolean;
+}
+
+const MobileBottomNav = ({ activeView, onHome, onChannels, onChat, onMembers, onSettings, onOpenSidebar, isHome }: MobileBottomNavProps) => {
+  const items = [
+    { id: 'servers', icon: Home, label: 'Sunucular', action: onOpenSidebar },
+    { id: 'channels', icon: Hash, label: 'Kanallar', action: onChannels },
+    { id: 'chat', icon: MessageSquare, label: 'Sohbet', action: onChat },
+    { id: 'members', icon: Users, label: 'Üyeler', action: onMembers },
+    { id: 'settings', icon: Settings, label: 'Ayarlar', action: onSettings },
+  ];
+
+  if (isHome) {
+    items[0] = { id: 'home', icon: Home, label: 'Ana Sayfa', action: onHome };
+    items[1] = { id: 'servers', icon: Hash, label: 'Sunucular', action: onOpenSidebar };
+  }
+
+  return (
+    <div className="h-14 bg-server-bg border-t border-border flex items-center justify-around px-2 shrink-0">
+      {items.map((item) => {
+        const isActive = activeView === item.id || (isHome && item.id === 'home' && activeView === 'home');
+        return (
+          <button
+            key={item.id}
+            onClick={item.action}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${
+              isActive ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <item.icon className="w-5 h-5" />
+            <span className="text-[10px]">{item.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
 const Index = () => {
   const { profile, user } = useAuth();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [servers, setServers] = useState<DbServer[]>([]);
   const [activeServer, setActiveServer] = useState<string>('');
   const [activeChannel, setActiveChannel] = useState<string>('');
@@ -662,12 +712,39 @@ const Index = () => {
     [user, activeServer, fetchServers]
   );
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   if (activeServer === 'home') {
     const dmContent = activeDMUser ? (
       <DMChatArea dmUser={activeDMUser} onBack={() => setActiveDMUser(null)} />
     ) : (
       <DMDashboard onOpenDM={(u) => setActiveDMUser(u)} />
     );
+
+    if (isMobile) {
+      return (
+        <div className="h-screen flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {dmContent}
+          </div>
+          <MobileBottomNav
+            activeView={activeDMUser ? 'chat' : 'home'}
+            onHome={() => { setActiveDMUser(null); handleServerChange('home'); }}
+            onChannels={() => setMobileView('channels')}
+            onChat={() => setMobileView('chat')}
+            onMembers={() => setMobileView('members')}
+            onSettings={() => navigate('/settings')}
+            onOpenSidebar={() => setSidebarOpen(true)}
+            isHome
+          />
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetContent side="left" className="p-0 w-[72px] bg-server-bg border-none">
+              <ServerSidebar activeServer={activeServer} onServerChange={(id) => { handleServerChange(id); setSidebarOpen(false); }} servers={servers} onServerCreated={handleServerCreated} />
+            </SheetContent>
+          </Sheet>
+        </div>
+      );
+    }
 
     return (
       <div className="h-screen flex overflow-hidden">
@@ -702,9 +779,8 @@ const Index = () => {
   if (isMobile) {
     return (
       <div className="h-screen flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
-        {mobileView === 'channels' && (
-          <div className="flex h-full">
-            <ServerSidebar activeServer={activeServer} onServerChange={handleServerChange} servers={servers} onServerCreated={handleServerCreated} />
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {mobileView === 'channels' && (
             <ChannelList
               serverName={server.name}
               serverId={server.id}
@@ -721,30 +797,44 @@ const Index = () => {
               onLeaveServer={handleLeaveServer}
               isMobile
             />
-          </div>
-        )}
-        {mobileView === 'chat' && (
-          <ChatArea
-            channelName={channel.name}
-            messages={messages}
-            onSendMessage={handleSendMessage}
-            onDeleteMessage={handleDeleteMessage}
-            onEditMessage={handleEditMessage}
-            onToggleMembers={() => setMobileView('members')}
-            showMembers={false}
-            isOwner={isOwner}
-            isMobile
-            onBack={() => setMobileView('channels')}
-            reactions={reactions}
-            onToggleReaction={handleToggleReaction}
-            typingUsers={typingUsers}
-            onTypingStart={handleTypingStart}
-            onTypingStop={handleTypingStop}
-          />
-        )}
-        {mobileView === 'members' && (
-          <MemberList members={members} isMobile onBack={() => setMobileView('chat')} />
-        )}
+          )}
+          {mobileView === 'chat' && (
+            <ChatArea
+              channelName={channel.name}
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              onDeleteMessage={handleDeleteMessage}
+              onEditMessage={handleEditMessage}
+              onToggleMembers={() => setMobileView('members')}
+              showMembers={false}
+              isOwner={isOwner}
+              isMobile
+              onBack={() => setMobileView('channels')}
+              reactions={reactions}
+              onToggleReaction={handleToggleReaction}
+              typingUsers={typingUsers}
+              onTypingStart={handleTypingStart}
+              onTypingStop={handleTypingStop}
+            />
+          )}
+          {mobileView === 'members' && (
+            <MemberList members={members} isMobile onBack={() => setMobileView('chat')} />
+          )}
+        </div>
+        <MobileBottomNav
+          activeView={mobileView}
+          onHome={() => handleServerChange('home')}
+          onChannels={() => setMobileView('channels')}
+          onChat={() => setMobileView('chat')}
+          onMembers={() => setMobileView('members')}
+          onSettings={() => navigate('/settings')}
+          onOpenSidebar={() => setSidebarOpen(true)}
+        />
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetContent side="left" className="p-0 w-[72px] bg-server-bg border-none">
+            <ServerSidebar activeServer={activeServer} onServerChange={(id) => { handleServerChange(id); setSidebarOpen(false); }} servers={servers} onServerCreated={handleServerCreated} />
+          </SheetContent>
+        </Sheet>
       </div>
     );
   }
