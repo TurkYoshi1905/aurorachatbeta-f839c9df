@@ -76,8 +76,9 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
   // Realtime subscription
   useEffect(() => {
     if (!user) return;
+    const channelName = `dm-live-${[user.id, dmUser.userId].sort().join('-')}`;
     const channel = supabase
-      .channel(`dm-${[user.id, dmUser.userId].sort().join('-')}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'direct_messages' },
@@ -91,17 +92,21 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
           // Skip own messages (already added optimistically)
           if (m.sender_id === user.id) return;
 
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: m.id,
-              senderId: m.sender_id,
-              content: m.content,
-              createdAt: m.created_at,
-              senderName: dmUser.displayName,
-              senderAvatar: dmUser.avatarUrl,
-            },
-          ]);
+          setMessages((prev) => {
+            // Prevent duplicates
+            if (prev.some((msg) => msg.id === m.id)) return prev;
+            return [
+              ...prev,
+              {
+                id: m.id,
+                senderId: m.sender_id,
+                content: m.content,
+                createdAt: m.created_at,
+                senderName: dmUser.displayName,
+                senderAvatar: dmUser.avatarUrl,
+              },
+            ];
+          });
         }
       )
       .subscribe();

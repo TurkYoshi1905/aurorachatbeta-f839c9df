@@ -323,12 +323,13 @@ const Index = () => {
   // Realtime reactions — skip own user's events (optimistic update already applied)
   useEffect(() => {
     const channel = supabase
-      .channel('realtime-reactions')
+      .channel('realtime-reactions-v2')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'message_reactions' },
         (payload) => {
           const r = payload.new as { message_id: string; user_id: string; emoji: string };
+          if (!r.message_id || !r.user_id || !r.emoji) return;
           if (r.user_id === user?.id) return; // skip own — already optimistically applied
           setReactions((prev) => {
             const copy = { ...prev };
@@ -355,18 +356,19 @@ const Index = () => {
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'message_reactions' },
         (payload) => {
-          const r = payload.old as { message_id: string; user_id: string; emoji: string };
+          const r = payload.old as { id?: string; message_id?: string; user_id?: string; emoji?: string };
+          if (!r.message_id || !r.user_id || !r.emoji) return; // need full data (REPLICA IDENTITY FULL)
           if (r.user_id === user?.id) return; // skip own — already optimistically applied
           setReactions((prev) => {
             const copy = { ...prev };
-            const list = (copy[r.message_id] || [])
+            const list = (copy[r.message_id!] || [])
               .map((e) =>
                 e.emoji === r.emoji
                   ? { ...e, userIds: e.userIds.filter((id) => id !== r.user_id), count: e.count - 1 }
                   : e
               )
               .filter((e) => e.count > 0);
-            copy[r.message_id] = list;
+            copy[r.message_id!] = list;
             return copy;
           });
         }
