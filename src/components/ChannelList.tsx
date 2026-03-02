@@ -60,7 +60,7 @@ const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel
   };
 
   return (
-    <div className={`${isMobile ? 'flex-1' : 'w-60'} bg-sidebar flex flex-col`}>
+    <div className={`${isMobile ? 'flex-1 h-full' : 'w-60'} bg-sidebar flex flex-col`}>
       <div className="h-12 flex items-center px-4 border-b border-border shadow-sm font-semibold text-foreground cursor-pointer hover:bg-secondary/50 transition-colors justify-between">
         <span className="truncate">{serverName}</span>
         <div className="flex items-center gap-1.5">
@@ -96,7 +96,7 @@ const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel
 
       <div className="flex-1 overflow-y-auto scrollbar-thin px-2 py-3">
         <div className="mb-4">
-          <div className="flex items-center justify-between px-2 mb-1">
+          <div className="flex items-center justify-between px-2 mb-0.5">
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Metin Kanalları</p>
             {isOwner && (
               <button onClick={() => openCreateChannel('text')} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -148,7 +148,7 @@ const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel
         )}
       </div>
 
-      <div className="h-[52px] bg-server-bg flex items-center px-2 gap-2">
+      <div className="h-[52px] bg-server-bg flex items-center px-2 gap-2 shrink-0">
         <Popover open={statusOpen} onOpenChange={setStatusOpen}>
           <PopoverTrigger asChild>
             <button className="relative flex-shrink-0 cursor-pointer rounded-full hover:opacity-80 transition-opacity">

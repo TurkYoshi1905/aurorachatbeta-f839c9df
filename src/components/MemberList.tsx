@@ -47,7 +47,7 @@ const MemberList = ({ members, isMobile, onBack }: MemberListProps) => {
   );
 
   return (
-    <div className={`${isMobile ? 'flex-1' : 'w-60'} bg-sidebar border-l border-border overflow-y-auto scrollbar-thin py-4 px-2 flex flex-col`}>
+    <div className={`${isMobile ? 'flex-1 h-full' : 'w-60'} bg-sidebar border-l border-border overflow-y-auto scrollbar-thin py-4 px-2 flex flex-col`}>
       {isMobile && onBack && (
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3 px-2">
           <ArrowLeft className="w-4 h-4" /> Geri
