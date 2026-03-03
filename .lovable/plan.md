@@ -1,57 +1,70 @@
 
 
-## Plan: DM Realtime, Yazıyor Göstergesi, Invite Embed, Changelog Navigasyon Düzeltmeleri
+## Plan: DM Realtime Kesin Cozum, Profil Sync Dogrulama, v0.0.9 Changelog
 
-### 1. DM Realtime Sorunun Kök Nedeni ve Düzeltme
+### Analiz Sonuclari
 
-Mevcut kod zaten INSERT/UPDATE/DELETE dinliyor ve `filter: receiver_id=eq.${user.id}` kullanıyor. Sorun: UPDATE ve DELETE event'leri icin filter yok — Supabase Realtime filtre olmadan RLS kontrolunu her satir icin yapmak zorunda kaliyor ve event'ler dusebiliyor.
+- `direct_messages` tablosu realtime publication'da **mevcut**
+- Replica identity **FULL** — DELETE event'leri eski satiri icerir
+- RLS politikalari dogru: `sender_id = auth.uid() OR receiver_id = auth.uid()` (SELECT)
+- `AuthContext`'te profil sync realtime aboneligi **zaten calisiyor**
 
-**Duzeltme (`src/components/DMChatArea.tsx`):**
-- UPDATE event'ine `filter: receiver_id=eq.${user.id}` ekle (karsidaki kisinin duzenlemelerini almak icin)
-- Ayrica kendi gonderdigimiz mesajlarin UPDATE'lerini de almak icin ikinci bir UPDATE listener ekle: `filter: sender_id=eq.${user.id}`
-- DELETE icin de benzer iki filter ekle
-- Alternatif: Tek bir kanal yerine, iki ayri listener kullan (biri receiver, biri sender olarak)
+**Potansiyel DM Realtime Sorunlari:**
+1. Subscribe callback'te hata kontrolu yok — baglanti basarisiz olursa sessizce devam ediyor
+2. Kanal `subscribe()` sonucu kontrol edilmiyor (`SUBSCRIBED` vs `CHANNEL_ERROR`)
+3. Typing kanali ile realtime kanali ayni `pairKey` kullanip farkli prefix kullaniyor — sorun olmamali ama karisiklik yaratabilir
 
-Aslinda daha basit yaklasim: Realtime subscription'da filter kullanmak yerine, filtresiz dinleyip client-side filtre yapmak daha guvenilir olabilir — ama bu RLS yukunu arttirir. En iyi cozum: `sender_id` ve `receiver_id` icin iki ayri listener eklemek.
+### 1. DM Realtime Guclendirilmesi (`src/components/DMChatArea.tsx`)
 
-### 2. DM "Yaziyor..." Gostergesi
+Mevcut subscription yapisini koruyarak su iyilestirmeleri yap:
 
-Sunucu kanallarindaki `TypingIndicator` mantigi (`ChatArea.tsx` satir 78-102) ve Broadcast kanal kullanimi DM'e uyarlanacak.
+- `subscribe()` callback'ine status kontrolu ekle — `CHANNEL_ERROR` veya `TIMED_OUT` durumunda otomatik yeniden baglanma (retry) mantigi
+- Channel subscription durumunu bir ref'te tut, component unmount olurken temizle
+- INSERT handler'da optimistic mesaj ile gercek mesajin ID eslesme kontrolunu guclendir (tempId match)
+- `event: '*'` tek bir listener kullanarak INSERT/UPDATE/DELETE'i tek handler'da isle — bu Supabase'in event filtering yukunu azaltir ve daha guvenilir
 
-**Degisiklikler (`src/components/DMChatArea.tsx`):**
-- Supabase Broadcast kanali olustur: `dm-typing-${[user.id, dmUserId].sort().join('-')}`
-- Input `onChange`'de 2 saniyelik throttle ile typing event gonder
-- Input bos olunca veya mesaj gonderince stop event gonder
-- Karsidaki kisinin typing event'lerini dinle ve UI'da goster
-- `TypingIndicator` bilesenini ChatArea'dan import et veya ayni mantigi DM'e ekle
-
-### 3. Invite Embed Gorsel Duzeltmesi
-
-**Sorun (`src/components/ServerInviteEmbed.tsx` satir 61-63):** Sunucu ikonu her zaman `{server.icon}` olarak text render ediliyor, URL kontrolu yok.
-
-**Duzeltme:**
+**Yeni yaklasim:**
+```typescript
+.on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, (payload) => {
+  if (payload.eventType === 'INSERT') { ... }
+  else if (payload.eventType === 'UPDATE') { ... }
+  else if (payload.eventType === 'DELETE') { ... }
+})
+.subscribe((status, err) => {
+  if (status === 'CHANNEL_ERROR') console.error('DM channel error:', err);
+})
 ```
-{server.icon && (server.icon.startsWith('http') || server.icon.startsWith('/'))
-  ? <img src={server.icon} alt="" className="w-full h-full object-cover rounded-xl"
-         onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-  : (server.icon || server.name.charAt(0).toUpperCase())
-}
+
+### 2. Profil Senkronizasyonu
+
+AuthContext'teki mevcut realtime profil sync **zaten calisiyor**. Ek islem gerekmez. DMChatArea'da mesajlardaki gosterim adi ve avatar, `profile` state'inden geliyor — profil degisince otomatik guncellenir.
+
+### 3. v0.0.9 Changelog (`src/data/changelogData.ts`)
+
+Dizinin basina yeni release ekle:
+
 ```
-Ayrica ikon container boyutunu `w-12 h-12` (48x48) olarak sabitle.
+version: '0.0.9'
+date: '3 Mart 2026'
+summary: 'Tam gercek zamanli DM sistemi, profil senkronizasyonu ve gizlilik ozellikleri.'
+sections:
+  - Yeni Ozellikler:
+    - Tam Gercek Zamanli DM Sistemi (Sayfa yenileme zorunlulugu kaldirildi)
+    - Profil bilgilerinin (Ad/Kullanici adi) tum platformda anlik senkronizasyonu
+    - DM Mesaj Duzenleme ve Silme ozellikleri eklendi
+    - Yeni Gizlilik Politikasi sayfasi ve Geri Don butonu eklendi
+  - Duzeltilen Hatalar:
+    - Sunucu davet linklerindeki gorsel hatalari giderildi
+    - Changelog navigasyon dongusu duzeltildi
+  - Gelistirmeler:
+    - Gizlilik ve Guvenlik ayarlari (DM izni, arkadaslik istekleri yonetimi, 2FA UI)
+    - Sunucu ikonu render mantigi iyilestirildi
+```
 
-### 4. Changelog Navigasyon Duzeltmesi
-
-**Sorun:** `/changelog` sayfasindaki geri butonu `navigate(-1)` kullaniyor. Kullanici ChangelogDetail'den `/changelog`'a donup tekrar geri basinca ChangelogDetail'e geri gidiyor (browser history yuzunden).
-
-**Duzeltme (`src/pages/Changelog.tsx`):** Geri butonunu `navigate(-1)` yerine `navigate('/settings')` yap — cunku changelog'a ayarlar sayfasindan erisiiliyor.
-
-**Duzeltme (`src/pages/ChangelogDetail.tsx`):** Zaten `navigate('/changelog')` kullaniyor, dogru.
-
-### 5. Dosya Degisiklikleri
+### 4. Dosya Degisiklikleri
 
 | Dosya | Islem |
 |---|---|
-| `src/components/DMChatArea.tsx` | Realtime UPDATE/DELETE filter duzeltme + Typing indicator ekleme |
-| `src/components/ServerInviteEmbed.tsx` | Icon URL kontrolu ve img render |
-| `src/pages/Changelog.tsx` | Geri butonu `navigate('/settings')` |
+| `src/components/DMChatArea.tsx` | Realtime subscription'i `event: '*'` ile tek handler'a cevir, subscribe status kontrolu ekle |
+| `src/data/changelogData.ts` | v0.0.9 release ekle |
 
