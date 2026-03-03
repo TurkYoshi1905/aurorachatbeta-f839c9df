@@ -1,50 +1,88 @@
 
 
-## Plan: DM Realtime Kesin Çözüm — Sunucu Kalıbıyla Birebir Eşleştirme
+## Plan: Çok Dilli Destek (i18n) ve v0.1.0
 
-### Kök Neden Analizi
+### Yaklaşım
 
-Sunucu mesajları ile DM mesajları arasındaki kritik farklar:
+Lightweight bir i18n sistemi kuracağız — harici kütüphane (react-i18next vb.) kullanmadan, React Context + JSON çeviri dosyaları ile. Bu projenin boyutuna en uygun yaklaşım.
 
-| | Sunucu (Çalışıyor) | DM (Çalışmıyor) |
-|---|---|---|
-| Event dinleme | Ayrı `.on()` çağrıları: INSERT, UPDATE, DELETE | Tek `event: '*'` — bazı Supabase sürümlerinde güvenilmez |
-| Dependency array | `[]` — kanal asla yeniden oluşturulmaz | `[user, dmUserId, dmDisplayName, dmAvatarUrl]` — profil değişince kanal yıkılıp yeniden yaratılıyor |
-| Filtreleme | `serverRef.current` ve `channelRef.current` (ref) | Doğrudan state/prop kullanımı |
+### Veritabanı Değişikliği
 
-**Sonuç:** DM kanalı, `dmDisplayName` veya `dmAvatarUrl` değiştiğinde (profil sync tetiklendiğinde) yıkılıp yeniden oluşturuluyor. Bu geçiş sırasında event'ler kayboluyor. Ayrıca `event: '*'` bazı durumlarda event'leri düşürebiliyor.
-
-### Düzeltme Planı
-
-#### 1. `src/components/DMChatArea.tsx` — Realtime Subscription Refaktörü
-
-**Değişiklikler:**
-- `dmUser.userId`, `dmUser.displayName`, `dmUser.avatarUrl` ve `user.id` değerlerini **ref**'lere kaydet (sunucudaki `channelRef`/`serverRef` kalıbı)
-- `event: '*'` yerine **ayrı `.on()` çağrıları** kullan: INSERT, UPDATE, DELETE
-- Dependency array'i `[user?.id, dmUser.userId]` olarak daralt — sadece konuşma çifti değiştiğinde kanal yeniden oluşturulacak
-- `subscribe()` callback'ine `SUBSCRIBED` log'u ekle (bağlantı doğrulaması için)
-- Typing broadcast'lerde de ref kullan
-
-```text
-ÖNCE (Bozuk):
-  useEffect deps: [user, dmUserId, dmDisplayName, dmAvatarUrl]
-  .on('postgres_changes', { event: '*', ... })  ← tek handler
-
-SONRA (Düzeltilmiş):
-  useEffect deps: [user?.id, dmUser.userId]      ← minimal
-  .on(INSERT, ...)                                ← ayrı handler
-  .on(UPDATE, ...)                                ← ayrı handler  
-  .on(DELETE, ...)                                ← ayrı handler
-  Filtreleme: dmUserIdRef.current (ref)           ← kanal yeniden oluşturulmaz
+`profiles` tablosuna `language` sütunu ekle:
+```sql
+ALTER TABLE public.profiles ADD COLUMN language text NOT NULL DEFAULT 'tr';
 ```
 
-#### 2. `src/data/changelogData.ts` — v0.0.9 Kontrolü
+### Dosya Yapısı
 
-Zaten mevcut — değişiklik gerekmez.
+```text
+src/
+├── i18n/
+│   ├── index.ts          — LanguageContext, useTranslation hook, provider
+│   ├── tr.ts             — Türkçe çeviriler (default)
+│   ├── en.ts             — İngilizce
+│   ├── az.ts             — Azerbaycan
+│   ├── ru.ts             — Rusça
+│   ├── ja.ts             — Japonca
+│   └── de.ts             — Almanca
+```
 
-### Dosya Değişiklikleri
+### i18n Sistemi Tasarımı
+
+1. **`LanguageProvider`** — `AuthContext`'ten `profile.language` değerini okur, ilgili dil dosyasını yükler
+2. **`useTranslation()` hook** — `t('settings.account')` şeklinde çeviri döndürür
+3. **Dil dosyaları** — nested obje yapısında, tüm UI metinlerini içerir:
+   ```ts
+   export default {
+     settings: { account: 'My Account', privacy: 'Privacy', ... },
+     chat: { typeMessage: 'Type a message', send: 'Send', ... },
+     auth: { login: 'Login', register: 'Register', ... },
+     // ...
+   }
+   ```
+
+### Dil Değiştirme Mantığı
+
+- Ayarlar sayfasına yeni bir **"Görünüm ve Dil"** sekmesi ekle (Globe ikonu)
+- Dil listesi: Türkçe, English, Azərbaycan, Русский, 日本語, Deutsch
+- Seçildiğinde `profiles.language` güncellenir, ardından `window.location.reload()`
+
+### Güncellenecek Dosyalar (~15 dosya)
 
 | Dosya | İşlem |
 |---|---|
-| `src/components/DMChatArea.tsx` | Ref'lerle filtreleme, ayrı event listener'lar, minimal deps |
+| `src/i18n/index.ts` | Context, provider, hook oluştur |
+| `src/i18n/tr.ts` | Türkçe çeviriler (mevcut metinlerden) |
+| `src/i18n/en.ts` | İngilizce çeviriler |
+| `src/i18n/az.ts` | Azerbaycan çeviriler |
+| `src/i18n/ru.ts` | Rusça çeviriler |
+| `src/i18n/ja.ts` | Japonca çeviriler |
+| `src/i18n/de.ts` | Almanca çeviriler |
+| `src/App.tsx` | `LanguageProvider` sar |
+| `src/contexts/AuthContext.tsx` | Profile interface'ine `language` ekle |
+| `src/pages/Settings.tsx` | Yeni "Dil" sekmesi + tüm metinleri `t()` ile değiştir |
+| `src/pages/Login.tsx` | Metinleri `t()` ile değiştir |
+| `src/pages/Register.tsx` | Metinleri `t()` ile değiştir |
+| `src/pages/Index.tsx` | Nav label'ları `t()` ile değiştir |
+| `src/components/ChatArea.tsx` | Placeholder ve UI metinleri |
+| `src/components/DMChatArea.tsx` | "yazıyor", placeholder metinleri |
+| `src/components/DMDashboard.tsx` | Tab ve buton metinleri |
+| `src/components/ChannelList.tsx` | Menü metinleri |
+| `src/components/MemberList.tsx` | Başlık metinleri |
+| `src/components/CreateServerDialog.tsx` | Dialog metinleri |
+| `src/components/CreateChannelDialog.tsx` | Dialog metinleri |
+| `src/components/ServerSettingsDialog.tsx` | Dialog metinleri |
+| `src/components/InviteDialog.tsx` | Dialog metinleri |
+| `src/components/JoinServerDialog.tsx` | Dialog metinleri |
+| `src/data/changelogData.ts` | v0.1.0 release ekle |
+
+### v0.1.0 Changelog İçeriği
+
+- Çok Dilli Destek: Türkçe, İngilizce, Azerbaycan, Rusça, Japonca, Almanca
+- Dil seçimi kullanıcı profiline kaydedilir
+- Uygulama genelindeki tüm metinler dinamik hale getirildi
+
+### Veritabanı Migrasyonu
+
+`profiles` tablosuna `language` sütunu eklenmesi gerekecek (migration tool ile).
 
