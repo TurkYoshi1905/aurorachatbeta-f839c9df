@@ -16,6 +16,42 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.0.9',
+    date: '3 Mart 2026',
+    summary: 'Tam gerçek zamanlı DM sistemi, profil senkronizasyonu ve gizlilik özellikleri.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Tam Gerçek Zamanlı DM Sistemi (Sayfa yenileme zorunluluğu kaldırıldı)',
+          'Profil bilgilerinin (Ad/Kullanıcı adı) tüm platformda anlık senkronizasyonu',
+          'DM Mesaj Düzenleme ve Silme özellikleri eklendi',
+          'Yeni Gizlilik Politikası sayfası ve Geri Dön butonu eklendi',
+        ],
+      },
+      {
+        title: 'Düzeltilen Hatalar',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Sunucu davet linklerindeki görsel hataları giderildi',
+          'Changelog navigasyon döngüsü düzeltildi',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Gizlilik ve Güvenlik ayarları (DM izni, arkadaşlık istekleri yönetimi, 2FA UI)',
+          'Sunucu ikonu render mantığı iyileştirildi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.0.8',
     date: '2 Mart 2026',
     summary: 'UI modernizasyonu, dinamik changelog sistemi ve mobil bottom navigation bar.',

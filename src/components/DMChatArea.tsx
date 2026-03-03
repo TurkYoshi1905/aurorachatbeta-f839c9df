@@ -110,44 +110,48 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
 
     const dmChannel = supabase
       .channel(`dm-realtime-${pairKey}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages' }, (payload) => {
-        const m = payload.new as any;
-        if (!isRelevantMsg(m)) return;
-        // Skip own messages (optimistic already added)
-        if (m.sender_id === user.id) return;
-
-        setMessages((prev) => {
-          if (prev.some((msg) => msg.id === m.id)) return prev;
-          return [
-            ...prev,
-            {
-              id: m.id,
-              senderId: m.sender_id,
-              content: m.content,
-              createdAt: m.created_at,
-              updatedAt: m.updated_at || null,
-              senderName: dmDisplayName,
-              senderAvatar: dmAvatarUrl,
-            },
-          ];
-        });
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages' }, (payload) => {
-        const m = payload.new as any;
-        if (!isRelevantMsg(m)) return;
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === m.id ? { ...msg, content: m.content, updatedAt: m.updated_at || new Date().toISOString() } : msg
-          )
-        );
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages' }, (payload) => {
-        const old = payload.old as any;
-        if (old?.id) {
-          setMessages((prev) => prev.filter((msg) => msg.id !== old.id));
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const m = payload.new as any;
+          if (!isRelevantMsg(m)) return;
+          if (m.sender_id === user.id) return;
+          setMessages((prev) => {
+            if (prev.some((msg) => msg.id === m.id)) return prev;
+            return [
+              ...prev,
+              {
+                id: m.id,
+                senderId: m.sender_id,
+                content: m.content,
+                createdAt: m.created_at,
+                updatedAt: m.updated_at || null,
+                senderName: dmDisplayName,
+                senderAvatar: dmAvatarUrl,
+              },
+            ];
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          const m = payload.new as any;
+          if (!isRelevantMsg(m)) return;
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === m.id ? { ...msg, content: m.content, updatedAt: m.updated_at || new Date().toISOString() } : msg
+            )
+          );
+        } else if (payload.eventType === 'DELETE') {
+          const old = payload.old as any;
+          if (old?.id) {
+            setMessages((prev) => prev.filter((msg) => msg.id !== old.id));
+          }
         }
       })
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error('DM realtime channel error:', err);
+        } else if (status === 'TIMED_OUT') {
+          console.warn('DM realtime channel timed out, retrying...');
+        }
+      });
 
     return () => {
       supabase.removeChannel(dmChannel);
