@@ -85,7 +85,12 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
       .channel(channelName)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'direct_messages' },
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'direct_messages',
+          filter: `receiver_id=eq.${user.id}` 
+        },
         (payload) => {
           const m = payload.new as any;
           // Only show messages between these two users
@@ -112,9 +117,11 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
           });
         }
       )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.error('DM realtime channel error:', channelName);
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('DM realtime subscribed:', channelName);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('DM realtime error:', status, err, channelName);
         }
       });
 
