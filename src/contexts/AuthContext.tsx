@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { I18nContext, getTranslationFunction, type Language } from '@/i18n';
 
 interface Profile {
   id: string;
@@ -8,6 +9,7 @@ interface Profile {
   display_name: string;
   username: string;
   avatar_url: string | null;
+  language: Language;
 }
 
 interface AuthContextType {
@@ -40,7 +42,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
-    setProfile(data);
+    if (data) {
+      setProfile({ ...data, language: (data as any).language || 'tr' });
+    } else {
+      setProfile(null);
+    }
   };
 
   useEffect(() => {
@@ -69,7 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Realtime profile sync — listen for changes to the current user's profile
+  // Realtime profile sync
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -85,6 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             display_name: updated.display_name,
             username: updated.username,
             avatar_url: updated.avatar_url,
+            language: updated.language || 'tr',
           });
         }
       )
@@ -97,9 +104,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
   };
 
+  // i18n — derive language from profile
+  const lang: Language = profile?.language || 'tr';
+  const i18n = getTranslationFunction(lang);
+
   return (
     <AuthContext.Provider value={{ user, session, profile, loading, signOut }}>
-      {children}
+      <I18nContext.Provider value={i18n}>
+        {children}
+      </I18nContext.Provider>
     </AuthContext.Provider>
   );
 };

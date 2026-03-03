@@ -16,6 +16,33 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.1.0',
+    date: '3 Mart 2026',
+    summary: 'Çok dilli destek sistemi ve uygulama genelinde lokalizasyon.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Çok Dilli Destek: Türkçe, İngilizce, Azerbaycan, Rusça, Japonca, Almanca',
+          'Ayarlar sayfasına "Görünüm ve Dil" sekmesi eklendi',
+          'Dil seçimi kullanıcı profiline kaydedilir ve oturumlar arasında korunur',
+          'Uygulama genelindeki tüm metinler (menüler, butonlar, uyarılar, dialoglar) dinamik hale getirildi',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Lightweight i18n sistemi: React Context + TypeScript çeviri dosyaları ile harici kütüphane bağımlılığı olmadan',
+          'Dil değişikliği anında uygulanır (sayfa yenileme ile)',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.0.9',
     date: '3 Mart 2026',
     summary: 'Tam gerçek zamanlı DM sistemi, profil senkronizasyonu ve gizlilik özellikleri.',

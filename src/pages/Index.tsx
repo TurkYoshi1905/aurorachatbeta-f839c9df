@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useTranslation } from '@/i18n';
 
 export interface DbMessage {
   id: string;
@@ -78,17 +79,18 @@ interface MobileBottomNavProps {
 }
 
 const MobileBottomNav = ({ activeView, onHome, onChannels, onChat, onMembers, onSettings, onOpenSidebar, isHome }: MobileBottomNavProps) => {
+  const { t } = useTranslation();
   const items = [
-    { id: 'servers', icon: Home, label: 'Sunucular', action: onOpenSidebar },
-    { id: 'channels', icon: Hash, label: 'Kanallar', action: onChannels },
-    { id: 'chat', icon: MessageSquare, label: 'Sohbet', action: onChat },
-    { id: 'members', icon: Users, label: 'Üyeler', action: onMembers },
-    { id: 'settings', icon: Settings, label: 'Ayarlar', action: onSettings },
+    { id: 'servers', icon: Home, label: t('nav.servers'), action: onOpenSidebar },
+    { id: 'channels', icon: Hash, label: t('nav.channels'), action: onChannels },
+    { id: 'chat', icon: MessageSquare, label: t('nav.chat'), action: onChat },
+    { id: 'members', icon: Users, label: t('nav.members'), action: onMembers },
+    { id: 'settings', icon: Settings, label: t('nav.settings'), action: onSettings },
   ];
 
   if (isHome) {
-    items[0] = { id: 'home', icon: Home, label: 'Ana Sayfa', action: onHome };
-    items[1] = { id: 'servers', icon: Hash, label: 'Sunucular', action: onOpenSidebar };
+    items[0] = { id: 'home', icon: Home, label: t('nav.home'), action: onHome };
+    items[1] = { id: 'servers', icon: Hash, label: t('nav.servers'), action: onOpenSidebar };
   }
 
   return (
@@ -754,14 +756,16 @@ const Index = () => {
     );
   }
 
+  const { t } = useTranslation();
+
   if (servers.length === 0) {
     return (
       <div className="h-screen flex overflow-hidden">
         <ServerSidebar activeServer={activeServer} onServerChange={handleServerChange} servers={servers} onServerCreated={handleServerCreated} />
         <div className="flex-1 flex items-center justify-center bg-background">
           <div className="text-center space-y-3">
-            <p className="text-xl font-semibold text-foreground">Henüz bir sunucun yok!</p>
-            <p className="text-muted-foreground text-sm">Sol taraftaki + butonuna basarak ilk sunucunu oluştur.</p>
+            <p className="text-xl font-semibold text-foreground">{t('server.noServers')}</p>
+            <p className="text-muted-foreground text-sm">{t('server.noServersDesc')}</p>
           </div>
         </div>
       </div>
@@ -771,7 +775,7 @@ const Index = () => {
   if (!server || !channel) {
     return (
       <div className="h-screen flex items-center justify-center bg-background text-muted-foreground">
-        Yükleniyor...
+        {t('common.loading')}
       </div>
     );
   }
