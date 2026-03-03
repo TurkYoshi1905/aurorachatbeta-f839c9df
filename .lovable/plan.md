@@ -1,46 +1,72 @@
 
 
-## Plan: DM Realtime Mesajlaşma Düzeltmesi
+## Plan: Gizlilik, DM Mesaj Yonetimi, Sunucu Ikonu Duzeltmesi
 
-### Analiz Sonucu
+### 1. Gizlilik Politikasi Sayfasi
 
-Kodu ve veritabanı yapılandırmasını inceledim:
-- `direct_messages` tablosu Realtime publication'da **mevcut** ✅
-- REPLICA IDENTITY FULL ayarlı ✅
-- RLS SELECT politikası doğru (`sender_id` veya `receiver_id` eşleşmesi) ✅
-- Optimistic UI ve mesaj gönderme mantığı doğru ✅
+Yeni dosya: `src/pages/PrivacyPolicy.tsx`
+- Profesyonel gizlilik politikasi metni (toplanan veriler: e-posta, profil bilgileri, mesaj icerikleri, IP adresi, kullanim istatistikleri)
+- "Geri Don" butonu ile navigasyon
+- `App.tsx`'e `/privacy-policy` rotasi eklenir (public rota)
 
-**Kök neden:** `DMChatArea.tsx`'deki Realtime subscription'da `filter` parametresi kullanılmıyor. Tüm `direct_messages` INSERT olayları dinleniyor ve client-side filtreleniyor. Supabase Realtime, filtre olmadan RLS kontrolünü her satır için yapması gerekiyor ki bu bazen olayların gecikmesine veya tamamen düşmesine neden olabiliyor. Server mesajlarında bu sorun yaşanmıyor çünkü `server_members` tablosu üzerinden RLS daha basit bir yapıda.
+### 2. Ayarlar — Gizlilik & Guvenlik Sekmesi
 
-### Çözüm
+`src/pages/Settings.tsx`'deki bos "Gizlilik & Guvenlik" sekmesine:
+- **DM Izni Toggle:** "Direkt Mesajlara Izin Ver" (acik/kapali switch)
+- **Arkadaslik Istekleri Yonetimi:** "Kimler istek atabilir?" secenekleri (Herkes / Arkadaslar / Hic kimse) — radio group
+- **Iki Faktorlu Dogrulama:** UI bazli gosterim (yakin zamanda gelecek bildirimi)
+- **Gizlilik Politikasi Linki:** `/privacy-policy` sayfasina yonlendirme butonu
 
-**`src/components/DMChatArea.tsx` — Realtime subscription güncelleme:**
+Bu ayarlar su an sadece UI bazli olacak (localStorage ile persist edilebilir). Veritabani tablosu gerektirmez ilk asamada.
 
-1. Subscription'a `filter: receiver_id=eq.${user.id}` ekle — böylece Supabase Realtime sadece kullanıcının alıcı olduğu mesajları gönderir, RLS kontrolü basitleşir
-2. Kendi mesajları zaten optimistic olarak ekleniyor, filtre sadece `receiver_id` ile çalışınca `sender_id === user.id` kontrolüne gerek kalmaz
-3. Subscription status kontrolünü iyileştir — `SUBSCRIBED` durumunu logla, hata durumunda yeniden bağlanma (retry) mekanizması ekle
-4. Client-side `isRelevant` filtresini koru (güvenlik katmanı olarak) — sadece bu iki kullanıcı arasındaki mesajlar gösterilsin
+### 3. DM Mesaj Duzenleme ve Silme
 
-### Değişiklik Detayı
+**Veritabani Migrasyonu:**
+- `direct_messages` tablosuna `updated_at` sutunu ekle (nullable timestamp)
+- UPDATE RLS politikasi: `auth.uid() = sender_id`
+- DELETE RLS politikasi: `auth.uid() = sender_id`
+- `updated_at` icin trigger (mevcut `update_updated_at_column` fonksiyonu kullanilir)
 
-Tek dosya: `src/components/DMChatArea.tsx`
+**`src/components/DMChatArea.tsx` Degisiklikleri:**
+- Her mesajin uzerine gelince (hover) kendi mesajlari icin "Duzenle" ve "Sil" butonlari goster
+- Duzenleme: Mesaj icerigini input'a donustur, Enter ile kaydet, Escape ile iptal
+- Silme: AlertDialog ile onay, onaylaninca DB'den sil ve state'ten cikar
+- Realtime subscription'a UPDATE ve DELETE event'leri ekle
+- Duzenlenmis mesajlara "(Duzenlendi)" etiketi ekle
 
-```typescript
-// Eski (satır 86-88):
-.on(
-  'postgres_changes',
-  { event: 'INSERT', schema: 'public', table: 'direct_messages' },
+### 4. Sunucu Ikonu Render Duzeltmesi
 
-// Yeni:
-.on(
-  'postgres_changes',
-  { 
-    event: 'INSERT', 
-    schema: 'public', 
-    table: 'direct_messages',
-    filter: `receiver_id=eq.${user.id}` 
-  },
+**`src/components/ServerSidebar.tsx` — Satir 53:**
+Suanki kod `{server.icon}` olarak sadece text render ediyor. Sunucu fotografı yuklendikten sonra `icon` alani bir URL oluyor ama sidebar bunu kontrol etmiyor.
+
+Duzeltme:
+```
+{server.icon && (server.icon.startsWith('http') || server.icon.startsWith('/'))
+  ? <img src={server.icon} alt="" className="w-full h-full object-cover rounded-[inherit]" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+  : server.icon || server.name.charAt(0).toUpperCase()
+}
 ```
 
-Bu değişiklik Supabase Realtime sunucusunun sadece ilgili satırları göndermesini sağlar. Ayrıca subscribe callback'ine `SUBSCRIBED` ve `TIMED_OUT` durumları eklenerek bağlantı durumu izlenir.
+Bu, `ServerSettingsDialog.tsx`'deki mevcut mantikla (satir 184) tutarli olacak.
+
+### 5. Dosya Degisiklikleri
+
+| Dosya | Islem |
+|---|---|
+| `src/pages/PrivacyPolicy.tsx` | Yeni sayfa — gizlilik politikasi metni |
+| `src/App.tsx` | `/privacy-policy` rotasi ekle |
+| `src/pages/Settings.tsx` | Gizlilik sekmesine toggle, radio group, 2FA UI ekle |
+| `src/components/DMChatArea.tsx` | Mesaj duzenleme/silme UI + realtime UPDATE/DELETE dinleme |
+| `src/components/ServerSidebar.tsx` | Icon render: URL ise img, degilse text fallback |
+| DB Migrasyonu | `direct_messages` tablosuna `updated_at`, UPDATE/DELETE RLS politikalari, trigger |
+
+### Teknik Detaylar
+
+**DM Realtime genisletme:**
+Mevcut subscription sadece INSERT dinliyor. UPDATE ve DELETE event'leri eklenir:
+- UPDATE: `setMessages` ile ilgili mesajin icerigini guncelle, `edited: true` yap
+- DELETE: `setMessages` ile mesaji state'ten cikar
+
+**Sunucu ikonu — img onError fallback:**
+Resim yuklenemezse (kirik URL), `onError` handler ile img gizlenip text fallback gosterilir. Bu, hem sidebar'da hem ayarlarda tutarli calısır.
 
