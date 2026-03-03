@@ -95,58 +95,67 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     fetchMessages();
   }, [user, dmUser.userId, profile]);
 
-  // Realtime subscription — single unfiltered channel with client-side filtering for reliability
-  const dmUserId = dmUser.userId;
-  const dmDisplayName = dmUser.displayName;
-  const dmAvatarUrl = dmUser.avatarUrl;
+  // Refs for stable realtime handlers — prevents channel recreation on profile changes
+  const userIdRef = useRef(user?.id);
+  const dmUserIdRef = useRef(dmUser.userId);
+  const dmDisplayNameRef = useRef(dmUser.displayName);
+  const dmAvatarUrlRef = useRef(dmUser.avatarUrl);
 
+  useEffect(() => { userIdRef.current = user?.id; }, [user?.id]);
+  useEffect(() => { dmUserIdRef.current = dmUser.userId; }, [dmUser.userId]);
+  useEffect(() => { dmDisplayNameRef.current = dmUser.displayName; }, [dmUser.displayName]);
+  useEffect(() => { dmAvatarUrlRef.current = dmUser.avatarUrl; }, [dmUser.avatarUrl]);
+
+  // Realtime subscription — separate .on() calls, minimal deps (server pattern)
   useEffect(() => {
-    if (!user) return;
-    const pairKey = [user.id, dmUserId].sort().join('-');
+    if (!user?.id || !dmUser.userId) return;
+    const pairKey = [user.id, dmUser.userId].sort().join('-');
 
     const isRelevantMsg = (m: any) =>
-      (m.sender_id === user.id && m.receiver_id === dmUserId) ||
-      (m.sender_id === dmUserId && m.receiver_id === user.id);
+      (m.sender_id === userIdRef.current && m.receiver_id === dmUserIdRef.current) ||
+      (m.sender_id === dmUserIdRef.current && m.receiver_id === userIdRef.current);
 
     const dmChannel = supabase
       .channel(`dm-realtime-${pairKey}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          const m = payload.new as any;
-          if (!isRelevantMsg(m)) return;
-          if (m.sender_id === user.id) return;
-          setMessages((prev) => {
-            if (prev.some((msg) => msg.id === m.id)) return prev;
-            return [
-              ...prev,
-              {
-                id: m.id,
-                senderId: m.sender_id,
-                content: m.content,
-                createdAt: m.created_at,
-                updatedAt: m.updated_at || null,
-                senderName: dmDisplayName,
-                senderAvatar: dmAvatarUrl,
-              },
-            ];
-          });
-        } else if (payload.eventType === 'UPDATE') {
-          const m = payload.new as any;
-          if (!isRelevantMsg(m)) return;
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === m.id ? { ...msg, content: m.content, updatedAt: m.updated_at || new Date().toISOString() } : msg
-            )
-          );
-        } else if (payload.eventType === 'DELETE') {
-          const old = payload.old as any;
-          if (old?.id) {
-            setMessages((prev) => prev.filter((msg) => msg.id !== old.id));
-          }
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages' }, (payload) => {
+        const m = payload.new as any;
+        if (!isRelevantMsg(m)) return;
+        if (m.sender_id === userIdRef.current) return;
+        setMessages((prev) => {
+          if (prev.some((msg) => msg.id === m.id)) return prev;
+          return [
+            ...prev,
+            {
+              id: m.id,
+              senderId: m.sender_id,
+              content: m.content,
+              createdAt: m.created_at,
+              updatedAt: m.updated_at || null,
+              senderName: dmDisplayNameRef.current,
+              senderAvatar: dmAvatarUrlRef.current,
+            },
+          ];
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages' }, (payload) => {
+        const m = payload.new as any;
+        if (!isRelevantMsg(m)) return;
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === m.id ? { ...msg, content: m.content, updatedAt: m.updated_at || new Date().toISOString() } : msg
+          )
+        );
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages' }, (payload) => {
+        const old = payload.old as any;
+        if (old?.id) {
+          setMessages((prev) => prev.filter((msg) => msg.id !== old.id));
         }
       })
       .subscribe((status, err) => {
-        if (status === 'CHANNEL_ERROR') {
+        if (status === 'SUBSCRIBED') {
+          console.log('DM realtime channel connected:', pairKey);
+        } else if (status === 'CHANNEL_ERROR') {
           console.error('DM realtime channel error:', err);
         } else if (status === 'TIMED_OUT') {
           console.warn('DM realtime channel timed out, retrying...');
@@ -156,22 +165,22 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     return () => {
       supabase.removeChannel(dmChannel);
     };
-  }, [user, dmUserId, dmDisplayName, dmAvatarUrl]);
+  }, [user?.id, dmUser.userId]);
 
   // Typing indicator via broadcast
   useEffect(() => {
     if (!user) return;
-    const pairKey = [user.id, dmUserId].sort().join('-');
+    const pairKey = [user.id, dmUser.userId].sort().join('-');
     const typingChannel = supabase.channel(`dm-typing-${pairKey}`);
 
     typingChannel
       .on('broadcast', { event: 'typing' }, (payload) => {
-        if (payload.payload?.userId === dmUserId) {
+        if (payload.payload?.userId === dmUserIdRef.current) {
           setIsTyping(true);
         }
       })
       .on('broadcast', { event: 'stop_typing' }, (payload) => {
-        if (payload.payload?.userId === dmUserId) {
+        if (payload.payload?.userId === dmUserIdRef.current) {
           setIsTyping(false);
         }
       })
@@ -180,7 +189,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     return () => {
       supabase.removeChannel(typingChannel);
     };
-  }, [user, dmUserId]);
+  }, [user?.id, dmUser.userId]);
 
   const sendTypingEvent = useCallback(() => {
     if (!user) return;
@@ -188,7 +197,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     if (now - lastTypingSentRef.current < 2000) return;
     lastTypingSentRef.current = now;
 
-    const pairKey = [user.id, dmUserId].sort().join('-');
+    const pairKey = [user.id, dmUserIdRef.current].sort().join('-');
     supabase.channel(`dm-typing-${pairKey}`).send({
       type: 'broadcast',
       event: 'typing',
@@ -202,17 +211,17 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
         payload: { userId: user.id },
       });
     }, 3000);
-  }, [user, dmUserId]);
+  }, [user]);
 
   const stopTypingEvent = useCallback(() => {
     if (!user) return;
-    const pairKey = [user.id, dmUserId].sort().join('-');
+    const pairKey = [user.id, dmUserIdRef.current].sort().join('-');
     supabase.channel(`dm-typing-${pairKey}`).send({
       type: 'broadcast',
       event: 'stop_typing',
       payload: { userId: user.id },
     });
-  }, [user, dmUserId]);
+  }, [user]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || !user || !profile) return;
