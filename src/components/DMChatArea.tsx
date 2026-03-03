@@ -2,7 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Send, PlusCircle, SmilePlus } from 'lucide-react';
+import { ArrowLeft, Send, PlusCircle, SmilePlus, Pencil, Trash2, Check, X } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface DMUser {
   userId: string;
@@ -16,6 +20,7 @@ interface DMMessage {
   senderId: string;
   content: string;
   createdAt: string;
+  updatedAt: string | null;
   senderName: string;
   senderAvatar: string | null;
 }
@@ -39,6 +44,9 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
   const { user, profile } = useAuth();
   const [messages, setMessages] = useState<DMMessage[]>([]);
   const [input, setInput] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,6 +72,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
             senderId: m.sender_id,
             content: m.content,
             createdAt: m.created_at,
+            updatedAt: m.updated_at || null,
             senderName: m.sender_id === user.id ? (profile?.display_name || 'Sen') : dmUser.displayName,
             senderAvatar: m.sender_id === user.id ? (profile?.avatar_url || null) : dmUser.avatarUrl,
           }))
@@ -85,20 +94,18 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
       .channel(channelName)
       .on(
         'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
+        {
+          event: 'INSERT',
+          schema: 'public',
           table: 'direct_messages',
-          filter: `receiver_id=eq.${user.id}` 
+          filter: `receiver_id=eq.${user.id}`
         },
         (payload) => {
           const m = payload.new as any;
-          // Only show messages between these two users
           const isRelevant =
             (m.sender_id === user.id && m.receiver_id === dmUserId) ||
             (m.sender_id === dmUserId && m.receiver_id === user.id);
           if (!isRelevant) return;
-          // Skip own messages (already added optimistically)
           if (m.sender_id === user.id) return;
 
           setMessages((prev) => {
@@ -110,11 +117,42 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
                 senderId: m.sender_id,
                 content: m.content,
                 createdAt: m.created_at,
+                updatedAt: m.updated_at || null,
                 senderName: dmDisplayName,
                 senderAvatar: dmAvatarUrl,
               },
             ];
           });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'direct_messages',
+        },
+        (payload) => {
+          const m = payload.new as any;
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === m.id ? { ...msg, content: m.content, updatedAt: m.updated_at || new Date().toISOString() } : msg
+            )
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'direct_messages',
+        },
+        (payload) => {
+          const old = payload.old as any;
+          if (old?.id) {
+            setMessages((prev) => prev.filter((msg) => msg.id !== old.id));
+          }
         }
       )
       .subscribe((status, err) => {
@@ -135,7 +173,6 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     const content = input.trim();
     setInput('');
 
-    // Optimistic
     const tempId = crypto.randomUUID();
     setMessages((prev) => [
       ...prev,
@@ -144,6 +181,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
         senderId: user.id,
         content,
         createdAt: new Date().toISOString(),
+        updatedAt: null,
         senderName: profile.display_name,
         senderAvatar: profile.avatar_url || null,
       },
@@ -158,10 +196,34 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     if (error) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
     } else if (data) {
-      // Replace temp with real
       setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: (data as any).id } : m));
     }
   }, [input, user, profile, dmUser]);
+
+  const handleEdit = async (msgId: string) => {
+    if (!editValue.trim()) return;
+    const { error } = await supabase
+      .from('direct_messages')
+      .update({ content: editValue.trim() } as any)
+      .eq('id', msgId);
+    if (!error) {
+      setMessages((prev) =>
+        prev.map((m) => m.id === msgId ? { ...m, content: editValue.trim(), updatedAt: new Date().toISOString() } : m)
+      );
+    }
+    setEditingId(null);
+    setEditValue('');
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const id = deleteId;
+    setDeleteId(null);
+    const { error } = await supabase.from('direct_messages').delete().eq('id', id);
+    if (!error) {
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
@@ -193,7 +255,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
         </div>
 
         {messages.map((msg) => (
-          <div key={msg.id} className="flex gap-3 hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors">
+          <div key={msg.id} className="group flex gap-3 hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors">
             <Avatar className="h-10 w-10 shrink-0">
               {msg.senderAvatar && <AvatarImage src={msg.senderAvatar} />}
               <AvatarFallback className="bg-secondary text-foreground font-semibold">
@@ -204,9 +266,53 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
               <div className="flex items-baseline gap-2">
                 <span className="font-medium text-sm text-foreground">{msg.senderName}</span>
                 <span className="text-[11px] text-muted-foreground">{formatTimestamp(msg.createdAt)}</span>
+                {msg.updatedAt && <span className="text-[10px] text-muted-foreground italic">(düzenlendi)</span>}
               </div>
-              <p className="text-sm text-secondary-foreground leading-relaxed">{msg.content}</p>
+
+              {editingId === msg.id ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleEdit(msg.id);
+                      if (e.key === 'Escape') { setEditingId(null); setEditValue(''); }
+                    }}
+                    className="flex-1 bg-input rounded px-2 py-1 text-sm outline-none text-foreground"
+                    autoFocus
+                  />
+                  <button onClick={() => handleEdit(msg.id)} className="text-primary hover:text-primary/80">
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => { setEditingId(null); setEditValue(''); }} className="text-muted-foreground hover:text-foreground">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-secondary-foreground leading-relaxed">{msg.content}</p>
+              )}
             </div>
+
+            {/* Actions for own messages */}
+            {msg.senderId === user?.id && editingId !== msg.id && (
+              <div className="hidden group-hover:flex items-center gap-1 shrink-0 self-start mt-1">
+                <button
+                  onClick={() => { setEditingId(msg.id); setEditValue(msg.content); }}
+                  className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                  title="Düzenle"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setDeleteId(msg.id)}
+                  className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                  title="Sil"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         ))}
         <div ref={bottomRef} />
@@ -236,6 +342,22 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
           </div>
         </div>
       </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mesajı Sil</AlertDialogTitle>
+            <AlertDialogDescription>Bu mesajı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
