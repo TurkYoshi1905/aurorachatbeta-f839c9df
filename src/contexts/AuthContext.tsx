@@ -69,6 +69,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Realtime profile sync — listen for changes to the current user's profile
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`profile-sync-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const updated = payload.new as any;
+          setProfile({
+            id: updated.id,
+            user_id: updated.user_id,
+            display_name: updated.display_name,
+            username: updated.username,
+            avatar_url: updated.avatar_url,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
