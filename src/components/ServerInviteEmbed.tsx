@@ -58,8 +58,12 @@ const ServerInviteEmbed = ({ code }: ServerInviteEmbedProps) => {
 
   return (
     <div className="mt-1 inline-flex items-center gap-3 bg-secondary/60 border border-border rounded-lg px-3 py-2.5 max-w-xs">
-      <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-lg font-bold text-primary-foreground shrink-0">
-        {server.icon}
+      <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-lg font-bold text-primary-foreground shrink-0 overflow-hidden">
+        {server.icon && (server.icon.startsWith('http') || server.icon.startsWith('/')) ? (
+          <img src={server.icon} alt="" className="w-full h-full object-cover rounded-xl" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        ) : (
+          server.icon || server.name.charAt(0).toUpperCase()
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground truncate">{server.name}</p>

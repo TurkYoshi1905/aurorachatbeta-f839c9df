@@ -40,6 +40,17 @@ const formatTimestamp = (dateStr: string) => {
   return `${day}.${month}.${year} ${hour}:${minute}`;
 };
 
+const TypingIndicator = ({ displayName }: { displayName: string }) => (
+  <div className="flex items-center gap-1.5 px-4 py-1 text-xs text-muted-foreground h-6">
+    <span className="inline-flex gap-0.5">
+      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+    </span>
+    <span className="font-medium">{displayName} yazıyor</span>
+  </div>
+);
+
 const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
   const { user, profile } = useAuth();
   const [messages, setMessages] = useState<DMMessage[]>([]);
@@ -47,7 +58,9 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastTypingSentRef = useRef<number>(0);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -82,96 +95,138 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     fetchMessages();
   }, [user, dmUser.userId, profile]);
 
-  // Realtime subscription
+  // Realtime subscription — two channels for sender/receiver filters
   const dmUserId = dmUser.userId;
   const dmDisplayName = dmUser.displayName;
   const dmAvatarUrl = dmUser.avatarUrl;
 
   useEffect(() => {
     if (!user) return;
-    const channelName = `dm-realtime-${[user.id, dmUserId].sort().join('-')}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'direct_messages',
-          filter: `receiver_id=eq.${user.id}`
-        },
-        (payload) => {
-          const m = payload.new as any;
-          const isRelevant =
-            (m.sender_id === user.id && m.receiver_id === dmUserId) ||
-            (m.sender_id === dmUserId && m.receiver_id === user.id);
-          if (!isRelevant) return;
-          if (m.sender_id === user.id) return;
+    const pairKey = [user.id, dmUserId].sort().join('-');
 
-          setMessages((prev) => {
-            if (prev.some((msg) => msg.id === m.id)) return prev;
-            return [
-              ...prev,
-              {
-                id: m.id,
-                senderId: m.sender_id,
-                content: m.content,
-                createdAt: m.created_at,
-                updatedAt: m.updated_at || null,
-                senderName: dmDisplayName,
-                senderAvatar: dmAvatarUrl,
-              },
-            ];
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'direct_messages',
-        },
-        (payload) => {
-          const m = payload.new as any;
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === m.id ? { ...msg, content: m.content, updatedAt: m.updated_at || new Date().toISOString() } : msg
-            )
-          );
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'direct_messages',
-        },
-        (payload) => {
-          const old = payload.old as any;
-          if (old?.id) {
-            setMessages((prev) => prev.filter((msg) => msg.id !== old.id));
-          }
-        }
-      )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('DM realtime subscribed:', channelName);
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('DM realtime error:', status, err, channelName);
-        }
+    const handleInsert = (payload: any) => {
+      const m = payload.new as any;
+      const isRelevant =
+        (m.sender_id === user.id && m.receiver_id === dmUserId) ||
+        (m.sender_id === dmUserId && m.receiver_id === user.id);
+      if (!isRelevant) return;
+      if (m.sender_id === user.id) return; // optimistic already added
+
+      setMessages((prev) => {
+        if (prev.some((msg) => msg.id === m.id)) return prev;
+        return [
+          ...prev,
+          {
+            id: m.id,
+            senderId: m.sender_id,
+            content: m.content,
+            createdAt: m.created_at,
+            updatedAt: m.updated_at || null,
+            senderName: dmDisplayName,
+            senderAvatar: dmAvatarUrl,
+          },
+        ];
       });
+    };
+
+    const handleUpdate = (payload: any) => {
+      const m = payload.new as any;
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === m.id ? { ...msg, content: m.content, updatedAt: m.updated_at || new Date().toISOString() } : msg
+        )
+      );
+    };
+
+    const handleDelete = (payload: any) => {
+      const old = payload.old as any;
+      if (old?.id) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== old.id));
+      }
+    };
+
+    // Channel for messages where current user is receiver
+    const recvChannel = supabase
+      .channel(`dm-recv-${pairKey}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `receiver_id=eq.${user.id}` }, handleInsert)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages', filter: `receiver_id=eq.${user.id}` }, handleUpdate)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages', filter: `receiver_id=eq.${user.id}` }, handleDelete)
+      .subscribe();
+
+    // Channel for messages where current user is sender (to catch own edits/deletes reflected)
+    const sendChannel = supabase
+      .channel(`dm-send-${pairKey}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleUpdate)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleDelete)
+      .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(recvChannel);
+      supabase.removeChannel(sendChannel);
     };
   }, [user, dmUserId, dmDisplayName, dmAvatarUrl]);
+
+  // Typing indicator via broadcast
+  useEffect(() => {
+    if (!user) return;
+    const pairKey = [user.id, dmUserId].sort().join('-');
+    const typingChannel = supabase.channel(`dm-typing-${pairKey}`);
+
+    typingChannel
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        if (payload.payload?.userId === dmUserId) {
+          setIsTyping(true);
+        }
+      })
+      .on('broadcast', { event: 'stop_typing' }, (payload) => {
+        if (payload.payload?.userId === dmUserId) {
+          setIsTyping(false);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(typingChannel);
+    };
+  }, [user, dmUserId]);
+
+  const sendTypingEvent = useCallback(() => {
+    if (!user) return;
+    const now = Date.now();
+    if (now - lastTypingSentRef.current < 2000) return;
+    lastTypingSentRef.current = now;
+
+    const pairKey = [user.id, dmUserId].sort().join('-');
+    supabase.channel(`dm-typing-${pairKey}`).send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { userId: user.id },
+    });
+
+    setTimeout(() => {
+      supabase.channel(`dm-typing-${pairKey}`).send({
+        type: 'broadcast',
+        event: 'stop_typing',
+        payload: { userId: user.id },
+      });
+    }, 3000);
+  }, [user, dmUserId]);
+
+  const stopTypingEvent = useCallback(() => {
+    if (!user) return;
+    const pairKey = [user.id, dmUserId].sort().join('-');
+    supabase.channel(`dm-typing-${pairKey}`).send({
+      type: 'broadcast',
+      event: 'stop_typing',
+      payload: { userId: user.id },
+    });
+  }, [user, dmUserId]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || !user || !profile) return;
     const content = input.trim();
     setInput('');
+    stopTypingEvent();
 
     const tempId = crypto.randomUUID();
     setMessages((prev) => [
@@ -198,7 +253,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     } else if (data) {
       setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: (data as any).id } : m));
     }
-  }, [input, user, profile, dmUser]);
+  }, [input, user, profile, dmUser, stopTypingEvent]);
 
   const handleEdit = async (msgId: string) => {
     if (!editValue.trim()) return;
@@ -222,6 +277,15 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     const { error } = await supabase.from('direct_messages').delete().eq('id', id);
     if (!error) {
       setMessages((prev) => prev.filter((m) => m.id !== id));
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+    if (e.target.value.trim()) {
+      sendTypingEvent();
+    } else {
+      stopTypingEvent();
     }
   };
 
@@ -294,7 +358,6 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
               )}
             </div>
 
-            {/* Actions for own messages */}
             {msg.senderId === user?.id && editingId !== msg.id && (
               <div className="hidden group-hover:flex items-center gap-1 shrink-0 self-start mt-1">
                 <button
@@ -318,6 +381,9 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
         <div ref={bottomRef} />
       </div>
 
+      {/* Typing indicator */}
+      {isTyping && <TypingIndicator displayName={dmUser.displayName} />}
+
       {/* Input */}
       <div className="px-4 pb-6">
         <div className="bg-input rounded-lg flex items-center px-3 gap-2">
@@ -327,7 +393,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
           <input
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder={`@${dmUser.displayName} kullanıcısına mesaj gönder`}
             className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground"
