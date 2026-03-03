@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Eye, EyeOff, LogIn, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from '@/i18n';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -15,8 +17,8 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
-    if (!identifier.trim()) errs.identifier = 'Kullanıcı adı veya e-posta gerekli';
-    if (!password) errs.password = 'Şifre gerekli';
+    if (!identifier.trim()) errs.identifier = t('auth.emailRequired');
+    if (!password) errs.password = t('auth.passwordRequired');
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
     setLoading(true);
@@ -24,7 +26,7 @@ const Login = () => {
 
     let email = identifier;
     if (!identifier.includes('@')) {
-      setErrors({ identifier: 'Kullanıcı adı ile giriş için e-posta adresinizi kullanın' });
+      setErrors({ identifier: t('auth.useEmailToLogin') });
       setLoading(false);
       return;
     }
@@ -34,14 +36,14 @@ const Login = () => {
 
     if (error) {
       if (error.message.includes('Email not confirmed')) {
-        setErrors({ identifier: 'E-posta adresiniz henüz doğrulanmamış' });
+        setErrors({ identifier: t('auth.emailNotConfirmed') });
       } else {
-        setErrors({ identifier: 'E-posta veya şifre hatalı' });
+        setErrors({ identifier: t('auth.invalidCredentials') });
       }
       return;
     }
 
-    toast.success('Giriş başarılı!');
+    toast.success(t('auth.loginSuccess'));
     navigate('/');
   };
 
@@ -53,24 +55,24 @@ const Login = () => {
             <Sparkles className="w-8 h-8 text-primary" />
             <h1 className="text-3xl font-bold text-foreground">AuroraChat</h1>
           </div>
-          <p className="text-muted-foreground">Tekrar hoş geldin!</p>
+          <p className="text-muted-foreground">{t('auth.welcomeBack')}</p>
         </div>
 
         <form onSubmit={handleLogin} className="bg-card rounded-2xl p-8 shadow-xl border border-border space-y-5">
           <div>
-            <h2 className="text-xl font-semibold text-foreground mb-1">Giriş yap</h2>
-            <p className="text-sm text-muted-foreground">Hesabına giriş yap ve sohbete katıl</p>
+            <h2 className="text-xl font-semibold text-foreground mb-1">{t('auth.loginTitle')}</h2>
+            <p className="text-sm text-muted-foreground">{t('auth.loginSubtitle')}</p>
           </div>
 
           <div>
             <label className="block text-xs font-semibold uppercase text-muted-foreground mb-2">
-              E-Posta Adresi
+              {t('auth.email')}
             </label>
             <input
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="ornek@email.com"
+              placeholder={t('auth.emailPlaceholder')}
               className="w-full bg-input rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-all"
               maxLength={255}
             />
@@ -79,7 +81,7 @@ const Login = () => {
 
           <div>
             <label className="block text-xs font-semibold uppercase text-muted-foreground mb-2">
-              Şifre
+              {t('auth.password')}
             </label>
             <div className="relative">
               <input
@@ -110,16 +112,16 @@ const Login = () => {
             ) : (
               <>
                 <LogIn className="w-4 h-4" />
-                Giriş Yap
+                {t('auth.loginButton')}
               </>
             )}
           </button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Hesabın yok mu?{' '}
+          {t('auth.noAccount')}{' '}
           <Link to="/register" className="text-primary hover:underline font-medium">
-            Hesap oluştur
+            {t('auth.register')}
           </Link>
         </p>
       </div>

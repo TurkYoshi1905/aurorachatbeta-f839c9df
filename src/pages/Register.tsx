@@ -3,11 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from '@/i18n';
 
 type Step = 'names' | 'password' | 'email';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>('names');
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -22,18 +24,18 @@ const Register = () => {
   const validate = (): boolean => {
     const e: Record<string, string> = {};
     if (step === 'names') {
-      if (!displayName.trim()) e.displayName = 'Görünen ad gerekli';
-      if (!username.trim()) e.username = 'Kullanıcı adı gerekli';
-      else if (username !== username.toLowerCase()) e.username = 'Sadece küçük harfler kullanılabilir';
-      else if (username.length < 3) e.username = 'En az 3 karakter olmalı';
-      else if (!/^[a-z0-9_]+$/.test(username)) e.username = 'Sadece küçük harf, rakam ve _ kullanılabilir';
+      if (!displayName.trim()) e.displayName = t('auth.displayNameRequired');
+      if (!username.trim()) e.username = t('auth.usernameRequired');
+      else if (username !== username.toLowerCase()) e.username = t('auth.usernameLowercase');
+      else if (username.length < 3) e.username = t('auth.usernameMinLength');
+      else if (!/^[a-z0-9_]+$/.test(username)) e.username = t('auth.usernamePattern');
     }
     if (step === 'password') {
-      if (password.length < 6) e.password = 'En az 6 karakter olmalı';
-      if (password !== confirmPassword) e.confirmPassword = 'Şifreler eşleşmiyor';
+      if (password.length < 6) e.password = t('auth.passwordMinLength');
+      if (password !== confirmPassword) e.confirmPassword = t('auth.passwordMismatch');
     }
     if (step === 'email') {
-      if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Geçerli bir e-posta girin';
+      if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = t('auth.invalidEmail');
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -51,7 +53,7 @@ const Register = () => {
         .maybeSingle();
       setLoading(false);
       if (data) {
-        setErrors({ username: 'Bu kullanıcı adı zaten alınmış' });
+        setErrors({ username: t('auth.usernameTaken') });
         return;
       }
       setStep('password');
@@ -65,10 +67,7 @@ const Register = () => {
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: {
-              display_name: displayName,
-              username,
-            },
+            data: { display_name: displayName, username },
           },
         });
         if (error) {
@@ -76,10 +75,10 @@ const Register = () => {
           setLoading(false);
           return;
         }
-        toast.success('Doğrulama bağlantısı e-posta adresinize gönderildi! Lütfen kontrol edin.');
+        toast.success(t('auth.verificationSent'));
         navigate('/login');
       } catch {
-        setErrors({ email: 'Bir hata oluştu' });
+        setErrors({ email: t('auth.genericError') });
       }
       setLoading(false);
     }
@@ -101,17 +100,12 @@ const Register = () => {
             <Sparkles className="w-8 h-8 text-primary" />
             <h1 className="text-3xl font-bold text-foreground">AuroraChat</h1>
           </div>
-          <p className="text-muted-foreground">Hesap oluştur</p>
+          <p className="text-muted-foreground">{t('auth.createAccount')}</p>
         </div>
 
         <div className="flex gap-2 mb-8">
           {steps.map((s, i) => (
-            <div
-              key={s}
-              className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
-                i <= currentIndex ? 'bg-primary' : 'bg-muted'
-              }`}
-            />
+            <div key={s} className={`h-1 flex-1 rounded-full transition-colors duration-300 ${i <= currentIndex ? 'bg-primary' : 'bg-muted'}`} />
           ))}
         </div>
 
@@ -119,33 +113,19 @@ const Register = () => {
           {step === 'names' && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-xl font-semibold text-foreground mb-1">Kendini tanıt</h2>
-                <p className="text-sm text-muted-foreground">Diğer kullanıcıların seni göreceği isim</p>
+                <h2 className="text-xl font-semibold text-foreground mb-1">{t('auth.stepNames')}</h2>
+                <p className="text-sm text-muted-foreground">{t('auth.stepNamesDesc')}</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-2">Görünen Ad</label>
-                <input
-                  type="text"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Örn: Mehmet Güneş"
-                  className="w-full bg-input rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  maxLength={50}
-                />
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-2">{t('auth.displayName')}</label>
+                <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={t('auth.displayNamePlaceholder')} className="w-full bg-input rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-all" maxLength={50} />
                 {errors.displayName && <p className="text-destructive text-xs mt-1">{errors.displayName}</p>}
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-2">Kullanıcı Adı</label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                  placeholder="Örn: mehmet_gunes"
-                  className="w-full bg-input rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  maxLength={30}
-                />
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-2">{t('auth.username')}</label>
+                <input type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} placeholder={t('auth.usernamePlaceholder')} className="w-full bg-input rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-all" maxLength={30} />
                 {errors.username && <p className="text-destructive text-xs mt-1">{errors.username}</p>}
-                <p className="text-[11px] text-muted-foreground mt-1">Sadece küçük harfler, rakamlar ve alt çizgi</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{t('auth.usernameHint')}</p>
               </div>
             </div>
           )}
@@ -153,19 +133,13 @@ const Register = () => {
           {step === 'password' && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-xl font-semibold text-foreground mb-1">Şifreni belirle</h2>
-                <p className="text-sm text-muted-foreground">Güçlü bir şifre seç</p>
+                <h2 className="text-xl font-semibold text-foreground mb-1">{t('auth.stepPassword')}</h2>
+                <p className="text-sm text-muted-foreground">{t('auth.stepPasswordDesc')}</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-2">Şifre</label>
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-2">{t('auth.password')}</label>
                 <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-input rounded-lg px-4 py-3 pr-10 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  />
+                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full bg-input rounded-lg px-4 py-3 pr-10 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-all" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -173,15 +147,9 @@ const Register = () => {
                 {errors.password && <p className="text-destructive text-xs mt-1">{errors.password}</p>}
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-2">Şifreyi Tekrarla</label>
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-2">{t('auth.confirmPassword')}</label>
                 <div className="relative">
-                  <input
-                    type={showConfirm ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-input rounded-lg px-4 py-3 pr-10 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  />
+                  <input type={showConfirm ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="w-full bg-input rounded-lg px-4 py-3 pr-10 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-all" />
                   <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -194,19 +162,12 @@ const Register = () => {
           {step === 'email' && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-xl font-semibold text-foreground mb-1">E-posta adresin</h2>
-                <p className="text-sm text-muted-foreground">Doğrulama bağlantısı göndereceğiz</p>
+                <h2 className="text-xl font-semibold text-foreground mb-1">{t('auth.stepEmail')}</h2>
+                <p className="text-sm text-muted-foreground">{t('auth.stepEmailDesc')}</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-2">E-Posta</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ornek@email.com"
-                  className="w-full bg-input rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  maxLength={255}
-                />
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-2">{t('auth.email')}</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.emailPlaceholder')} className="w-full bg-input rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-all" maxLength={255} />
                 {errors.email && <p className="text-destructive text-xs mt-1">{errors.email}</p>}
               </div>
             </div>
@@ -216,19 +177,15 @@ const Register = () => {
             {step !== 'names' && (
               <button onClick={handleBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <ArrowLeft className="w-4 h-4" />
-                Geri
+                {t('auth.back')}
               </button>
             )}
-            <button
-              onClick={handleNext}
-              disabled={loading}
-              className="ml-auto flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
-            >
+            <button onClick={handleNext} disabled={loading} className="ml-auto flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50">
               {loading ? (
                 <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               ) : (
                 <>
-                  {step === 'email' ? 'Kayıt Ol' : 'Devam'}
+                  {step === 'email' ? t('auth.registerButton') : t('auth.continueButton')}
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -237,9 +194,9 @@ const Register = () => {
         </div>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Zaten hesabın var mı?{' '}
+          {t('auth.hasAccount')}{' '}
           <Link to="/login" className="text-primary hover:underline font-medium">
-            Giriş yap
+            {t('auth.login')}
           </Link>
         </p>
       </div>
