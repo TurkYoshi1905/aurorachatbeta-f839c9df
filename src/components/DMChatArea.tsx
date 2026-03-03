@@ -95,7 +95,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     fetchMessages();
   }, [user, dmUser.userId, profile]);
 
-  // Realtime subscription — two channels for sender/receiver filters
+  // Realtime subscription — single unfiltered channel with client-side filtering for reliability
   const dmUserId = dmUser.userId;
   const dmDisplayName = dmUser.displayName;
   const dmAvatarUrl = dmUser.avatarUrl;
@@ -104,65 +104,53 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     if (!user) return;
     const pairKey = [user.id, dmUserId].sort().join('-');
 
-    const handleInsert = (payload: any) => {
-      const m = payload.new as any;
-      const isRelevant =
-        (m.sender_id === user.id && m.receiver_id === dmUserId) ||
-        (m.sender_id === dmUserId && m.receiver_id === user.id);
-      if (!isRelevant) return;
-      if (m.sender_id === user.id) return; // optimistic already added
+    const isRelevantMsg = (m: any) =>
+      (m.sender_id === user.id && m.receiver_id === dmUserId) ||
+      (m.sender_id === dmUserId && m.receiver_id === user.id);
 
-      setMessages((prev) => {
-        if (prev.some((msg) => msg.id === m.id)) return prev;
-        return [
-          ...prev,
-          {
-            id: m.id,
-            senderId: m.sender_id,
-            content: m.content,
-            createdAt: m.created_at,
-            updatedAt: m.updated_at || null,
-            senderName: dmDisplayName,
-            senderAvatar: dmAvatarUrl,
-          },
-        ];
-      });
-    };
+    const dmChannel = supabase
+      .channel(`dm-realtime-${pairKey}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages' }, (payload) => {
+        const m = payload.new as any;
+        if (!isRelevantMsg(m)) return;
+        // Skip own messages (optimistic already added)
+        if (m.sender_id === user.id) return;
 
-    const handleUpdate = (payload: any) => {
-      const m = payload.new as any;
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === m.id ? { ...msg, content: m.content, updatedAt: m.updated_at || new Date().toISOString() } : msg
-        )
-      );
-    };
-
-    const handleDelete = (payload: any) => {
-      const old = payload.old as any;
-      if (old?.id) {
-        setMessages((prev) => prev.filter((msg) => msg.id !== old.id));
-      }
-    };
-
-    // Channel for messages where current user is receiver
-    const recvChannel = supabase
-      .channel(`dm-recv-${pairKey}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `receiver_id=eq.${user.id}` }, handleInsert)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages', filter: `receiver_id=eq.${user.id}` }, handleUpdate)
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages', filter: `receiver_id=eq.${user.id}` }, handleDelete)
-      .subscribe();
-
-    // Channel for messages where current user is sender (to catch own edits/deletes reflected)
-    const sendChannel = supabase
-      .channel(`dm-send-${pairKey}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleUpdate)
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleDelete)
+        setMessages((prev) => {
+          if (prev.some((msg) => msg.id === m.id)) return prev;
+          return [
+            ...prev,
+            {
+              id: m.id,
+              senderId: m.sender_id,
+              content: m.content,
+              createdAt: m.created_at,
+              updatedAt: m.updated_at || null,
+              senderName: dmDisplayName,
+              senderAvatar: dmAvatarUrl,
+            },
+          ];
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages' }, (payload) => {
+        const m = payload.new as any;
+        if (!isRelevantMsg(m)) return;
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === m.id ? { ...msg, content: m.content, updatedAt: m.updated_at || new Date().toISOString() } : msg
+          )
+        );
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages' }, (payload) => {
+        const old = payload.old as any;
+        if (old?.id) {
+          setMessages((prev) => prev.filter((msg) => msg.id !== old.id));
+        }
+      })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(recvChannel);
-      supabase.removeChannel(sendChannel);
+      supabase.removeChannel(dmChannel);
     };
   }, [user, dmUserId, dmDisplayName, dmAvatarUrl]);
 
