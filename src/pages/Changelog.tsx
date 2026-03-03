@@ -10,7 +10,7 @@ const Changelog = () => {
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="flex items-center gap-3 mb-8">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/settings')}
             className="w-9 h-9 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
