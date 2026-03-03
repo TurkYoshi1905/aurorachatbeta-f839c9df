@@ -1,72 +1,57 @@
 
 
-## Plan: Gizlilik, DM Mesaj Yonetimi, Sunucu Ikonu Duzeltmesi
+## Plan: DM Realtime, Yazıyor Göstergesi, Invite Embed, Changelog Navigasyon Düzeltmeleri
 
-### 1. Gizlilik Politikasi Sayfasi
+### 1. DM Realtime Sorunun Kök Nedeni ve Düzeltme
 
-Yeni dosya: `src/pages/PrivacyPolicy.tsx`
-- Profesyonel gizlilik politikasi metni (toplanan veriler: e-posta, profil bilgileri, mesaj icerikleri, IP adresi, kullanim istatistikleri)
-- "Geri Don" butonu ile navigasyon
-- `App.tsx`'e `/privacy-policy` rotasi eklenir (public rota)
+Mevcut kod zaten INSERT/UPDATE/DELETE dinliyor ve `filter: receiver_id=eq.${user.id}` kullanıyor. Sorun: UPDATE ve DELETE event'leri icin filter yok — Supabase Realtime filtre olmadan RLS kontrolunu her satir icin yapmak zorunda kaliyor ve event'ler dusebiliyor.
 
-### 2. Ayarlar — Gizlilik & Guvenlik Sekmesi
+**Duzeltme (`src/components/DMChatArea.tsx`):**
+- UPDATE event'ine `filter: receiver_id=eq.${user.id}` ekle (karsidaki kisinin duzenlemelerini almak icin)
+- Ayrica kendi gonderdigimiz mesajlarin UPDATE'lerini de almak icin ikinci bir UPDATE listener ekle: `filter: sender_id=eq.${user.id}`
+- DELETE icin de benzer iki filter ekle
+- Alternatif: Tek bir kanal yerine, iki ayri listener kullan (biri receiver, biri sender olarak)
 
-`src/pages/Settings.tsx`'deki bos "Gizlilik & Guvenlik" sekmesine:
-- **DM Izni Toggle:** "Direkt Mesajlara Izin Ver" (acik/kapali switch)
-- **Arkadaslik Istekleri Yonetimi:** "Kimler istek atabilir?" secenekleri (Herkes / Arkadaslar / Hic kimse) — radio group
-- **Iki Faktorlu Dogrulama:** UI bazli gosterim (yakin zamanda gelecek bildirimi)
-- **Gizlilik Politikasi Linki:** `/privacy-policy` sayfasina yonlendirme butonu
+Aslinda daha basit yaklasim: Realtime subscription'da filter kullanmak yerine, filtresiz dinleyip client-side filtre yapmak daha guvenilir olabilir — ama bu RLS yukunu arttirir. En iyi cozum: `sender_id` ve `receiver_id` icin iki ayri listener eklemek.
 
-Bu ayarlar su an sadece UI bazli olacak (localStorage ile persist edilebilir). Veritabani tablosu gerektirmez ilk asamada.
+### 2. DM "Yaziyor..." Gostergesi
 
-### 3. DM Mesaj Duzenleme ve Silme
+Sunucu kanallarindaki `TypingIndicator` mantigi (`ChatArea.tsx` satir 78-102) ve Broadcast kanal kullanimi DM'e uyarlanacak.
 
-**Veritabani Migrasyonu:**
-- `direct_messages` tablosuna `updated_at` sutunu ekle (nullable timestamp)
-- UPDATE RLS politikasi: `auth.uid() = sender_id`
-- DELETE RLS politikasi: `auth.uid() = sender_id`
-- `updated_at` icin trigger (mevcut `update_updated_at_column` fonksiyonu kullanilir)
+**Degisiklikler (`src/components/DMChatArea.tsx`):**
+- Supabase Broadcast kanali olustur: `dm-typing-${[user.id, dmUserId].sort().join('-')}`
+- Input `onChange`'de 2 saniyelik throttle ile typing event gonder
+- Input bos olunca veya mesaj gonderince stop event gonder
+- Karsidaki kisinin typing event'lerini dinle ve UI'da goster
+- `TypingIndicator` bilesenini ChatArea'dan import et veya ayni mantigi DM'e ekle
 
-**`src/components/DMChatArea.tsx` Degisiklikleri:**
-- Her mesajin uzerine gelince (hover) kendi mesajlari icin "Duzenle" ve "Sil" butonlari goster
-- Duzenleme: Mesaj icerigini input'a donustur, Enter ile kaydet, Escape ile iptal
-- Silme: AlertDialog ile onay, onaylaninca DB'den sil ve state'ten cikar
-- Realtime subscription'a UPDATE ve DELETE event'leri ekle
-- Duzenlenmis mesajlara "(Duzenlendi)" etiketi ekle
+### 3. Invite Embed Gorsel Duzeltmesi
 
-### 4. Sunucu Ikonu Render Duzeltmesi
+**Sorun (`src/components/ServerInviteEmbed.tsx` satir 61-63):** Sunucu ikonu her zaman `{server.icon}` olarak text render ediliyor, URL kontrolu yok.
 
-**`src/components/ServerSidebar.tsx` — Satir 53:**
-Suanki kod `{server.icon}` olarak sadece text render ediyor. Sunucu fotografı yuklendikten sonra `icon` alani bir URL oluyor ama sidebar bunu kontrol etmiyor.
-
-Duzeltme:
+**Duzeltme:**
 ```
 {server.icon && (server.icon.startsWith('http') || server.icon.startsWith('/'))
-  ? <img src={server.icon} alt="" className="w-full h-full object-cover rounded-[inherit]" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
-  : server.icon || server.name.charAt(0).toUpperCase()
+  ? <img src={server.icon} alt="" className="w-full h-full object-cover rounded-xl"
+         onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+  : (server.icon || server.name.charAt(0).toUpperCase())
 }
 ```
+Ayrica ikon container boyutunu `w-12 h-12` (48x48) olarak sabitle.
 
-Bu, `ServerSettingsDialog.tsx`'deki mevcut mantikla (satir 184) tutarli olacak.
+### 4. Changelog Navigasyon Duzeltmesi
+
+**Sorun:** `/changelog` sayfasindaki geri butonu `navigate(-1)` kullaniyor. Kullanici ChangelogDetail'den `/changelog`'a donup tekrar geri basinca ChangelogDetail'e geri gidiyor (browser history yuzunden).
+
+**Duzeltme (`src/pages/Changelog.tsx`):** Geri butonunu `navigate(-1)` yerine `navigate('/settings')` yap — cunku changelog'a ayarlar sayfasindan erisiiliyor.
+
+**Duzeltme (`src/pages/ChangelogDetail.tsx`):** Zaten `navigate('/changelog')` kullaniyor, dogru.
 
 ### 5. Dosya Degisiklikleri
 
 | Dosya | Islem |
 |---|---|
-| `src/pages/PrivacyPolicy.tsx` | Yeni sayfa — gizlilik politikasi metni |
-| `src/App.tsx` | `/privacy-policy` rotasi ekle |
-| `src/pages/Settings.tsx` | Gizlilik sekmesine toggle, radio group, 2FA UI ekle |
-| `src/components/DMChatArea.tsx` | Mesaj duzenleme/silme UI + realtime UPDATE/DELETE dinleme |
-| `src/components/ServerSidebar.tsx` | Icon render: URL ise img, degilse text fallback |
-| DB Migrasyonu | `direct_messages` tablosuna `updated_at`, UPDATE/DELETE RLS politikalari, trigger |
-
-### Teknik Detaylar
-
-**DM Realtime genisletme:**
-Mevcut subscription sadece INSERT dinliyor. UPDATE ve DELETE event'leri eklenir:
-- UPDATE: `setMessages` ile ilgili mesajin icerigini guncelle, `edited: true` yap
-- DELETE: `setMessages` ile mesaji state'ten cikar
-
-**Sunucu ikonu — img onError fallback:**
-Resim yuklenemezse (kirik URL), `onError` handler ile img gizlenip text fallback gosterilir. Bu, hem sidebar'da hem ayarlarda tutarli calısır.
+| `src/components/DMChatArea.tsx` | Realtime UPDATE/DELETE filter duzeltme + Typing indicator ekleme |
+| `src/components/ServerInviteEmbed.tsx` | Icon URL kontrolu ve img render |
+| `src/pages/Changelog.tsx` | Geri butonu `navigate('/settings')` |
 
