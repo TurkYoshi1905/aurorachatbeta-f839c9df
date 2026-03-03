@@ -1,8 +1,11 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, X, User, Shield, Megaphone, Camera, ExternalLink, Pencil, Check, XIcon, Calendar } from 'lucide-react';
+import { LogOut, X, User, Shield, Megaphone, Camera, ExternalLink, Pencil, Check, XIcon, Calendar, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { useState, useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
@@ -320,8 +323,66 @@ const Settings = () => {
           {activeTab === 'privacy' && (
             <div className="space-y-6">
               <h2 className="text-xl font-semibold">Gizlilik & Güvenlik</h2>
+
+              {/* DM İzni */}
+              <div className="rounded-xl border border-border bg-card p-4 md:p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Direkt Mesajlara İzin Ver</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Diğer kullanıcıların size DM göndermesine izin verin.</p>
+                  </div>
+                  <Switch
+                    defaultChecked={localStorage.getItem('privacy_allow_dm') !== 'false'}
+                    onCheckedChange={(v) => localStorage.setItem('privacy_allow_dm', String(v))}
+                  />
+                </div>
+              </div>
+
+              {/* Arkadaşlık İstekleri */}
+              <div className="rounded-xl border border-border bg-card p-4 md:p-5 space-y-4">
+                <p className="text-sm font-semibold text-foreground">Arkadaşlık İstekleri</p>
+                <p className="text-xs text-muted-foreground">Kimler size arkadaşlık isteği gönderebilir?</p>
+                <RadioGroup
+                  defaultValue={localStorage.getItem('privacy_friend_requests') || 'everyone'}
+                  onValueChange={(v) => localStorage.setItem('privacy_friend_requests', v)}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <RadioGroupItem value="everyone" id="fr-everyone" />
+                    <Label htmlFor="fr-everyone" className="text-sm cursor-pointer">Herkes</Label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <RadioGroupItem value="friends" id="fr-friends" />
+                    <Label htmlFor="fr-friends" className="text-sm cursor-pointer">Ortak arkadaşlar</Label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <RadioGroupItem value="none" id="fr-none" />
+                    <Label htmlFor="fr-none" className="text-sm cursor-pointer">Hiç kimse</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* 2FA */}
+              <div className="rounded-xl border border-border bg-card p-4 md:p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-muted-foreground" />
+                  <p className="text-sm font-semibold text-foreground">İki Faktörlü Doğrulama</p>
+                </div>
+                <p className="text-xs text-muted-foreground">Hesabınıza ek bir güvenlik katmanı ekleyin.</p>
+                <Button variant="outline" size="sm" disabled>
+                  Yakında
+                </Button>
+              </div>
+
+              {/* Gizlilik Politikası Linki */}
               <div className="rounded-xl border border-border bg-card p-4 md:p-5">
-                <p className="text-sm text-muted-foreground">Yakında eklenecek.</p>
+                <button
+                  onClick={() => navigate('/privacy-policy')}
+                  className="flex items-center gap-2 text-sm text-primary hover:underline"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Gizlilik Politikasını Görüntüle
+                </button>
               </div>
             </div>
           )}

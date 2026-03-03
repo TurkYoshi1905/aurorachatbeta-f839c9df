@@ -43,14 +43,25 @@ const ServerSidebar = ({ activeServer, onServerChange, servers, onServerCreated 
             <Tooltip key={server.id}>
               <TooltipTrigger asChild>
                 <button
-                  className={`server-icon font-semibold text-lg transition-colors shrink-0 ${
+                  className={`server-icon font-semibold text-lg transition-colors shrink-0 overflow-hidden ${
                     activeServer === server.id
                       ? 'bg-primary text-primary-foreground rounded-[16px]'
                       : 'bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground'
                   }`}
                   onClick={() => onServerChange(server.id)}
                 >
-                  {server.icon}
+                  {server.icon && (server.icon.startsWith('http') || server.icon.startsWith('/')) ? (
+                    <img
+                      src={server.icon}
+                      alt={server.name}
+                      className="w-full h-full object-cover rounded-[inherit]"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    server.icon || server.name.charAt(0).toUpperCase()
+                  )}
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right">

@@ -13,6 +13,7 @@ import Settings from "./pages/Settings";
 import InvitePage from "./pages/InvitePage";
 import Changelog from "./pages/Changelog";
 import ChangelogDetail from "./pages/ChangelogDetail";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/invite/:code" element={<InvitePage />} />
             <Route path="/changelog" element={<Changelog />} />
             <Route path="/changelog/:version" element={<ChangelogDetail />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
