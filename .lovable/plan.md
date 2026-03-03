@@ -1,70 +1,50 @@
 
 
-## Plan: DM Realtime Kesin Cozum, Profil Sync Dogrulama, v0.0.9 Changelog
+## Plan: DM Realtime Kesin Çözüm — Sunucu Kalıbıyla Birebir Eşleştirme
 
-### Analiz Sonuclari
+### Kök Neden Analizi
 
-- `direct_messages` tablosu realtime publication'da **mevcut**
-- Replica identity **FULL** — DELETE event'leri eski satiri icerir
-- RLS politikalari dogru: `sender_id = auth.uid() OR receiver_id = auth.uid()` (SELECT)
-- `AuthContext`'te profil sync realtime aboneligi **zaten calisiyor**
+Sunucu mesajları ile DM mesajları arasındaki kritik farklar:
 
-**Potansiyel DM Realtime Sorunlari:**
-1. Subscribe callback'te hata kontrolu yok — baglanti basarisiz olursa sessizce devam ediyor
-2. Kanal `subscribe()` sonucu kontrol edilmiyor (`SUBSCRIBED` vs `CHANNEL_ERROR`)
-3. Typing kanali ile realtime kanali ayni `pairKey` kullanip farkli prefix kullaniyor — sorun olmamali ama karisiklik yaratabilir
+| | Sunucu (Çalışıyor) | DM (Çalışmıyor) |
+|---|---|---|
+| Event dinleme | Ayrı `.on()` çağrıları: INSERT, UPDATE, DELETE | Tek `event: '*'` — bazı Supabase sürümlerinde güvenilmez |
+| Dependency array | `[]` — kanal asla yeniden oluşturulmaz | `[user, dmUserId, dmDisplayName, dmAvatarUrl]` — profil değişince kanal yıkılıp yeniden yaratılıyor |
+| Filtreleme | `serverRef.current` ve `channelRef.current` (ref) | Doğrudan state/prop kullanımı |
 
-### 1. DM Realtime Guclendirilmesi (`src/components/DMChatArea.tsx`)
+**Sonuç:** DM kanalı, `dmDisplayName` veya `dmAvatarUrl` değiştiğinde (profil sync tetiklendiğinde) yıkılıp yeniden oluşturuluyor. Bu geçiş sırasında event'ler kayboluyor. Ayrıca `event: '*'` bazı durumlarda event'leri düşürebiliyor.
 
-Mevcut subscription yapisini koruyarak su iyilestirmeleri yap:
+### Düzeltme Planı
 
-- `subscribe()` callback'ine status kontrolu ekle — `CHANNEL_ERROR` veya `TIMED_OUT` durumunda otomatik yeniden baglanma (retry) mantigi
-- Channel subscription durumunu bir ref'te tut, component unmount olurken temizle
-- INSERT handler'da optimistic mesaj ile gercek mesajin ID eslesme kontrolunu guclendir (tempId match)
-- `event: '*'` tek bir listener kullanarak INSERT/UPDATE/DELETE'i tek handler'da isle — bu Supabase'in event filtering yukunu azaltir ve daha guvenilir
+#### 1. `src/components/DMChatArea.tsx` — Realtime Subscription Refaktörü
 
-**Yeni yaklasim:**
-```typescript
-.on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, (payload) => {
-  if (payload.eventType === 'INSERT') { ... }
-  else if (payload.eventType === 'UPDATE') { ... }
-  else if (payload.eventType === 'DELETE') { ... }
-})
-.subscribe((status, err) => {
-  if (status === 'CHANNEL_ERROR') console.error('DM channel error:', err);
-})
+**Değişiklikler:**
+- `dmUser.userId`, `dmUser.displayName`, `dmUser.avatarUrl` ve `user.id` değerlerini **ref**'lere kaydet (sunucudaki `channelRef`/`serverRef` kalıbı)
+- `event: '*'` yerine **ayrı `.on()` çağrıları** kullan: INSERT, UPDATE, DELETE
+- Dependency array'i `[user?.id, dmUser.userId]` olarak daralt — sadece konuşma çifti değiştiğinde kanal yeniden oluşturulacak
+- `subscribe()` callback'ine `SUBSCRIBED` log'u ekle (bağlantı doğrulaması için)
+- Typing broadcast'lerde de ref kullan
+
+```text
+ÖNCE (Bozuk):
+  useEffect deps: [user, dmUserId, dmDisplayName, dmAvatarUrl]
+  .on('postgres_changes', { event: '*', ... })  ← tek handler
+
+SONRA (Düzeltilmiş):
+  useEffect deps: [user?.id, dmUser.userId]      ← minimal
+  .on(INSERT, ...)                                ← ayrı handler
+  .on(UPDATE, ...)                                ← ayrı handler  
+  .on(DELETE, ...)                                ← ayrı handler
+  Filtreleme: dmUserIdRef.current (ref)           ← kanal yeniden oluşturulmaz
 ```
 
-### 2. Profil Senkronizasyonu
+#### 2. `src/data/changelogData.ts` — v0.0.9 Kontrolü
 
-AuthContext'teki mevcut realtime profil sync **zaten calisiyor**. Ek islem gerekmez. DMChatArea'da mesajlardaki gosterim adi ve avatar, `profile` state'inden geliyor — profil degisince otomatik guncellenir.
+Zaten mevcut — değişiklik gerekmez.
 
-### 3. v0.0.9 Changelog (`src/data/changelogData.ts`)
+### Dosya Değişiklikleri
 
-Dizinin basina yeni release ekle:
-
-```
-version: '0.0.9'
-date: '3 Mart 2026'
-summary: 'Tam gercek zamanli DM sistemi, profil senkronizasyonu ve gizlilik ozellikleri.'
-sections:
-  - Yeni Ozellikler:
-    - Tam Gercek Zamanli DM Sistemi (Sayfa yenileme zorunlulugu kaldirildi)
-    - Profil bilgilerinin (Ad/Kullanici adi) tum platformda anlik senkronizasyonu
-    - DM Mesaj Duzenleme ve Silme ozellikleri eklendi
-    - Yeni Gizlilik Politikasi sayfasi ve Geri Don butonu eklendi
-  - Duzeltilen Hatalar:
-    - Sunucu davet linklerindeki gorsel hatalari giderildi
-    - Changelog navigasyon dongusu duzeltildi
-  - Gelistirmeler:
-    - Gizlilik ve Guvenlik ayarlari (DM izni, arkadaslik istekleri yonetimi, 2FA UI)
-    - Sunucu ikonu render mantigi iyilestirildi
-```
-
-### 4. Dosya Degisiklikleri
-
-| Dosya | Islem |
+| Dosya | İşlem |
 |---|---|
-| `src/components/DMChatArea.tsx` | Realtime subscription'i `event: '*'` ile tek handler'a cevir, subscribe status kontrolu ekle |
-| `src/data/changelogData.ts` | v0.0.9 release ekle |
+| `src/components/DMChatArea.tsx` | Ref'lerle filtreleme, ayrı event listener'lar, minimal deps |
 
