@@ -1,54 +1,76 @@
 
 
-## Plan: Kritik İletişim ve Görselleştirme Hatalarını Onar
+## Plan: DM + Sunucu Mesajları Gerçek Zamanlı Stabilizasyon & Optimistic UI
 
 ### Kök Neden Analizi
 
-**1. Link/Embed tamamen çalışmıyor** — `ChatArea.tsx` satır 31'deki URL regex `[\s]` (boşluk) kullanıyor, doğrusu `[^\s]` (boşluk olmayan). Bu yüzden hiçbir link algılanmıyor, hiçbir embed gösterilmiyor.
+**DM Tarafı:**
+- Realtime subscription yapısı zaten düzeltilmiş (ayrı INSERT/UPDATE/DELETE handler'lar, ref-based filtering, minimal deps). Ancak `direct_messages` tablosu `supabase_realtime` publication'a **eklenmemiş olabilir** — bu en kritik sebep.
+- Optimistic update zaten var ama hata durumunda mesaj sessizce siliniyor, durum etiketi yok.
 
-**2. DM'de link/embed desteği yok** — `DMChatArea.tsx` satır 187'de `msg.content` düz metin olarak render ediliyor. `ChatArea`'daki `renderMessageContent` fonksiyonu DM tarafında hiç kullanılmıyor.
-
-**3. ServerInviteEmbed ikon hatası** — `onError` handler resmi gizliyor ama fallback harfi göstermiyor çünkü if/else dalında kalıyor.
-
-**4. DM Realtime** — Yapı doğru görünüyor, ama kontrol edilecek.
-
----
+**Sunucu Kanal Tarafı:**
+- `handleSendMessage` (Index.tsx satır 672) sadece `insert` yapıyor, optimistic update **yok** — mesaj yalnızca realtime INSERT event geldiğinde ekranda görünüyor. Bu gecikmeye neden oluyor.
+- Realtime subscription (satır 247-313) doğru çalışıyor ama kendi gönderdiğimiz mesajları da tekrar ekliyor (duplicate riski).
 
 ### Değişiklikler
 
-#### 1. `src/components/ChatArea.tsx` — URL Regex Düzeltmesi
+#### 1. Veritabanı: Realtime Publication Kontrolü
 
-3 yerde `[\s]` → `[^\s]` olarak düzelt (satır 31, 36, 44):
+`direct_messages` tablosunu realtime publication'a ekle (eğer eksikse):
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.direct_messages;
 ```
-ÖNCE:  /(https?:\/\/[\s]+)/g
-SONRA: /(https?:\/\/[^\s]+)/g
-```
+Bu olmadan `postgres_changes` event'leri istemciye ulaşmaz.
 
-Bu düzeltmeyle tüm linkler algılanacak, mavi renkte tıklanabilir olacak, invite embed'leri ve link preview'ları çalışacak.
+#### 2. `src/pages/Index.tsx` — Sunucu Mesajları Optimistic UI
 
-#### 2. `src/components/DMChatArea.tsx` — Link/Embed Desteği Ekle
+**`handleSendMessage`** fonksiyonunu güncelle:
+- `insert` çağrısından önce mesajı geçici ID ile `messages` state'ine ekle
+- `status: 'sending'` alanı ekle (yeni alan)
+- Insert başarılıysa geçici ID'yi gerçek ID ile değiştir, status'u kaldır
+- Insert başarısızsa status'u `'failed'` olarak işaretle
+- Başarısız mesajlara "Tekrar Dene" butonu ekle
 
-- `ChatArea.tsx`'teki `renderMessageContent` fonksiyonunu import et veya ortak bir util'e taşı
-- DM mesajlarında düz `<p>` yerine `renderMessageContent(msg.content)` kullan
-- `ServerInviteEmbed` ve `LinkEmbed` import'larını ekle
+**Realtime INSERT handler** güncelle:
+- Kendi gönderdiğimiz mesajları atla (`m.user_id === user?.id`) — optimistic update zaten eklemiş olacak
 
-#### 3. `src/components/ServerInviteEmbed.tsx` — İkon Fallback Düzeltmesi
+#### 3. `src/components/ChatArea.tsx` — Durum Etiketi UI
 
-- `onError` handler'da resmi gizlemek yerine, state ile kontrol et ve fallback harfini göster
-- `useState` ile `imgError` flag'i ekle
-- i18n desteği ekle (hardcoded Türkçe metinler)
+`DbMessage` interface'ine `status?: 'sending' | 'failed'` alanı ekle (Index.tsx'te).
 
-#### 4. `src/components/ChatArea.tsx` — `renderMessageContent` Dışa Aktarma
+Mesaj render'ında:
+- `status === 'sending'` ise opacity-50 + "Gönderiliyor..." etiketi
+- `status === 'failed'` ise kırmızı border + "Gönderilemedi — Tekrar Dene" butonu
 
-`renderMessageContent` fonksiyonunu `export` yap, böylece DMChatArea da kullanabilsin. Veya ortak bir dosyaya taşı.
+#### 4. `src/components/DMChatArea.tsx` — Durum Etiketi UI
 
----
+DM mesajlarına da aynı durum etiketini ekle:
+- `DMMessage` interface'ine `status?: 'sending' | 'failed'` ekle
+- `handleSend` fonksiyonunda hata durumunda `status: 'failed'` olarak güncelle (şu an siliniyor)
+- "Tekrar Dene" butonu ekle
+
+#### 5. Scroll Stabilizasyonu
+
+Her iki bileşende de `scrollIntoView` çağrısını `requestAnimationFrame` ile sar — bazı tarayıcılarda layout hesaplaması tamamlanmadan scroll tetiklenebiliyor.
+
+#### 6. i18n Anahtarları
+
+Tüm dil dosyalarına yeni çeviri anahtarları ekle:
+- `chat.sending` / `chat.failed` / `chat.retry`
+- `dm.sending` / `dm.failed` / `dm.retry`
 
 ### Dosya Değişiklikleri
 
 | Dosya | İşlem |
 |---|---|
-| `src/components/ChatArea.tsx` | URL regex `[^\s]` düzeltmesi (3 yer), `renderMessageContent` export |
-| `src/components/DMChatArea.tsx` | `renderMessageContent` kullanarak link/embed desteği ekle |
-| `src/components/ServerInviteEmbed.tsx` | İkon fallback state ile düzelt, i18n ekle |
+| SQL Migration | `direct_messages` tablosunu realtime publication'a ekle |
+| `src/pages/Index.tsx` | `handleSendMessage` optimistic update, INSERT handler duplicate koruması |
+| `src/components/ChatArea.tsx` | `DbMessage` status alanı, durum etiketi render, tekrar dene butonu |
+| `src/components/DMChatArea.tsx` | Hata durumunda status güncelleme, tekrar dene butonu, scroll fix |
+| `src/i18n/tr.ts` | Yeni anahtarlar |
+| `src/i18n/en.ts` | Yeni anahtarlar |
+| `src/i18n/az.ts` | Yeni anahtarlar |
+| `src/i18n/ru.ts` | Yeni anahtarlar |
+| `src/i18n/ja.ts` | Yeni anahtarlar |
+| `src/i18n/de.ts` | Yeni anahtarlar |
 
