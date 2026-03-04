@@ -1,88 +1,54 @@
 
 
-## Plan: Çok Dilli Destek (i18n) ve v0.1.0
+## Plan: Kritik İletişim ve Görselleştirme Hatalarını Onar
 
-### Yaklaşım
+### Kök Neden Analizi
 
-Lightweight bir i18n sistemi kuracağız — harici kütüphane (react-i18next vb.) kullanmadan, React Context + JSON çeviri dosyaları ile. Bu projenin boyutuna en uygun yaklaşım.
+**1. Link/Embed tamamen çalışmıyor** — `ChatArea.tsx` satır 31'deki URL regex `[\s]` (boşluk) kullanıyor, doğrusu `[^\s]` (boşluk olmayan). Bu yüzden hiçbir link algılanmıyor, hiçbir embed gösterilmiyor.
 
-### Veritabanı Değişikliği
+**2. DM'de link/embed desteği yok** — `DMChatArea.tsx` satır 187'de `msg.content` düz metin olarak render ediliyor. `ChatArea`'daki `renderMessageContent` fonksiyonu DM tarafında hiç kullanılmıyor.
 
-`profiles` tablosuna `language` sütunu ekle:
-```sql
-ALTER TABLE public.profiles ADD COLUMN language text NOT NULL DEFAULT 'tr';
+**3. ServerInviteEmbed ikon hatası** — `onError` handler resmi gizliyor ama fallback harfi göstermiyor çünkü if/else dalında kalıyor.
+
+**4. DM Realtime** — Yapı doğru görünüyor, ama kontrol edilecek.
+
+---
+
+### Değişiklikler
+
+#### 1. `src/components/ChatArea.tsx` — URL Regex Düzeltmesi
+
+3 yerde `[\s]` → `[^\s]` olarak düzelt (satır 31, 36, 44):
+```
+ÖNCE:  /(https?:\/\/[\s]+)/g
+SONRA: /(https?:\/\/[^\s]+)/g
 ```
 
-### Dosya Yapısı
+Bu düzeltmeyle tüm linkler algılanacak, mavi renkte tıklanabilir olacak, invite embed'leri ve link preview'ları çalışacak.
 
-```text
-src/
-├── i18n/
-│   ├── index.ts          — LanguageContext, useTranslation hook, provider
-│   ├── tr.ts             — Türkçe çeviriler (default)
-│   ├── en.ts             — İngilizce
-│   ├── az.ts             — Azerbaycan
-│   ├── ru.ts             — Rusça
-│   ├── ja.ts             — Japonca
-│   └── de.ts             — Almanca
-```
+#### 2. `src/components/DMChatArea.tsx` — Link/Embed Desteği Ekle
 
-### i18n Sistemi Tasarımı
+- `ChatArea.tsx`'teki `renderMessageContent` fonksiyonunu import et veya ortak bir util'e taşı
+- DM mesajlarında düz `<p>` yerine `renderMessageContent(msg.content)` kullan
+- `ServerInviteEmbed` ve `LinkEmbed` import'larını ekle
 
-1. **`LanguageProvider`** — `AuthContext`'ten `profile.language` değerini okur, ilgili dil dosyasını yükler
-2. **`useTranslation()` hook** — `t('settings.account')` şeklinde çeviri döndürür
-3. **Dil dosyaları** — nested obje yapısında, tüm UI metinlerini içerir:
-   ```ts
-   export default {
-     settings: { account: 'My Account', privacy: 'Privacy', ... },
-     chat: { typeMessage: 'Type a message', send: 'Send', ... },
-     auth: { login: 'Login', register: 'Register', ... },
-     // ...
-   }
-   ```
+#### 3. `src/components/ServerInviteEmbed.tsx` — İkon Fallback Düzeltmesi
 
-### Dil Değiştirme Mantığı
+- `onError` handler'da resmi gizlemek yerine, state ile kontrol et ve fallback harfini göster
+- `useState` ile `imgError` flag'i ekle
+- i18n desteği ekle (hardcoded Türkçe metinler)
 
-- Ayarlar sayfasına yeni bir **"Görünüm ve Dil"** sekmesi ekle (Globe ikonu)
-- Dil listesi: Türkçe, English, Azərbaycan, Русский, 日本語, Deutsch
-- Seçildiğinde `profiles.language` güncellenir, ardından `window.location.reload()`
+#### 4. `src/components/ChatArea.tsx` — `renderMessageContent` Dışa Aktarma
 
-### Güncellenecek Dosyalar (~15 dosya)
+`renderMessageContent` fonksiyonunu `export` yap, böylece DMChatArea da kullanabilsin. Veya ortak bir dosyaya taşı.
+
+---
+
+### Dosya Değişiklikleri
 
 | Dosya | İşlem |
 |---|---|
-| `src/i18n/index.ts` | Context, provider, hook oluştur |
-| `src/i18n/tr.ts` | Türkçe çeviriler (mevcut metinlerden) |
-| `src/i18n/en.ts` | İngilizce çeviriler |
-| `src/i18n/az.ts` | Azerbaycan çeviriler |
-| `src/i18n/ru.ts` | Rusça çeviriler |
-| `src/i18n/ja.ts` | Japonca çeviriler |
-| `src/i18n/de.ts` | Almanca çeviriler |
-| `src/App.tsx` | `LanguageProvider` sar |
-| `src/contexts/AuthContext.tsx` | Profile interface'ine `language` ekle |
-| `src/pages/Settings.tsx` | Yeni "Dil" sekmesi + tüm metinleri `t()` ile değiştir |
-| `src/pages/Login.tsx` | Metinleri `t()` ile değiştir |
-| `src/pages/Register.tsx` | Metinleri `t()` ile değiştir |
-| `src/pages/Index.tsx` | Nav label'ları `t()` ile değiştir |
-| `src/components/ChatArea.tsx` | Placeholder ve UI metinleri |
-| `src/components/DMChatArea.tsx` | "yazıyor", placeholder metinleri |
-| `src/components/DMDashboard.tsx` | Tab ve buton metinleri |
-| `src/components/ChannelList.tsx` | Menü metinleri |
-| `src/components/MemberList.tsx` | Başlık metinleri |
-| `src/components/CreateServerDialog.tsx` | Dialog metinleri |
-| `src/components/CreateChannelDialog.tsx` | Dialog metinleri |
-| `src/components/ServerSettingsDialog.tsx` | Dialog metinleri |
-| `src/components/InviteDialog.tsx` | Dialog metinleri |
-| `src/components/JoinServerDialog.tsx` | Dialog metinleri |
-| `src/data/changelogData.ts` | v0.1.0 release ekle |
-
-### v0.1.0 Changelog İçeriği
-
-- Çok Dilli Destek: Türkçe, İngilizce, Azerbaycan, Rusça, Japonca, Almanca
-- Dil seçimi kullanıcı profiline kaydedilir
-- Uygulama genelindeki tüm metinler dinamik hale getirildi
-
-### Veritabanı Migrasyonu
-
-`profiles` tablosuna `language` sütunu eklenmesi gerekecek (migration tool ile).
+| `src/components/ChatArea.tsx` | URL regex `[^\s]` düzeltmesi (3 yer), `renderMessageContent` export |
+| `src/components/DMChatArea.tsx` | `renderMessageContent` kullanarak link/embed desteği ekle |
+| `src/components/ServerInviteEmbed.tsx` | İkon fallback state ile düzelt, i18n ekle |
 
