@@ -100,6 +100,9 @@ const ru = {
     typing2: '{user1} и {user2} печатают',
     typing3: '{user1}, {user2} и {user3} печатают',
     typingMany: '{count} пользователей печатают',
+    sending: 'Отправка...',
+    failed: 'Не удалось отправить',
+    retry: 'Повторить',
   },
   dm: {
     conversationStart: 'Начало вашей переписки с @{username}.',
@@ -111,6 +114,9 @@ const ru = {
     delete: 'Удалить',
     edited: '(изменено)',
     edit: 'Редактировать',
+    sending: 'Отправка...',
+    failed: 'Не удалось отправить',
+    retry: 'Повторить',
   },
   friends: {
     title: 'Друзья',

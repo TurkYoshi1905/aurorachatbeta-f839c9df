@@ -110,6 +110,9 @@ const tr = {
     typing2: '{user1} ve {user2} yazıyor',
     typing3: '{user1}, {user2} ve {user3} yazıyor',
     typingMany: '{count} kullanıcı yazıyor',
+    sending: 'Gönderiliyor...',
+    failed: 'Gönderilemedi',
+    retry: 'Tekrar Dene',
   },
 
   // DM
@@ -123,6 +126,9 @@ const tr = {
     delete: 'Sil',
     edited: '(düzenlendi)',
     edit: 'Düzenle',
+    sending: 'Gönderiliyor...',
+    failed: 'Gönderilemedi',
+    retry: 'Tekrar Dene',
   },
 
   // Friends / DM Dashboard

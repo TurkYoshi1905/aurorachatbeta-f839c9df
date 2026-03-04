@@ -23,6 +23,7 @@ export interface DbMessage {
   timestamp: string;
   isBot?: boolean;
   edited?: boolean;
+  status?: 'sending' | 'failed';
 }
 
 export interface DbReaction {
@@ -135,10 +136,12 @@ const Index = () => {
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const presenceStatusRef = useRef<Map<string, DbMember['status']>>(new Map());
 
+  const userRef = useRef(user?.id);
   useEffect(() => {
     channelRef.current = activeChannel;
     serverRef.current = activeServer;
-  }, [activeChannel, activeServer]);
+    userRef.current = user?.id;
+  }, [activeChannel, activeServer, user?.id]);
 
   const fetchServers = useCallback(async () => {
     const { data: serversData } = await supabase
@@ -256,25 +259,41 @@ const Index = () => {
             author_name: string; content: string; created_at: string; user_id: string;
           };
           if (m.server_id === serverRef.current && m.channel_id === channelRef.current) {
+            // Skip own messages — optimistic update already added them
+            if (m.user_id === userRef.current) {
+              // Replace temp message with real one (update id)
+              setMessages((prev) => {
+                const hasTempMsg = prev.some((msg) => msg.userId === m.user_id && msg.status === 'sending');
+                if (hasTempMsg) {
+                  // Already handled by optimistic update
+                  return prev;
+                }
+                // Fallback: add if not found (e.g. after reconnect)
+                return prev.some((msg) => msg.id === m.id) ? prev : [...prev, {
+                  id: m.id, author: m.author_name, avatar: m.author_name?.charAt(0)?.toUpperCase() || '?',
+                  avatarUrl: null, userId: m.user_id, content: m.content,
+                  timestamp: formatTimestamp(m.created_at), edited: false,
+                }];
+              });
+              return;
+            }
             // Fetch avatar url for the message author
             const { data: prof } = await supabase
               .from('profiles')
               .select('avatar_url')
               .eq('user_id', m.user_id)
               .maybeSingle();
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: m.id,
-                author: m.author_name,
-                avatar: m.author_name?.charAt(0)?.toUpperCase() || '?',
-                avatarUrl: prof?.avatar_url || null,
-                userId: m.user_id,
-                content: m.content,
-                timestamp: formatTimestamp(m.created_at),
-                edited: false,
-              },
-            ]);
+            setMessages((prev) => {
+              if (prev.some((msg) => msg.id === m.id)) return prev;
+              return [
+                ...prev,
+                {
+                  id: m.id, author: m.author_name, avatar: m.author_name?.charAt(0)?.toUpperCase() || '?',
+                  avatarUrl: prof?.avatar_url || null, userId: m.user_id, content: m.content,
+                  timestamp: formatTimestamp(m.created_at), edited: false,
+                },
+              ];
+            });
           }
         }
       )
@@ -672,13 +691,31 @@ const Index = () => {
   const handleSendMessage = useCallback(
     async (content: string) => {
       if (!user || !profile) return;
-      await supabase.from('messages').insert({
+      const tempId = crypto.randomUUID();
+      const optimisticMsg: DbMessage = {
+        id: tempId,
+        author: profile.display_name,
+        avatar: profile.display_name?.charAt(0)?.toUpperCase() || '?',
+        avatarUrl: profile.avatar_url || null,
+        userId: user.id,
+        content,
+        timestamp: formatTimestamp(new Date().toISOString()),
+        edited: false,
+        status: 'sending',
+      };
+      setMessages((prev) => [...prev, optimisticMsg]);
+      const { data, error } = await supabase.from('messages').insert({
         server_id: activeServer,
         channel_id: activeChannel,
         user_id: user.id,
         author_name: profile.display_name,
         content,
-      });
+      }).select().single();
+      if (error) {
+        setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, status: 'failed' as const } : m));
+      } else if (data) {
+        setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: data.id, status: undefined } : m));
+      }
     },
     [user, profile, activeServer, activeChannel]
   );
@@ -701,6 +738,26 @@ const Index = () => {
         .eq('id', messageId);
     },
     []
+  );
+
+  const handleRetryMessage = useCallback(
+    async (messageId: string, content: string) => {
+      if (!user || !profile) return;
+      setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, status: 'sending' as const } : m));
+      const { data, error } = await supabase.from('messages').insert({
+        server_id: activeServer,
+        channel_id: activeChannel,
+        user_id: user.id,
+        author_name: profile.display_name,
+        content,
+      }).select().single();
+      if (error) {
+        setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, status: 'failed' as const } : m));
+      } else if (data) {
+        setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, id: data.id, status: undefined } : m));
+      }
+    },
+    [user, profile, activeServer, activeChannel]
   );
 
   const handleLeaveServer = useCallback(
@@ -809,6 +866,7 @@ const Index = () => {
               onSendMessage={handleSendMessage}
               onDeleteMessage={handleDeleteMessage}
               onEditMessage={handleEditMessage}
+              onRetryMessage={handleRetryMessage}
               onToggleMembers={() => setMobileView('members')}
               showMembers={false}
               isOwner={isOwner}
@@ -867,6 +925,7 @@ const Index = () => {
         onSendMessage={handleSendMessage}
         onDeleteMessage={handleDeleteMessage}
         onEditMessage={handleEditMessage}
+        onRetryMessage={handleRetryMessage}
         onToggleMembers={() => setShowMembers((p) => !p)}
         showMembers={showMembers}
         isOwner={isOwner}

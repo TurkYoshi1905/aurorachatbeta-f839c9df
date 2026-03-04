@@ -100,6 +100,9 @@ const en = {
     typing2: '{user1} and {user2} are typing',
     typing3: '{user1}, {user2} and {user3} are typing',
     typingMany: '{count} users are typing',
+    sending: 'Sending...',
+    failed: 'Failed to send',
+    retry: 'Retry',
   },
   dm: {
     conversationStart: 'This is the beginning of your conversation with @{username}.',
@@ -111,6 +114,9 @@ const en = {
     delete: 'Delete',
     edited: '(edited)',
     edit: 'Edit',
+    sending: 'Sending...',
+    failed: 'Failed to send',
+    retry: 'Retry',
   },
   friends: {
     title: 'Friends',

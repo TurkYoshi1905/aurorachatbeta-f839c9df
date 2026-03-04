@@ -100,6 +100,9 @@ const de = {
     typing2: '{user1} und {user2} tippen',
     typing3: '{user1}, {user2} und {user3} tippen',
     typingMany: '{count} Benutzer tippen',
+    sending: 'Wird gesendet...',
+    failed: 'Senden fehlgeschlagen',
+    retry: 'Erneut versuchen',
   },
   dm: {
     conversationStart: 'Beginn deiner Unterhaltung mit @{username}.',
@@ -111,6 +114,9 @@ const de = {
     delete: 'Löschen',
     edited: '(bearbeitet)',
     edit: 'Bearbeiten',
+    sending: 'Wird gesendet...',
+    failed: 'Senden fehlgeschlagen',
+    retry: 'Erneut versuchen',
   },
   friends: {
     title: 'Freunde',
