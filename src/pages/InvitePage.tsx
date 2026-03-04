@@ -4,6 +4,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from '@/i18n';
+
+const ServerIcon = ({ icon, name, size = 'w-20 h-20' }: { icon: string; name: string; size?: string }) => {
+  const [imgError, setImgError] = useState(false);
+  const isUrl = icon && (icon.startsWith('http') || icon.startsWith('/'));
+  return (
+    <div className={`${size} rounded-2xl bg-primary flex items-center justify-center text-4xl font-bold text-primary-foreground overflow-hidden`}>
+      {isUrl && !imgError ? (
+        <img src={icon} alt={name} className="w-full h-full object-cover" onError={() => setImgError(true)} />
+      ) : (
+        name.charAt(0).toUpperCase()
+      )}
+    </div>
+  );
+};
 
 const InvitePage = () => {
   const { code } = useParams<{ code: string }>();
@@ -96,9 +111,7 @@ const InvitePage = () => {
   if (!user) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-background gap-4">
-        <div className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center text-4xl font-bold text-primary-foreground">
-          {server.icon}
-        </div>
+        <ServerIcon icon={server.icon} name={server.name} />
         <p className="text-xl font-semibold text-foreground">{server.name}</p>
         <p className="text-muted-foreground">Katılmak için giriş yapmalısın.</p>
         <Button onClick={() => navigate('/login')}>Giriş Yap</Button>
@@ -108,9 +121,7 @@ const InvitePage = () => {
 
   return (
     <div className="h-screen flex flex-col items-center justify-center bg-background gap-4">
-      <div className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center text-4xl font-bold text-primary-foreground">
-        {server.icon}
-      </div>
+      <ServerIcon icon={server.icon} name={server.name} />
       <p className="text-xl font-semibold text-foreground">{server.name}</p>
       <p className="text-muted-foreground text-sm">Seni bu sunucuya davet ettiler!</p>
       {alreadyMember ? (
