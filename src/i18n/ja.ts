@@ -217,6 +217,11 @@ const ja = {
     copied: '招待リンクをコピーしました！',
     createFailed: '招待の作成に失敗しました',
     newCodeCreated: '新しい招待コードを作成しました！',
+    serverInvite: 'サーバー招待',
+    joined: '参加済み',
+    join: '参加',
+    joinedSuccess: '{name}に参加しました！',
+    joinError: '参加中にエラーが発生しました',
   },
   joinServer: {
     title: 'サーバーに参加',

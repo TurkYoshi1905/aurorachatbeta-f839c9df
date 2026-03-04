@@ -27,9 +27,9 @@ interface ChatAreaProps {
   onTypingStop?: () => void;
 }
 
-const renderMessageContent = (content: string) => {
-  const inviteRegex = /https?:\/\/[\s]+invite\/([a-zA-Z0-9]+)/g;
-  const urlRegex = /(https?:\/\/[\s]+)/g;
+export const renderMessageContent = (content: string) => {
+  const inviteRegex = /https?:\/\/[^\s]+invite\/([a-zA-Z0-9]+)/g;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
   const inviteCodes: string[] = [];
   let inviteMatch;
   while ((inviteMatch = inviteRegex.exec(content)) !== null) { inviteCodes.push(inviteMatch[1]); }
@@ -41,9 +41,9 @@ const renderMessageContent = (content: string) => {
   const embeds = inviteCodes.map((code) => (<ServerInviteEmbed key={code} code={code} />));
   const allUrls: string[] = [];
   let urlMatch;
-  const urlScanRegex = /(https?:\/\/[\s]+)/g;
+  const urlScanRegex = /(https?:\/\/[^\s]+)/g;
   while ((urlMatch = urlScanRegex.exec(content)) !== null) { allUrls.push(urlMatch[1]); }
-  const inviteUrlRegex = /https?:\/\/[\s]+invite\/[a-zA-Z0-9]+/;
+  const inviteUrlRegex = /https?:\/\/[^\s]+invite\/[a-zA-Z0-9]+/;
   const nonInviteUrls = allUrls.filter((u) => !inviteUrlRegex.test(u));
   return (
     <>

@@ -217,6 +217,11 @@ const az = {
     copied: 'Dəvət linki kopyalandı!',
     createFailed: 'Dəvət yaradıla bilmədi',
     newCodeCreated: 'Yeni dəvət kodu yaradıldı!',
+    serverInvite: 'Server Dəvəti',
+    joined: 'Qoşuldun',
+    join: 'Qoşul',
+    joinedSuccess: '{name} serverinə qoşuldun!',
+    joinError: 'Qoşularkən xəta baş verdi',
   },
   joinServer: {
     title: 'Serverə Qoşul',
