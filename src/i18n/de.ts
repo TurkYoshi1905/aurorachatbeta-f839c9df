@@ -217,6 +217,11 @@ const de = {
     copied: 'Einladungslink kopiert!',
     createFailed: 'Einladung konnte nicht erstellt werden',
     newCodeCreated: 'Neuer Einladungscode erstellt!',
+    serverInvite: 'Servereinladung',
+    joined: 'Beigetreten',
+    join: 'Beitreten',
+    joinedSuccess: '{name} beigetreten!',
+    joinError: 'Fehler beim Beitreten',
   },
   joinServer: {
     title: 'Server beitreten',

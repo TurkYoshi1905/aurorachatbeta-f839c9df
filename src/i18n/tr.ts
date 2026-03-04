@@ -247,6 +247,11 @@ const tr = {
     copied: 'Davet linki kopyalandı!',
     createFailed: 'Davet oluşturulamadı',
     newCodeCreated: 'Yeni davet kodu oluşturuldu!',
+    serverInvite: 'Sunucu Daveti',
+    joined: 'Katıldın',
+    join: 'Katıl',
+    joinedSuccess: '{name} sunucusuna katıldın!',
+    joinError: 'Katılırken hata oluştu',
   },
 
   // Join Server

@@ -217,6 +217,11 @@ const ru = {
     copied: 'Ссылка скопирована!',
     createFailed: 'Не удалось создать приглашение',
     newCodeCreated: 'Новый код приглашения создан!',
+    serverInvite: 'Приглашение на сервер',
+    joined: 'Вступил',
+    join: 'Вступить',
+    joinedSuccess: 'Вы вступили в {name}!',
+    joinError: 'Ошибка при вступлении',
   },
   joinServer: {
     title: 'Присоединиться к серверу',

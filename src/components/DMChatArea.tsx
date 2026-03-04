@@ -8,6 +8,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useTranslation } from '@/i18n';
+import { renderMessageContent } from './ChatArea';
 
 interface DMUser { userId: string; displayName: string; username: string; avatarUrl: string | null; }
 interface DMMessage { id: string; senderId: string; content: string; createdAt: string; updatedAt: string | null; senderName: string; senderAvatar: string | null; }
@@ -184,7 +185,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
                   <button onClick={() => { setEditingId(null); setEditValue(''); }} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
                 </div>
               ) : (
-                <p className="text-sm text-secondary-foreground leading-relaxed">{msg.content}</p>
+                renderMessageContent(msg.content)
               )}
             </div>
             {msg.senderId === user?.id && editingId !== msg.id && (

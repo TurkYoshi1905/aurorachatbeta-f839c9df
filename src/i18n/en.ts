@@ -221,6 +221,11 @@ const en = {
     copied: 'Invite link copied!',
     createFailed: 'Failed to create invite',
     newCodeCreated: 'New invite code created!',
+    serverInvite: 'Server Invite',
+    joined: 'Joined',
+    join: 'Join',
+    joinedSuccess: 'Joined {name}!',
+    joinError: 'Error joining server',
   },
   joinServer: {
     title: 'Join Server',

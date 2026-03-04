@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useTranslation } from '@/i18n';
 
 interface ServerInviteEmbedProps {
   code: string;
@@ -10,10 +11,12 @@ interface ServerInviteEmbedProps {
 
 const ServerInviteEmbed = ({ code }: ServerInviteEmbedProps) => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [server, setServer] = useState<{ id: string; name: string; icon: string } | null>(null);
   const [alreadyMember, setAlreadyMember] = useState(false);
   const [joining, setJoining] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     const fetchInvite = async () => {
@@ -49,9 +52,9 @@ const ServerInviteEmbed = ({ code }: ServerInviteEmbedProps) => {
 
     if (!error) {
       setAlreadyMember(true);
-      toast.success(`${server.name} sunucusuna katıldın!`);
+      toast.success(t('invite.joinedSuccess', { name: server.name }));
     } else {
-      toast.error('Katılırken hata oluştu');
+      toast.error(t('invite.joinError'));
     }
     setJoining(false);
   };
@@ -59,21 +62,21 @@ const ServerInviteEmbed = ({ code }: ServerInviteEmbedProps) => {
   return (
     <div className="mt-1 inline-flex items-center gap-3 bg-secondary/60 border border-border rounded-lg px-3 py-2.5 max-w-xs">
       <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-lg font-bold text-primary-foreground shrink-0 overflow-hidden">
-        {server.icon && (server.icon.startsWith('http') || server.icon.startsWith('/')) ? (
-          <img src={server.icon} alt="" className="w-full h-full object-cover rounded-xl" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        {server.icon && (server.icon.startsWith('http') || server.icon.startsWith('/')) && !imgError ? (
+          <img src={server.icon} alt="" className="w-full h-full object-cover rounded-xl" onError={() => setImgError(true)} />
         ) : (
-          server.icon || server.name.charAt(0).toUpperCase()
+          server.name.charAt(0).toUpperCase()
         )}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground truncate">{server.name}</p>
-        <p className="text-[10px] text-muted-foreground">Sunucu Daveti</p>
+        <p className="text-[10px] text-muted-foreground">{t('invite.serverInvite')}</p>
       </div>
       {alreadyMember ? (
-        <Button size="sm" variant="secondary" disabled className="text-xs shrink-0">Katıldın</Button>
+        <Button size="sm" variant="secondary" disabled className="text-xs shrink-0">{t('invite.joined')}</Button>
       ) : (
         <Button size="sm" onClick={handleJoin} disabled={joining} className="text-xs shrink-0">
-          {joining ? '...' : 'Katıl'}
+          {joining ? '...' : t('invite.join')}
         </Button>
       )}
     </div>
