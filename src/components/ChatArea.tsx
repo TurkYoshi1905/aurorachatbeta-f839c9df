@@ -15,6 +15,7 @@ interface ChatAreaProps {
   onSendMessage: (content: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   onEditMessage?: (messageId: string, newContent: string) => void;
+  onRetryMessage?: (messageId: string, content: string) => void;
   onToggleMembers: () => void;
   showMembers: boolean;
   isOwner?: boolean;
@@ -73,7 +74,7 @@ const TypingIndicator = ({ typingUsers, t }: { typingUsers: { userId: string; di
   );
 };
 
-const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop }: ChatAreaProps) => {
+const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop }: ChatAreaProps) => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [input, setInput] = useState('');
@@ -83,7 +84,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
   const editInputRef = useRef<HTMLInputElement>(null);
   const lastTypingSentRef = useRef<number>(0);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => { requestAnimationFrame(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }); }, [messages]);
   useEffect(() => { if (editingId) editInputRef.current?.focus(); }, [editingId]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,7 +127,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
         {messages.map((msg) => {
           const msgReactions = reactions?.[msg.id] || [];
           return (
-            <div key={msg.id} className="flex gap-3 group hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors relative">
+            <div key={msg.id} className={`flex gap-3 group hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors relative ${msg.status === 'sending' ? 'opacity-50' : ''} ${msg.status === 'failed' ? 'border border-destructive/40 bg-destructive/5' : ''}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 font-semibold overflow-hidden ${msg.isBot ? 'bg-primary/20 aurora-glow' : 'bg-secondary'}`}>
                 {msg.avatarUrl ? (<img src={msg.avatarUrl} alt="" className="w-full h-full object-cover" />) : (msg.avatar)}
               </div>
@@ -136,6 +137,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                   {msg.isBot && (<span className="text-[9px] bg-primary text-primary-foreground px-1 py-0.5 rounded font-bold uppercase">Bot</span>)}
                   <span className="text-[11px] text-muted-foreground">{msg.timestamp}</span>
                   {msg.edited && (<span className="text-[10px] text-muted-foreground italic">{t('chat.edited')}</span>)}
+                  {msg.status === 'sending' && (<span className="text-[10px] text-muted-foreground italic">{t('chat.sending')}</span>)}
                 </div>
                 {editingId === msg.id ? (
                   <div className="flex items-center gap-2 mt-1">
@@ -143,7 +145,17 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                     <button onClick={confirmEdit} className="text-green-500 hover:text-green-400 transition-colors"><Check className="w-4 h-4" /></button>
                     <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground transition-colors"><X className="w-4 h-4" /></button>
                   </div>
-                ) : (renderMessageContent(msg.content))}
+                ) : (
+                  <>
+                    {renderMessageContent(msg.content)}
+                    {msg.status === 'failed' && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-destructive">{t('chat.failed')}</span>
+                        <button onClick={() => onRetryMessage?.(msg.id, msg.content)} className="text-xs text-primary hover:underline">{t('chat.retry')}</button>
+                      </div>
+                    )}
+                  </>
+                )}
                 {msgReactions.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {msgReactions.map((r) => {

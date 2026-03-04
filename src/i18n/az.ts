@@ -100,6 +100,9 @@ const az = {
     typing2: '{user1} və {user2} yazır',
     typing3: '{user1}, {user2} və {user3} yazır',
     typingMany: '{count} istifadəçi yazır',
+    sending: 'Göndərilir...',
+    failed: 'Göndərilə bilmədi',
+    retry: 'Yenidən cəhd et',
   },
   dm: {
     conversationStart: '@{username} ilə söhbətin başlanğıcı.',
@@ -111,6 +114,9 @@ const az = {
     delete: 'Sil',
     edited: '(redaktə edilib)',
     edit: 'Redaktə et',
+    sending: 'Göndərilir...',
+    failed: 'Göndərilə bilmədi',
+    retry: 'Yenidən cəhd et',
   },
   friends: {
     title: 'Dostlar',

@@ -100,6 +100,9 @@ const ja = {
     typing2: '{user1}と{user2}が入力中',
     typing3: '{user1}、{user2}、{user3}が入力中',
     typingMany: '{count}人が入力中',
+    sending: '送信中...',
+    failed: '送信失敗',
+    retry: '再試行',
   },
   dm: {
     conversationStart: '@{username}との会話の始まりです。',
@@ -111,6 +114,9 @@ const ja = {
     delete: '削除',
     edited: '(編集済み)',
     edit: '編集',
+    sending: '送信中...',
+    failed: '送信失敗',
+    retry: '再試行',
   },
   friends: {
     title: 'フレンド',

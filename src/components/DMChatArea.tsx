@@ -11,7 +11,7 @@ import { useTranslation } from '@/i18n';
 import { renderMessageContent } from './ChatArea';
 
 interface DMUser { userId: string; displayName: string; username: string; avatarUrl: string | null; }
-interface DMMessage { id: string; senderId: string; content: string; createdAt: string; updatedAt: string | null; senderName: string; senderAvatar: string | null; }
+interface DMMessage { id: string; senderId: string; content: string; createdAt: string; updatedAt: string | null; senderName: string; senderAvatar: string | null; status?: 'sending' | 'failed'; }
 interface DMChatAreaProps { dmUser: DMUser; onBack: () => void; }
 
 const formatTimestamp = (dateStr: string) => {
@@ -31,7 +31,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastTypingSentRef = useRef<number>(0);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => { requestAnimationFrame(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }); }, [messages]);
 
   useEffect(() => {
     if (!user) return;
@@ -119,10 +119,10 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     setInput('');
     stopTypingEvent();
     const tempId = crypto.randomUUID();
-    setMessages((prev) => [...prev, { id: tempId, senderId: user.id, content, createdAt: new Date().toISOString(), updatedAt: null, senderName: profile.display_name, senderAvatar: profile.avatar_url || null }]);
+    setMessages((prev) => [...prev, { id: tempId, senderId: user.id, content, createdAt: new Date().toISOString(), updatedAt: null, senderName: profile.display_name, senderAvatar: profile.avatar_url || null, status: 'sending' }]);
     const { data, error } = await supabase.from('direct_messages').insert({ sender_id: user.id, receiver_id: dmUser.userId, content } as any).select().single();
-    if (error) { setMessages((prev) => prev.filter((m) => m.id !== tempId)); }
-    else if (data) { setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: (data as any).id } : m)); }
+    if (error) { setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, status: 'failed' as const } : m)); }
+    else if (data) { setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: (data as any).id, status: undefined } : m)); }
   }, [input, user, profile, dmUser, stopTypingEvent]);
 
   const handleEdit = async (msgId: string) => {
@@ -139,6 +139,14 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     const { error } = await supabase.from('direct_messages').delete().eq('id', id);
     if (!error) { setMessages((prev) => prev.filter((m) => m.id !== id)); }
   };
+
+  const handleRetrySend = useCallback(async (msg: DMMessage) => {
+    if (!user || !profile) return;
+    setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, status: 'sending' as const } : m));
+    const { data, error } = await supabase.from('direct_messages').insert({ sender_id: user.id, receiver_id: dmUser.userId, content: msg.content } as any).select().single();
+    if (error) { setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, status: 'failed' as const } : m)); }
+    else if (data) { setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, id: (data as any).id, status: undefined } : m)); }
+  }, [user, profile, dmUser]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -167,7 +175,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
         </div>
 
         {messages.map((msg) => (
-          <div key={msg.id} className="group flex gap-3 hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors">
+          <div key={msg.id} className={`group flex gap-3 hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors ${msg.status === 'sending' ? 'opacity-50' : ''} ${msg.status === 'failed' ? 'border border-destructive/40 bg-destructive/5' : ''}`}>
             <Avatar className="h-10 w-10 shrink-0">
               {msg.senderAvatar && <AvatarImage src={msg.senderAvatar} />}
               <AvatarFallback className="bg-secondary text-foreground font-semibold">{msg.senderName.charAt(0).toUpperCase()}</AvatarFallback>
@@ -177,6 +185,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
                 <span className="font-medium text-sm text-foreground">{msg.senderName}</span>
                 <span className="text-[11px] text-muted-foreground">{formatTimestamp(msg.createdAt)}</span>
                 {msg.updatedAt && <span className="text-[10px] text-muted-foreground italic">{t('dm.edited')}</span>}
+                {msg.status === 'sending' && <span className="text-[10px] text-muted-foreground italic">{t('dm.sending')}</span>}
               </div>
               {editingId === msg.id ? (
                 <div className="flex items-center gap-2 mt-1">
@@ -185,10 +194,18 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
                   <button onClick={() => { setEditingId(null); setEditValue(''); }} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
                 </div>
               ) : (
-                renderMessageContent(msg.content)
+                <>
+                  {renderMessageContent(msg.content)}
+                  {msg.status === 'failed' && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-destructive">{t('dm.failed')}</span>
+                      <button onClick={() => handleRetrySend(msg)} className="text-xs text-primary hover:underline">{t('dm.retry')}</button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
-            {msg.senderId === user?.id && editingId !== msg.id && (
+            {msg.senderId === user?.id && editingId !== msg.id && !msg.status && (
               <div className="hidden group-hover:flex items-center gap-1 shrink-0 self-start mt-1">
                 <button onClick={() => { setEditingId(msg.id); setEditValue(msg.content); }} className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" title={t('dm.edit')}><Pencil className="w-3.5 h-3.5" /></button>
                 <button onClick={() => setDeleteId(msg.id)} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title={t('dm.delete')}><Trash2 className="w-3.5 h-3.5" /></button>
