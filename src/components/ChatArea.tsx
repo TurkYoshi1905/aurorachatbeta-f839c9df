@@ -6,13 +6,19 @@ import ServerInviteEmbed from './ServerInviteEmbed';
 import LinkEmbed from './LinkEmbed';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useTranslation } from '@/i18n';
+import MessageAttachments from './MessageAttachments';
+import FileUploadPreview from './FileUploadPreview';
+import { toast } from 'sonner';
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👀', '💯', '✅', '❌', '🤔', '👏', '💪', '🙏', '😎', '🥳', '💀', '😭', '🫡', '👎', '💜', '🧡'];
+
+const MAX_FILES = 3;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 interface ChatAreaProps {
   channelName: string;
   messages: DbMessage[];
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, files?: File[]) => void;
   onDeleteMessage?: (messageId: string) => void;
   onEditMessage?: (messageId: string, newContent: string) => void;
   onRetryMessage?: (messageId: string, content: string) => void;
@@ -80,8 +86,10 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
   const [input, setInput] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const lastTypingSentRef = useRef<number>(0);
 
   useEffect(() => { requestAnimationFrame(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }); }, [messages]);
@@ -94,7 +102,30 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
     else { onTypingStop?.(); }
   }, [onTypingStart, onTypingStop]);
 
-  const handleSend = () => { if (!input.trim()) return; onSendMessage(input.trim()); setInput(''); onTypingStop?.(); };
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const totalFiles = pendingFiles.length + files.length;
+    if (totalFiles > MAX_FILES) { toast.error(t('chat.maxFiles')); return; }
+    for (const f of files) {
+      if (f.size > MAX_FILE_SIZE) { toast.error(t('chat.fileTooLarge')); return; }
+    }
+    setPendingFiles((prev) => [...prev, ...files].slice(0, MAX_FILES));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [pendingFiles, t]);
+
+  const handleRemoveFile = useCallback((index: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleSend = () => {
+    if (!input.trim() && pendingFiles.length === 0) return;
+    onSendMessage(input.trim(), pendingFiles.length > 0 ? pendingFiles : undefined);
+    setInput('');
+    setPendingFiles([]);
+    onTypingStop?.();
+  };
+
   const startEdit = (msg: DbMessage) => { setEditingId(msg.id); setEditContent(msg.content); };
   const cancelEdit = () => { setEditingId(null); setEditContent(''); };
   const confirmEdit = () => { if (!editingId || !editContent.trim()) return; onEditMessage?.(editingId, editContent.trim()); setEditingId(null); setEditContent(''); };
@@ -147,7 +178,10 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                   </div>
                 ) : (
                   <>
-                    {renderMessageContent(msg.content)}
+                    {msg.content && renderMessageContent(msg.content)}
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <MessageAttachments attachments={msg.attachments} />
+                    )}
                     {msg.status === 'failed' && (
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-destructive">{t('chat.failed')}</span>
@@ -189,14 +223,17 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
 
       <TypingIndicator typingUsers={typingUsers || []} t={t} />
 
+      <FileUploadPreview files={pendingFiles} onRemove={handleRemoveFile} />
+
       <div className="px-4 pb-6">
         <div className="bg-input rounded-xl flex items-center px-4 gap-2 ring-1 ring-border focus-within:ring-primary/40 transition-all">
-          <button className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
+          <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+          <button onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
           <input type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder={t('chat.messagePlaceholder', { channel: channelName })} className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground" />
           <div className="flex items-center gap-2 text-muted-foreground">
-            {!isMobile && (<><button className="hover:text-foreground transition-colors"><Gift className="w-5 h-5" /></button><button className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button></>)}
+            {!isMobile && (<><button className="hover:text-foreground transition-colors"><Gift className="w-5 h-5" /></button><button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button></>)}
             <button className="hover:text-foreground transition-colors"><SmilePlus className="w-5 h-5" /></button>
-            {input.trim() && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
+            {(input.trim() || pendingFiles.length > 0) && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
           </div>
         </div>
       </div>

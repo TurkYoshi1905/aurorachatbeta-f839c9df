@@ -2,21 +2,41 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Send, PlusCircle, SmilePlus, Pencil, Trash2, Check, X } from 'lucide-react';
+import { ArrowLeft, Send, PlusCircle, SmilePlus, Pencil, Trash2, Check, X, ImagePlus } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useTranslation } from '@/i18n';
 import { renderMessageContent } from './ChatArea';
+import MessageAttachments from './MessageAttachments';
+import FileUploadPreview from './FileUploadPreview';
+import { toast } from 'sonner';
+
+const MAX_FILES = 3;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 interface DMUser { userId: string; displayName: string; username: string; avatarUrl: string | null; }
-interface DMMessage { id: string; senderId: string; content: string; createdAt: string; updatedAt: string | null; senderName: string; senderAvatar: string | null; status?: 'sending' | 'failed'; }
+interface DMMessage { id: string; senderId: string; content: string; createdAt: string; updatedAt: string | null; senderName: string; senderAvatar: string | null; status?: 'sending' | 'failed'; attachments?: string[]; }
 interface DMChatAreaProps { dmUser: DMUser; onBack: () => void; }
 
 const formatTimestamp = (dateStr: string) => {
   const d = new Date(dateStr);
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+const uploadFiles = async (files: File[], userId: string, messageId: string, context: 'dm' | 'channels'): Promise<string[]> => {
+  const urls: string[] = [];
+  for (const file of files) {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${userId}/${context}/${messageId}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from('message_attachments').upload(path, file);
+    if (!error) {
+      const { data } = supabase.storage.from('message_attachments').getPublicUrl(path);
+      urls.push(data.publicUrl);
+    }
+  }
+  return urls;
 };
 
 const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
@@ -28,8 +48,12 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
   const [editValue, setEditValue] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastTypingSentRef = useRef<number>(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => { requestAnimationFrame(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }); }, [messages]);
 
@@ -44,6 +68,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
           id: m.id, senderId: m.sender_id, content: m.content, createdAt: m.created_at, updatedAt: m.updated_at || null,
           senderName: m.sender_id === user.id ? (profile?.display_name || 'Sen') : dmUser.displayName,
           senderAvatar: m.sender_id === user.id ? (profile?.avatar_url || null) : dmUser.avatarUrl,
+          attachments: m.attachments || undefined,
         })));
       }
     };
@@ -59,71 +84,125 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
   useEffect(() => { dmDisplayNameRef.current = dmUser.displayName; }, [dmUser.displayName]);
   useEffect(() => { dmAvatarUrlRef.current = dmUser.avatarUrl; }, [dmUser.avatarUrl]);
 
+  // DM Realtime — two subscriptions for sender/receiver server-side filtering
   useEffect(() => {
     if (!user?.id || !dmUser.userId) return;
     const pairKey = [user.id, dmUser.userId].sort().join('-');
     const isRelevantMsg = (m: any) => (m.sender_id === userIdRef.current && m.receiver_id === dmUserIdRef.current) || (m.sender_id === dmUserIdRef.current && m.receiver_id === userIdRef.current);
-    const dmChannel = supabase.channel(`dm-realtime-${pairKey}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages' }, (payload) => {
-        const m = payload.new as any;
-        if (!isRelevantMsg(m)) return;
-        if (m.sender_id === userIdRef.current) return;
-        setMessages((prev) => { if (prev.some((msg) => msg.id === m.id)) return prev; return [...prev, { id: m.id, senderId: m.sender_id, content: m.content, createdAt: m.created_at, updatedAt: m.updated_at || null, senderName: dmDisplayNameRef.current, senderAvatar: dmAvatarUrlRef.current }]; });
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages' }, (payload) => {
-        const m = payload.new as any;
-        if (!isRelevantMsg(m)) return;
-        setMessages((prev) => prev.map((msg) => msg.id === m.id ? { ...msg, content: m.content, updatedAt: m.updated_at || new Date().toISOString() } : msg));
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages' }, (payload) => {
-        const old = payload.old as any;
-        if (old?.id) setMessages((prev) => prev.filter((msg) => msg.id !== old.id));
-      })
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') console.log('DM realtime channel connected:', pairKey);
-        else if (status === 'CHANNEL_ERROR') console.error('DM realtime channel error:', err);
+
+    const handleInsert = (payload: any) => {
+      const m = payload.new as any;
+      if (!isRelevantMsg(m)) return;
+      if (m.sender_id === userIdRef.current) return; // skip own — optimistic
+      setMessages((prev) => {
+        if (prev.some((msg) => msg.id === m.id)) return prev;
+        return [...prev, { id: m.id, senderId: m.sender_id, content: m.content, createdAt: m.created_at, updatedAt: m.updated_at || null, senderName: dmDisplayNameRef.current, senderAvatar: dmAvatarUrlRef.current, attachments: m.attachments || undefined }];
       });
-    return () => { supabase.removeChannel(dmChannel); };
+    };
+    const handleUpdate = (payload: any) => {
+      const m = payload.new as any;
+      if (!isRelevantMsg(m)) return;
+      setMessages((prev) => prev.map((msg) => msg.id === m.id ? { ...msg, content: m.content, updatedAt: m.updated_at || new Date().toISOString() } : msg));
+    };
+    const handleDelete = (payload: any) => {
+      const old = payload.old as any;
+      if (old?.id) setMessages((prev) => prev.filter((msg) => msg.id !== old.id));
+    };
+
+    // Use two subscriptions with server-side filter for better reliability
+    const ch1 = supabase.channel(`dm-incoming-${pairKey}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${dmUser.userId}` }, handleInsert)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${dmUser.userId}` }, handleUpdate)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${dmUser.userId}` }, handleDelete)
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') console.log('DM incoming channel connected:', pairKey);
+        else if (status === 'CHANNEL_ERROR') console.error('DM incoming channel error:', err);
+      });
+
+    const ch2 = supabase.channel(`dm-outgoing-${pairKey}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleInsert)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleUpdate)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleDelete)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ch1);
+      supabase.removeChannel(ch2);
+    };
   }, [user?.id, dmUser.userId]);
 
+  // Typing channel — store ref for broadcast use
   useEffect(() => {
     if (!user) return;
     const pairKey = [user.id, dmUser.userId].sort().join('-');
     const typingChannel = supabase.channel(`dm-typing-${pairKey}`);
+    typingChannelRef.current = typingChannel;
     typingChannel
       .on('broadcast', { event: 'typing' }, (payload) => { if (payload.payload?.userId === dmUserIdRef.current) setIsTyping(true); })
       .on('broadcast', { event: 'stop_typing' }, (payload) => { if (payload.payload?.userId === dmUserIdRef.current) setIsTyping(false); })
       .subscribe();
-    return () => { supabase.removeChannel(typingChannel); };
+    return () => {
+      typingChannelRef.current = null;
+      supabase.removeChannel(typingChannel);
+    };
   }, [user?.id, dmUser.userId]);
 
   const sendTypingEvent = useCallback(() => {
-    if (!user) return;
+    if (!user || !typingChannelRef.current) return;
     const now = Date.now();
     if (now - lastTypingSentRef.current < 2000) return;
     lastTypingSentRef.current = now;
-    const pairKey = [user.id, dmUserIdRef.current].sort().join('-');
-    supabase.channel(`dm-typing-${pairKey}`).send({ type: 'broadcast', event: 'typing', payload: { userId: user.id } });
-    setTimeout(() => { supabase.channel(`dm-typing-${pairKey}`).send({ type: 'broadcast', event: 'stop_typing', payload: { userId: user.id } }); }, 3000);
+    typingChannelRef.current.send({ type: 'broadcast', event: 'typing', payload: { userId: user.id } });
+    setTimeout(() => {
+      typingChannelRef.current?.send({ type: 'broadcast', event: 'stop_typing', payload: { userId: user.id } });
+    }, 3000);
   }, [user]);
 
   const stopTypingEvent = useCallback(() => {
-    if (!user) return;
-    const pairKey = [user.id, dmUserIdRef.current].sort().join('-');
-    supabase.channel(`dm-typing-${pairKey}`).send({ type: 'broadcast', event: 'stop_typing', payload: { userId: user.id } });
+    if (!user || !typingChannelRef.current) return;
+    typingChannelRef.current.send({ type: 'broadcast', event: 'stop_typing', payload: { userId: user.id } });
   }, [user]);
 
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    if (pendingFiles.length + files.length > MAX_FILES) { toast.error(t('chat.maxFiles')); return; }
+    for (const f of files) { if (f.size > MAX_FILE_SIZE) { toast.error(t('chat.fileTooLarge')); return; } }
+    setPendingFiles((prev) => [...prev, ...files].slice(0, MAX_FILES));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [pendingFiles, t]);
+
   const handleSend = useCallback(async () => {
-    if (!input.trim() || !user || !profile) return;
+    if ((!input.trim() && pendingFiles.length === 0) || !user || !profile) return;
     const content = input.trim();
+    const filesToUpload = [...pendingFiles];
     setInput('');
+    setPendingFiles([]);
     stopTypingEvent();
+
     const tempId = crypto.randomUUID();
-    setMessages((prev) => [...prev, { id: tempId, senderId: user.id, content, createdAt: new Date().toISOString(), updatedAt: null, senderName: profile.display_name, senderAvatar: profile.avatar_url || null, status: 'sending' }]);
-    const { data, error } = await supabase.from('direct_messages').insert({ sender_id: user.id, receiver_id: dmUser.userId, content } as any).select().single();
+    const optimistic: DMMessage = { id: tempId, senderId: user.id, content, createdAt: new Date().toISOString(), updatedAt: null, senderName: profile.display_name, senderAvatar: profile.avatar_url || null, status: 'sending' };
+    setMessages((prev) => [...prev, optimistic]);
+
+    let attachmentUrls: string[] | undefined;
+    if (filesToUpload.length > 0) {
+      setUploading(true);
+      attachmentUrls = await uploadFiles(filesToUpload, user.id, tempId, 'dm');
+      setUploading(false);
+      if (attachmentUrls.length === 0 && !content) {
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        toast.error(t('settings.uploadFailed'));
+        return;
+      }
+    }
+
+    const insertData: any = { sender_id: user.id, receiver_id: dmUser.userId, content: content || '' };
+    if (attachmentUrls && attachmentUrls.length > 0) insertData.attachments = attachmentUrls;
+
+    const { data, error } = await supabase.from('direct_messages').insert(insertData).select().single();
     if (error) { setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, status: 'failed' as const } : m)); }
-    else if (data) { setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: (data as any).id, status: undefined } : m)); }
-  }, [input, user, profile, dmUser, stopTypingEvent]);
+    else if (data) { setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: (data as any).id, status: undefined, attachments: attachmentUrls } : m)); }
+  }, [input, user, profile, dmUser, stopTypingEvent, pendingFiles, t]);
 
   const handleEdit = async (msgId: string) => {
     if (!editValue.trim()) return;
@@ -143,7 +222,9 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
   const handleRetrySend = useCallback(async (msg: DMMessage) => {
     if (!user || !profile) return;
     setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, status: 'sending' as const } : m));
-    const { data, error } = await supabase.from('direct_messages').insert({ sender_id: user.id, receiver_id: dmUser.userId, content: msg.content } as any).select().single();
+    const insertData: any = { sender_id: user.id, receiver_id: dmUser.userId, content: msg.content };
+    if (msg.attachments) insertData.attachments = msg.attachments;
+    const { data, error } = await supabase.from('direct_messages').insert(insertData).select().single();
     if (error) { setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, status: 'failed' as const } : m)); }
     else if (data) { setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, id: (data as any).id, status: undefined } : m)); }
   }, [user, profile, dmUser]);
@@ -195,7 +276,10 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
                 </div>
               ) : (
                 <>
-                  {renderMessageContent(msg.content)}
+                  {msg.content && renderMessageContent(msg.content)}
+                  {msg.attachments && msg.attachments.length > 0 && (
+                    <MessageAttachments attachments={msg.attachments} />
+                  )}
                   {msg.status === 'failed' && (
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs text-destructive">{t('dm.failed')}</span>
@@ -227,13 +311,17 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
         </div>
       )}
 
+      <FileUploadPreview files={pendingFiles} onRemove={(i) => setPendingFiles((p) => p.filter((_, idx) => idx !== i))} uploading={uploading} />
+
       <div className="px-4 pb-6">
         <div className="bg-input rounded-lg flex items-center px-3 gap-2">
-          <button className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
+          <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+          <button onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
           <input type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder={t('dm.messagePlaceholder', { user: dmUser.displayName })} className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground" />
           <div className="flex items-center gap-2 text-muted-foreground">
+            <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
             <button className="hover:text-foreground transition-colors"><SmilePlus className="w-5 h-5" /></button>
-            {input.trim() && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
+            {(input.trim() || pendingFiles.length > 0) && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
           </div>
         </div>
       </div>
@@ -254,4 +342,5 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
   );
 };
 
+export { uploadFiles };
 export default DMChatArea;

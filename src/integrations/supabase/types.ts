@@ -51,6 +51,7 @@ export type Database = {
       }
       direct_messages: {
         Row: {
+          attachments: string[] | null
           content: string
           created_at: string
           id: string
@@ -59,6 +60,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          attachments?: string[] | null
           content: string
           created_at?: string
           id?: string
@@ -67,6 +69,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          attachments?: string[] | null
           content?: string
           created_at?: string
           id?: string
@@ -134,6 +137,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          attachments: string[] | null
           author_name: string
           channel_id: string
           content: string
@@ -144,6 +148,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachments?: string[] | null
           author_name: string
           channel_id: string
           content: string
@@ -154,6 +159,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachments?: string[] | null
           author_name?: string
           channel_id?: string
           content?: string

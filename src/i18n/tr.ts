@@ -113,6 +113,9 @@ const tr = {
     sending: 'Gönderiliyor...',
     failed: 'Gönderilemedi',
     retry: 'Tekrar Dene',
+    maxFiles: 'En fazla 3 fotoğraf seçebilirsiniz',
+    fileTooLarge: 'Dosya boyutu 5MB\'dan küçük olmalı',
+    uploading: 'Yükleniyor...',
   },
 
   // DM

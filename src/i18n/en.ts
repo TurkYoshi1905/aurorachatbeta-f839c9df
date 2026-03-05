@@ -103,6 +103,9 @@ const en = {
     sending: 'Sending...',
     failed: 'Failed to send',
     retry: 'Retry',
+    maxFiles: 'You can select up to 3 photos',
+    fileTooLarge: 'File size must be less than 5MB',
+    uploading: 'Uploading...',
   },
   dm: {
     conversationStart: 'This is the beginning of your conversation with @{username}.',

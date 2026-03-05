@@ -103,6 +103,9 @@ const az = {
     sending: 'Göndərilir...',
     failed: 'Göndərilə bilmədi',
     retry: 'Yenidən cəhd et',
+    maxFiles: 'Ən çox 3 şəkil seçə bilərsiniz',
+    fileTooLarge: 'Fayl ölçüsü 5MB-dan kiçik olmalıdır',
+    uploading: 'Yüklənir...',
   },
   dm: {
     conversationStart: '@{username} ilə söhbətin başlanğıcı.',
