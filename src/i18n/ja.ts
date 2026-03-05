@@ -103,6 +103,9 @@ const ja = {
     sending: '送信中...',
     failed: '送信失敗',
     retry: '再試行',
+    maxFiles: '最大3枚まで選択できます',
+    fileTooLarge: 'ファイルサイズは5MB以下にしてください',
+    uploading: 'アップロード中...',
   },
   dm: {
     conversationStart: '@{username}との会話の始まりです。',

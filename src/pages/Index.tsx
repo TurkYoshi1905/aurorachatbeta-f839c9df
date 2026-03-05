@@ -12,6 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useTranslation } from '@/i18n';
+import { uploadFiles } from '@/components/DMChatArea';
 
 export interface DbMessage {
   id: string;
@@ -24,6 +25,7 @@ export interface DbMessage {
   isBot?: boolean;
   edited?: boolean;
   status?: 'sending' | 'failed';
+  attachments?: string[];
 }
 
 export interface DbReaction {
@@ -239,6 +241,7 @@ const Index = () => {
             content: m.content,
             timestamp: formatTimestamp(m.created_at),
             edited: !!(m as any).updated_at,
+            attachments: (m as any).attachments || undefined,
           }))
         );
       }
@@ -689,7 +692,7 @@ const Index = () => {
   }, [isMobile]);
 
   const handleSendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, files?: File[]) => {
       if (!user || !profile) return;
       const tempId = crypto.randomUUID();
       const optimisticMsg: DbMessage = {
@@ -704,17 +707,26 @@ const Index = () => {
         status: 'sending',
       };
       setMessages((prev) => [...prev, optimisticMsg]);
-      const { data, error } = await supabase.from('messages').insert({
+
+      let attachmentUrls: string[] | undefined;
+      if (files && files.length > 0) {
+        attachmentUrls = await uploadFiles(files, user.id, tempId, 'channels');
+      }
+
+      const insertData: any = {
         server_id: activeServer,
         channel_id: activeChannel,
         user_id: user.id,
         author_name: profile.display_name,
-        content,
-      }).select().single();
+        content: content || '',
+      };
+      if (attachmentUrls && attachmentUrls.length > 0) insertData.attachments = attachmentUrls;
+
+      const { data, error } = await supabase.from('messages').insert(insertData).select().single();
       if (error) {
         setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, status: 'failed' as const } : m));
       } else if (data) {
-        setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: data.id, status: undefined } : m));
+        setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: data.id, status: undefined, attachments: attachmentUrls } : m));
       }
     },
     [user, profile, activeServer, activeChannel]

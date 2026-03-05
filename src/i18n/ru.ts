@@ -103,6 +103,9 @@ const ru = {
     sending: 'Отправка...',
     failed: 'Не удалось отправить',
     retry: 'Повторить',
+    maxFiles: 'Можно выбрать до 3 фото',
+    fileTooLarge: 'Размер файла должен быть менее 5МБ',
+    uploading: 'Загрузка...',
   },
   dm: {
     conversationStart: 'Начало вашей переписки с @{username}.',

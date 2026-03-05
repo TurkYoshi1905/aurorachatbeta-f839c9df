@@ -103,6 +103,9 @@ const de = {
     sending: 'Wird gesendet...',
     failed: 'Senden fehlgeschlagen',
     retry: 'Erneut versuchen',
+    maxFiles: 'Maximal 3 Fotos auswählbar',
+    fileTooLarge: 'Dateigröße muss kleiner als 5MB sein',
+    uploading: 'Wird hochgeladen...',
   },
   dm: {
     conversationStart: 'Beginn deiner Unterhaltung mit @{username}.',
