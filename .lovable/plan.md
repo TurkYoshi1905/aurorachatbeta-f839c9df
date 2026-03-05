@@ -1,76 +1,67 @@
 
 
-## Plan: DM + Sunucu Mesajları Gerçek Zamanlı Stabilizasyon & Optimistic UI
+## Plan: Discord Tarzı Medya Yükleme + DM Real-time Kesin Çözüm
 
-### Kök Neden Analizi
+### 1. DM Real-time Kök Neden Analizi
 
-**DM Tarafı:**
-- Realtime subscription yapısı zaten düzeltilmiş (ayrı INSERT/UPDATE/DELETE handler'lar, ref-based filtering, minimal deps). Ancak `direct_messages` tablosu `supabase_realtime` publication'a **eklenmemiş olabilir** — bu en kritik sebep.
-- Optimistic update zaten var ama hata durumunda mesaj sessizce siliniyor, durum etiketi yok.
+Mevcut DM subscription kodu (DMChatArea.tsx satır 62-87) yapısal olarak doğru görünüyor - INSERT/UPDATE/DELETE handler'ları, ref-based filtering, cleanup hepsi mevcut. Ancak iki potansiyel sorun var:
 
-**Sunucu Kanal Tarafı:**
-- `handleSendMessage` (Index.tsx satır 672) sadece `insert` yapıyor, optimistic update **yok** — mesaj yalnızca realtime INSERT event geldiğinde ekranda görünüyor. Bu gecikmeye neden oluyor.
-- Realtime subscription (satır 247-313) doğru çalışıyor ama kendi gönderdiğimiz mesajları da tekrar ekliyor (duplicate riski).
+**Sorun A**: `postgres_changes` subscription'da `filter` parametresi kullanılmıyor. Tüm `direct_messages` değişiklikleri dinleniyor ve client-side filtreleniyor. Bu, Supabase Realtime'ın yoğun trafikte event'leri geciktirmesine veya kaçırmasına neden olabilir.
 
-### Değişiklikler
+**Sorun B**: Typing kanalı (`dm-typing-${pairKey}`) ayrı bir channel olarak oluşturuluyor ama `sendTypingEvent` fonksiyonu (satır 106) `supabase.channel(...)` ile yeni referans alıyor — bu, subscribe edilmemiş bir kanal üzerinden broadcast göndermeye çalışıyor olabilir ve internal channel map'i bozabilir.
 
-#### 1. Veritabanı: Realtime Publication Kontrolü
+**Kesin Çözüm**:
+- DM realtime subscription'a server-side filter ekle: `filter: 'sender_id=eq.${userId}'` veya OR filtresi (Supabase OR filter desteklemediği için iki ayrı subscription kullan)
+- Alternatif olarak mevcut filtresiz yapıyı koruyup, subscription status tracking ve otomatik resubscribe mekanizması güçlendir
+- Typing channel referansını useRef ile sakla, broadcast gönderiminde bu ref'i kullan
 
-`direct_messages` tablosunu realtime publication'a ekle (eğer eksikse):
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.direct_messages;
+### 2. Medya Yükleme Sistemi
+
+#### Veritabanı Değişiklikleri
+- `messages` tablosuna `attachments text[]` kolonu ekle (URL array, nullable, default NULL)
+- `direct_messages` tablosuna `attachments text[]` kolonu ekle
+- `message_attachments` adında public storage bucket oluştur
+- Bucket için RLS: authenticated kullanıcılar upload edebilir, herkes okuyabilir
+
+#### Storage Yapısı
 ```
-Bu olmadan `postgres_changes` event'leri istemciye ulaşmaz.
+message_attachments/
+  {userId}/channels/{messageId}/image1.jpg
+  {userId}/dm/{messageId}/image2.jpg
+```
 
-#### 2. `src/pages/Index.tsx` — Sunucu Mesajları Optimistic UI
+#### Chat UI Değişiklikleri
 
-**`handleSendMessage`** fonksiyonunu güncelle:
-- `insert` çağrısından önce mesajı geçici ID ile `messages` state'ine ekle
-- `status: 'sending'` alanı ekle (yeni alan)
-- Insert başarılıysa geçici ID'yi gerçek ID ile değiştir, status'u kaldır
-- Insert başarısızsa status'u `'failed'` olarak işaretle
-- Başarısız mesajlara "Tekrar Dene" butonu ekle
+**ChatArea.tsx & DMChatArea.tsx**:
+- `PlusCircle` butonuna file input bağla (accept="image/*", multiple, max 3)
+- Seçilen dosyaları önizleme olarak mesaj kutusunun üstünde thumbnail grid'de göster
+- 5MB sınır kontrolü client-side
+- Gönderimde: dosyaları storage'a yükle → URL'leri al → mesajı attachments ile kaydet
 
-**Realtime INSERT handler** güncelle:
-- Kendi gönderdiğimiz mesajları atla (`m.user_id === user?.id`) — optimistic update zaten eklemiş olacak
+**Mesaj Görüntüleme**:
+- Attachments varsa mesaj içeriğinin altında grid layout (1 resim: tam genişlik, 2: yan yana, 3: 2+1 grid)
+- Resimlere tıklanınca lightbox (Dialog ile tam ekran overlay, zoom)
+- Resim yükleme hatası için fallback placeholder
 
-#### 3. `src/components/ChatArea.tsx` — Durum Etiketi UI
+#### Lightbox Bileşeni
+- Yeni `ImageLightbox.tsx` bileşeni: Dialog tabanlı, tam ekran resim görüntüleme
+- Sol/sağ ok tuşları ile galeri içinde gezinme
+- İndirme butonu
 
-`DbMessage` interface'ine `status?: 'sending' | 'failed'` alanı ekle (Index.tsx'te).
-
-Mesaj render'ında:
-- `status === 'sending'` ise opacity-50 + "Gönderiliyor..." etiketi
-- `status === 'failed'` ise kırmızı border + "Gönderilemedi — Tekrar Dene" butonu
-
-#### 4. `src/components/DMChatArea.tsx` — Durum Etiketi UI
-
-DM mesajlarına da aynı durum etiketini ekle:
-- `DMMessage` interface'ine `status?: 'sending' | 'failed'` ekle
-- `handleSend` fonksiyonunda hata durumunda `status: 'failed'` olarak güncelle (şu an siliniyor)
-- "Tekrar Dene" butonu ekle
-
-#### 5. Scroll Stabilizasyonu
-
-Her iki bileşende de `scrollIntoView` çağrısını `requestAnimationFrame` ile sar — bazı tarayıcılarda layout hesaplaması tamamlanmadan scroll tetiklenebiliyor.
-
-#### 6. i18n Anahtarları
-
-Tüm dil dosyalarına yeni çeviri anahtarları ekle:
-- `chat.sending` / `chat.failed` / `chat.retry`
-- `dm.sending` / `dm.failed` / `dm.retry`
-
-### Dosya Değişiklikleri
+### 3. Dosya Değişiklikleri
 
 | Dosya | İşlem |
 |---|---|
-| SQL Migration | `direct_messages` tablosunu realtime publication'a ekle |
-| `src/pages/Index.tsx` | `handleSendMessage` optimistic update, INSERT handler duplicate koruması |
-| `src/components/ChatArea.tsx` | `DbMessage` status alanı, durum etiketi render, tekrar dene butonu |
-| `src/components/DMChatArea.tsx` | Hata durumunda status güncelleme, tekrar dene butonu, scroll fix |
-| `src/i18n/tr.ts` | Yeni anahtarlar |
-| `src/i18n/en.ts` | Yeni anahtarlar |
-| `src/i18n/az.ts` | Yeni anahtarlar |
-| `src/i18n/ru.ts` | Yeni anahtarlar |
-| `src/i18n/ja.ts` | Yeni anahtarlar |
-| `src/i18n/de.ts` | Yeni anahtarlar |
+| SQL Migration | `attachments text[]` kolonu messages + direct_messages, `message_attachments` bucket + RLS |
+| `src/components/ChatArea.tsx` | File upload UI, attachment grid render, lightbox entegrasyonu |
+| `src/components/DMChatArea.tsx` | File upload UI, attachment grid render, DM realtime fix (typing ref) |
+| `src/components/ImageLightbox.tsx` | Yeni: tam ekran resim görüntüleyici |
+| `src/components/MessageAttachments.tsx` | Yeni: attachment grid bileşeni (paylaşılan) |
+| `src/components/FileUploadPreview.tsx` | Yeni: seçilen dosyaların önizleme strip'i |
+| `src/pages/Index.tsx` | DbMessage'a attachments ekle, handleSendMessage'da upload desteği |
+| `src/i18n/*.ts` | Yeni anahtarlar (upload, lightbox, DM) |
+
+### 4. i18n Anahtarları
+- `chat.attachImage` / `chat.maxFiles` / `chat.fileTooLarge` / `chat.uploading`
+- `dm.attachImage` / `dm.maxFiles` / `dm.fileTooLarge` / `dm.uploading`
 
