@@ -119,6 +119,7 @@ const MobileBottomNav = ({ activeView, onHome, onChannels, onChat, onMembers, on
 
 const Index = () => {
   const { profile, user } = useAuth();
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [servers, setServers] = useState<DbServer[]>([]);
@@ -132,12 +133,12 @@ const Index = () => {
   const [reactions, setReactions] = useState<Record<string, DbReaction[]>>({});
   const [typingUsers, setTypingUsers] = useState<{ userId: string; displayName: string }[]>([]);
   const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [activeDMUser, setActiveDMUser] = useState<{ userId: string; displayName: string; username: string; avatarUrl: string | null } | null>(null);
   const channelRef = useRef(activeChannel);
   const serverRef = useRef(activeServer);
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const presenceStatusRef = useRef<Map<string, DbMember['status']>>(new Map());
-
   const userRef = useRef(user?.id);
   useEffect(() => {
     channelRef.current = activeChannel;
@@ -583,9 +584,11 @@ const Index = () => {
   useEffect(() => {
     if (!activeChannel || !user) {
       setTypingUsers([]);
+      typingChannelRef.current = null;
       return;
     }
     const typingChannel = supabase.channel(`typing-${activeChannel}`);
+    typingChannelRef.current = typingChannel;
     typingChannel
       .on('broadcast', { event: 'typing' }, (payload) => {
         const { userId, displayName } = payload.payload as { userId: string; displayName: string };
@@ -595,7 +598,6 @@ const Index = () => {
           if (!exists) return [...prev, { userId, displayName }];
           return prev;
         });
-        // Clear existing timeout for this user
         const existing = typingTimeoutsRef.current.get(userId);
         if (existing) clearTimeout(existing);
         const timeout = setTimeout(() => {
@@ -616,20 +618,19 @@ const Index = () => {
       setTypingUsers([]);
       typingTimeoutsRef.current.forEach((t) => clearTimeout(t));
       typingTimeoutsRef.current.clear();
+      typingChannelRef.current = null;
       supabase.removeChannel(typingChannel);
     };
   }, [activeChannel, user?.id]);
 
   const handleTypingStart = useCallback(() => {
-    if (!activeChannel || !user || !profile) return;
-    const ch = supabase.channel(`typing-${activeChannel}`);
-    ch.send({ type: 'broadcast', event: 'typing', payload: { userId: user.id, displayName: profile.display_name } });
+    if (!activeChannel || !user || !profile || !typingChannelRef.current) return;
+    typingChannelRef.current.send({ type: 'broadcast', event: 'typing', payload: { userId: user.id, displayName: profile.display_name } });
   }, [activeChannel, user, profile]);
 
   const handleTypingStop = useCallback(() => {
-    if (!activeChannel || !user) return;
-    const ch = supabase.channel(`typing-${activeChannel}`);
-    ch.send({ type: 'broadcast', event: 'stop_typing', payload: { userId: user.id } });
+    if (!activeChannel || !user || !typingChannelRef.current) return;
+    typingChannelRef.current.send({ type: 'broadcast', event: 'stop_typing', payload: { userId: user.id } });
   }, [activeChannel, user]);
 
   const server = servers.find((s) => s.id === activeServer) || servers[0];
@@ -825,7 +826,7 @@ const Index = () => {
     );
   }
 
-  const { t } = useTranslation();
+  // useTranslation moved to top of component
 
   if (servers.length === 0) {
     return (
