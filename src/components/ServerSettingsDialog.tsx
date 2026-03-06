@@ -62,10 +62,6 @@ const ServerSettingsDialog = ({ open, onOpenChange, serverId, serverName, server
 
   const handleDelete = async () => {
     setDeleting(true);
-    await supabase.from('messages').delete().eq('server_id', serverId);
-    await supabase.from('channels').delete().eq('server_id', serverId);
-    await supabase.from('server_invites').delete().eq('server_id', serverId);
-    await supabase.from('server_members').delete().eq('server_id', serverId);
     const { error } = await supabase.from('servers').delete().eq('id', serverId);
     setDeleting(false);
     if (error) toast.error(t('serverSettings.deleteFailed'));
