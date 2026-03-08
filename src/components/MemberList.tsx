@@ -35,29 +35,31 @@ const MemberList = ({ members, isMobile, onBack, serverId }: MemberListProps) =>
   const hasRoles = roleGroups.length > 0;
 
   const renderMember = (member: DbMember) => (
-    <div key={member.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors">
-      <div className="relative">
-        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm overflow-hidden">
-          {member.avatarUrl ? (<img src={member.avatarUrl} alt="" className="w-full h-full object-cover" />) : (member.avatar)}
+    <UserProfileCard key={member.id} userId={member.id} serverId={serverId}>
+      <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors">
+        <div className="relative">
+          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm overflow-hidden">
+            {member.avatarUrl ? (<img src={member.avatarUrl} alt="" className="w-full h-full object-cover" />) : (member.avatar)}
+          </div>
+          <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-sidebar ${statusColor[member.status]}`} />
         </div>
-        <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-sidebar ${statusColor[member.status]}`} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm truncate font-medium" style={member.roleColor ? { color: member.roleColor } : undefined}>
+            {!member.roleColor && (
+              <span className={member.role === 'Bot' ? 'text-primary' : member.role === 'Admin' ? 'text-aurora-purple' : 'text-muted-foreground'}>
+                {member.name}
+              </span>
+            )}
+            {member.roleColor && member.name}
+          </p>
+        </div>
+        {member.role && (
+          <span className="ml-auto text-[9px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold" style={member.roleColor ? { color: member.roleColor, borderColor: member.roleColor + '40', borderWidth: 1 } : undefined}>
+            {member.role}
+          </span>
+        )}
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm truncate font-medium" style={member.roleColor ? { color: member.roleColor } : undefined}>
-          {!member.roleColor && (
-            <span className={member.role === 'Bot' ? 'text-primary' : member.role === 'Admin' ? 'text-aurora-purple' : 'text-muted-foreground'}>
-              {member.name}
-            </span>
-          )}
-          {member.roleColor && member.name}
-        </p>
-      </div>
-      {member.role && (
-        <span className="ml-auto text-[9px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold" style={member.roleColor ? { color: member.roleColor, borderColor: member.roleColor + '40', borderWidth: 1 } : undefined}>
-          {member.role}
-        </span>
-      )}
-    </div>
+    </UserProfileCard>
   );
 
   // If we have custom roles, show by role groups
