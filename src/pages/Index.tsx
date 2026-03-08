@@ -846,6 +846,7 @@ const Index = () => {
       }
 
       const tempId = crypto.randomUUID();
+      const replyMsg = replyTo ? messages.find(m => m.id === replyTo) : undefined;
       const optimisticMsg: DbMessage = {
         id: tempId,
         author: profile.display_name,
@@ -856,6 +857,9 @@ const Index = () => {
         timestamp: formatTimestamp(new Date().toISOString()),
         edited: false,
         status: 'sending',
+        replyTo: replyTo || undefined,
+        replyAuthor: replyMsg?.author,
+        replyContent: replyMsg?.content,
       };
       setMessages((prev) => [...prev, optimisticMsg]);
 
