@@ -154,6 +154,15 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
     const val = e.target.value;
     setInput(val);
     
+    // Check for slash commands
+    if (val.startsWith('/')) {
+      setShowSlashPopup(true);
+      setSlashQuery(val.slice(1).split(' ')[0]);
+    } else {
+      setShowSlashPopup(false);
+      setSlashQuery('');
+    }
+    
     // Check for @mention
     const cursorPos = e.target.selectionStart || val.length;
     const textBeforeCursor = val.slice(0, cursorPos);
@@ -169,6 +178,13 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
     if (val.trim()) { const now = Date.now(); if (now - lastTypingSentRef.current > 2000) { lastTypingSentRef.current = now; onTypingStart?.(); } }
     else { onTypingStop?.(); }
   }, [onTypingStart, onTypingStop]);
+
+  const handleSlashSelect = useCallback((cmd: string) => {
+    setInput(cmd + ' ');
+    setShowSlashPopup(false);
+    setSlashQuery('');
+    inputRef.current?.focus();
+  }, []);
 
   const handleMentionSelect = useCallback((name: string) => {
     const cursorPos = inputRef.current?.selectionStart || input.length;
