@@ -193,6 +193,8 @@ const az = {
     description: 'Server parametrlərini redaktə edin',
     general: 'Ümumi',
     membersTab: 'Üzvlər',
+    rolesTab: 'Rollar',
+    auditTab: 'Audit Jurnalı',
     serverNameLabel: 'Server Adı',
     save: 'Saxla',
     saving: 'Saxlanılır...',

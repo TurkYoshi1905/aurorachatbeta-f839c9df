@@ -193,6 +193,8 @@ const ja = {
     description: 'サーバー設定を編集',
     general: '一般',
     membersTab: 'メンバー',
+    rolesTab: 'ロール',
+    auditTab: '監査ログ',
     serverNameLabel: 'サーバー名',
     save: '保存',
     saving: '保存中...',
