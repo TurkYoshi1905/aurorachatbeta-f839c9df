@@ -1,14 +1,23 @@
 
 
-## Plan: GIF İkonunu Yeni Görselle Değiştir
+## Plan: GIF İkonunu Material Symbols Font İkonu ile Değiştir
 
-Kullanıcı daha büyük/net bir GIF ikonu yükledi (`gif_128dp_1F1F1F_FILL0_wght400_GRAD0_opsz48.png`). Mevcut `src/assets/gif-icon.png` dosyasını bu yeni görselle değiştireceğiz.
+PNG dosyası yerine Google Material Symbols font ikonunu kullanacağız.
 
 ### Değişiklikler
 
+**1. `index.html`** — Material Symbols font linkini `<head>`'e ekle:
+```html
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=gif" />
+```
+
+**2. `src/components/GifPicker.tsx`** — PNG import'u kaldır, `<img>` yerine Material Symbol `<span>` kullan:
+```tsx
+<span className="material-symbols-outlined text-xl opacity-70 hover:opacity-100 transition-opacity">gif</span>
+```
+
 | Dosya | İşlem |
 |---|---|
-| `src/assets/gif-icon.png` | Yeni yüklenen görselle üzerine yaz |
-
-Kod değişikliği gerekmez — `GifPicker.tsx` zaten `src/assets/gif-icon.png`'yi import ediyor.
+| `index.html` | Font link ekle |
+| `src/components/GifPicker.tsx` | PNG → Material Symbol font ikonu |
 
