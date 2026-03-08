@@ -19,9 +19,9 @@ const MessageAttachments = ({ attachments }: MessageAttachmentsProps) => {
   };
 
   const gridClass =
-    attachments.length === 1 ? 'grid-cols-1 max-w-sm' :
-    attachments.length === 2 ? 'grid-cols-2 max-w-md' :
-    'grid-cols-2 max-w-md';
+    attachments.length === 1 ? 'grid-cols-1 max-w-lg' :
+    attachments.length === 2 ? 'grid-cols-2 max-w-lg' :
+    'grid-cols-2 max-w-lg';
 
   return (
     <>
