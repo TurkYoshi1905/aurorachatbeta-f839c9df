@@ -438,6 +438,50 @@ const ServerSettings = () => {
             </div>
           )}
 
+          {/* Channels Tab */}
+          {activeTab === 'channels' && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Kanallar</h2>
+              {isOwner && (
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <p className="text-sm font-semibold text-foreground">Yeni Kategori Oluştur</p>
+                  <div className="flex gap-2">
+                    <Input value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="Kategori adı" className="bg-input border-border flex-1" />
+                    <Button onClick={handleCreateCategory} disabled={!newCategoryName.trim()} size="sm"><Plus className="w-4 h-4 mr-1" /> Ekle</Button>
+                  </div>
+                </div>
+              )}
+              {channelsList.filter(c => !c.category_id).length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Kategorisiz</p>
+                  {channelsList.filter(c => !c.category_id).map(ch => (
+                    <div key={ch.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card">
+                      {ch.type === 'voice' ? <Volume2 className="w-4 h-4 text-muted-foreground" /> : <Hash className="w-4 h-4 text-muted-foreground" />}
+                      <span className="flex-1 text-sm text-foreground">{ch.name}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase">{ch.type}</span>
+                      {isOwner && <button onClick={() => handleDeleteChannel(ch.id)} className="p-1 text-destructive hover:text-destructive/80"><Trash2 className="w-3.5 h-3.5" /></button>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {categories.map(cat => (
+                <div key={cat.id} className="space-y-1">
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{cat.name}</p>
+                    {isOwner && <button onClick={() => handleDeleteCategory(cat.id)} className="text-destructive hover:text-destructive/80"><Trash2 className="w-3 h-3" /></button>}
+                  </div>
+                  {channelsList.filter(c => c.category_id === cat.id).map(ch => (
+                    <div key={ch.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card ml-2">
+                      {ch.type === 'voice' ? <Volume2 className="w-4 h-4 text-muted-foreground" /> : <Hash className="w-4 h-4 text-muted-foreground" />}
+                      <span className="flex-1 text-sm text-foreground">{ch.name}</span>
+                      {isOwner && <button onClick={() => handleDeleteChannel(ch.id)} className="p-1 text-destructive hover:text-destructive/80"><Trash2 className="w-3.5 h-3.5" /></button>}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Danger Zone */}
           {activeTab === 'danger' && isOwner && (
             <div className="space-y-4">
