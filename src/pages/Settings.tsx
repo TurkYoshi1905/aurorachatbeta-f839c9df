@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, X, User, Shield, Megaphone, Camera, ExternalLink, Pencil, Check, XIcon, Calendar, Lock, Globe } from 'lucide-react';
+import { LogOut, X, User, Shield, Megaphone, Camera, ExternalLink, Pencil, Check, XIcon, Calendar, Lock, Globe, Monitor, Sun, Moon as MoonIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -13,6 +13,10 @@ import { toast } from 'sonner';
 import { changelogData } from '@/data/changelogData';
 import { useTranslation } from '@/i18n';
 import { LANGUAGES, type Language } from '@/i18n';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const Settings = () => {
   const { profile, signOut, user } = useAuth();
@@ -28,6 +32,9 @@ const Settings = () => {
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
   const [savingLang, setSavingLang] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
 
   const tabs = [
     { id: 'account', label: t('settings.account'), icon: User },
@@ -85,6 +92,51 @@ const Settings = () => {
     setTimeout(() => window.location.reload(), 500);
   };
 
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    // Apply theme
+    const root = document.documentElement;
+    if (newTheme === 'light') {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    } else if (newTheme === 'dark') {
+      root.classList.remove('light');
+      root.classList.add('dark');
+    } else {
+      // system
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) { root.classList.add('dark'); root.classList.remove('light'); }
+      else { root.classList.add('light'); root.classList.remove('dark'); }
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error('Oturum bulunamadı'); setDeleting(false); return; }
+
+      const res = await supabase.functions.invoke('delete-account', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (res.error) {
+        toast.error('Hesap silme başarısız oldu');
+        setDeleting(false);
+        return;
+      }
+
+      toast.success('Hesabınız silindi');
+      await signOut();
+      navigate('/login');
+    } catch {
+      toast.error('Hesap silme başarısız oldu');
+      setDeleting(false);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { editingField ? cancelEdit() : navigate('/'); }
@@ -100,6 +152,12 @@ const Settings = () => {
       year: 'numeric', month: 'long', day: 'numeric',
     });
   };
+
+  const themeOptions = [
+    { value: 'dark', label: 'Koyu', icon: MoonIcon },
+    { value: 'light', label: 'Açık', icon: Sun },
+    { value: 'system', label: 'Sistem', icon: Monitor },
+  ];
 
   return (
     <div className="h-screen flex flex-col md:flex-row bg-background text-foreground overflow-hidden">
@@ -180,7 +238,9 @@ const Settings = () => {
                       )}
                     </div>
                     {editingField !== 'display_name' && (
-                      <button onClick={() => startEdit('display_name')} className="text-muted-foreground hover:text-foreground transition-colors shrink-0"><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => startEdit('display_name')} className="p-2 rounded-lg bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
                   <div className="flex items-center justify-between gap-2">
@@ -197,7 +257,9 @@ const Settings = () => {
                       )}
                     </div>
                     {editingField !== 'username' && (
-                      <button onClick={() => startEdit('username')} className="text-muted-foreground hover:text-foreground transition-colors shrink-0"><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => startEdit('username')} className="p-2 rounded-lg bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
                   <div>
@@ -215,7 +277,7 @@ const Settings = () => {
               <div className="rounded-xl border border-destructive/30 bg-card p-4 md:p-5 space-y-3">
                 <p className="text-sm font-semibold text-foreground">{t('settings.deleteAccount')}</p>
                 <p className="text-xs text-muted-foreground">{t('settings.deleteAccountDesc')}</p>
-                <Button variant="destructive" size="sm" disabled>{t('settings.deleteAccountButton')}</Button>
+                <Button variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)}>{t('settings.deleteAccountButton')}</Button>
               </div>
             </div>
           )}
@@ -261,6 +323,32 @@ const Settings = () => {
           {activeTab === 'appearance' && (
             <div className="space-y-6">
               <h2 className="text-xl font-semibold">{t('settings.appearance')}</h2>
+
+              {/* Theme Picker */}
+              <div className="rounded-xl border border-border bg-card p-4 md:p-5 space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Tema</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Uygulamanın görünümünü özelleştir</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {themeOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleThemeChange(opt.value)}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${
+                        theme === opt.value
+                          ? 'bg-primary/10 border-primary/40 text-primary'
+                          : 'border-border text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
+                      }`}
+                    >
+                      <opt.icon className="w-5 h-5" />
+                      <span className="text-xs font-medium">{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Language */}
               <div className="rounded-xl border border-border bg-card p-4 md:p-5 space-y-4">
                 <div>
                   <p className="text-sm font-semibold text-foreground">{t('settings.languageTitle')}</p>
@@ -327,6 +415,24 @@ const Settings = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Account Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hesabı Sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu işlem geri alınamaz. Hesabınız kalıcı olarak silinecek, mesajlarınız anonim olarak korunacaktır. Sahip olduğunuz sunucular silinecektir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAccount} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? 'Siliniyor...' : 'Hesabı Sil'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -16,6 +16,37 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.1.3',
+    date: '8 Mart 2026',
+    summary: 'Discord estetiği, ses kontrolleri, güvenli hesap silme, tema seçici ve DM arayüz iyileştirmeleri.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Mikrofon ve kulaklık toggle: kapatıldığında kırmızı çizgili ikon gösterimi',
+          'Cihaz seçimi: Giriş/Çıkış cihazları Popover ile listelenip seçilebiliyor',
+          'Güvenli hesap silme: mesajlar anonim korunur, profil ve auth kaydı silinir',
+          'Tema seçici: Koyu / Açık / Sistem modları Görünüm ayarlarına eklendi',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'DM ana sayfası boş durum illüstrasyonu yenilendi (gradient ikon + modern tipografi)',
+          'User Info paneli ChannelList\'ten ayrı bileşen olarak çıkarıldı ve DM sayfasına da entegre edildi',
+          'DM listesinde hover efektleri ve X butonu daha belirgin hale getirildi',
+          'Mesaj çubuğu ikon sıralaması Discord\'a uygun düzenlendi: [+] [input] [Resim] [GIF] [Emoji] [Gönder]',
+          'GIF ve dosya ekleme ikonları artık mobilde de görünüyor',
+          'Düzenleme butonları (pencil) modern rounded-lg bg-secondary/50 stili ile güncellendi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.2',
     date: '8 Mart 2026',
     summary: 'Discord tarzı gelişmiş medya görüntüleyici: zoom, pan, swipe galeri ve GIF lightbox desteği.',
