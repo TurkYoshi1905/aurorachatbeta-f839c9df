@@ -987,6 +987,16 @@ const Index = () => {
     fetchPermissions();
   }, [activeServer, user?.id]);
 
+  // Fetch server emojis
+  useEffect(() => {
+    if (!activeServer || activeServer === 'home') { setServerEmojis([]); return; }
+    const fetchEmojis = async () => {
+      const { data } = await supabase.from('server_emojis').select('id, name, image_url').eq('server_id', activeServer).order('created_at');
+      if (data) setServerEmojis(data as any);
+    };
+    fetchEmojis();
+  }, [activeServer]);
+
   const handleOpenThread = useCallback((messageId: string, author: string, content: string, threadId: string | null) => {
     // Find existing thread for this message
     const fetchThread = async () => {
