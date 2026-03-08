@@ -51,7 +51,7 @@ const GifImage = ({ url }: { url: string }) => {
   );
 };
 
-export const renderMessageContent = (content: string) => {
+export const renderMessageContent = (content: string, currentUserId?: string) => {
   // Check if entire content is a single Giphy URL
   const trimmed = content.trim();
   if (isGiphyUrl(trimmed) && /^https?:\/\/\S+$/.test(trimmed)) {
@@ -63,6 +63,10 @@ export const renderMessageContent = (content: string) => {
   const inviteCodes: string[] = [];
   let inviteMatch;
   while ((inviteMatch = inviteRegex.exec(content)) !== null) { inviteCodes.push(inviteMatch[1]); }
+  
+  // Process mentions: @username pattern
+  const mentionRegex = /@(\S+)/g;
+  
   const parts = content.split(urlRegex);
   const elements = parts.map((part, i) => {
     if (urlRegex.test(part)) {
@@ -71,6 +75,21 @@ export const renderMessageContent = (content: string) => {
         return <GifImage key={i} url={part} />;
       }
       return (<a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>);
+    }
+    // Process mentions within text parts
+    const mentionParts = part.split(mentionRegex);
+    if (mentionParts.length > 1) {
+      return (
+        <span key={i}>
+          {mentionParts.map((mp, j) => {
+            if (j % 2 === 1) {
+              // This is a mention
+              return <span key={j} className="bg-primary/20 text-primary rounded px-1 font-medium cursor-pointer hover:bg-primary/30">@{mp}</span>;
+            }
+            return <span key={j}>{mp}</span>;
+          })}
+        </span>
+      );
     }
     return <span key={i}>{part}</span>;
   });
