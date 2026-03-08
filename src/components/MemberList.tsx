@@ -1,5 +1,5 @@
 import { DbMember } from '@/pages/Index';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Moon } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import UserProfileCard from './UserProfileCard';
 
@@ -41,7 +41,13 @@ const MemberList = ({ members, isMobile, onBack, serverId }: MemberListProps) =>
           <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm overflow-hidden">
             {member.avatarUrl ? (<img src={member.avatarUrl} alt="" className="w-full h-full object-cover" />) : (member.avatar)}
           </div>
-          <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-sidebar ${statusColor[member.status]}`} />
+          {member.status === 'idle' ? (
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 flex items-center justify-center">
+              <Moon className="w-3.5 h-3.5 text-status-idle fill-status-idle" />
+            </div>
+          ) : (
+            <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-sidebar ${statusColor[member.status]}`} />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm truncate font-medium" style={member.roleColor ? { color: member.roleColor } : undefined}>

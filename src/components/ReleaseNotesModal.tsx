@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Sparkles, MessageSquare, Shield, UserCircle } from 'lucide-react';
 
-const CURRENT_VERSION = '0.2.2';
+const CURRENT_VERSION = '0.2.3';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {
@@ -23,9 +23,9 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <MessageSquare className="w-5 h-5 text-primary" />, tag: 'MOBİL', color: 'text-primary', text: 'Mobil Mesaj Menüsü: Mesaja uzun basarak yanıtla, düzenle, sil ve tepki ekle!' },
-    { icon: <Shield className="w-5 h-5 text-status-online" />, tag: 'LIGHTBOX', color: 'text-status-online', text: 'Pürüzsüz resim geçişleri ve her zaman görünür buton yazıları.' },
-    { icon: <UserCircle className="w-5 h-5 text-accent" />, tag: 'PROFİL', color: 'text-accent', text: 'Profil kartı mobilde artık alt panelden açılıyor, ekrana sığıyor!' },
+    { icon: <MessageSquare className="w-5 h-5 text-primary" />, tag: 'MENÜ', color: 'text-primary', text: 'Mobil mesaj menüsü başlığı artık doğru görünüyor.' },
+    { icon: <Shield className="w-5 h-5 text-status-online" />, tag: 'DURUM', color: 'text-status-online', text: 'Boşta durumu artık ay ikonu ile gösteriliyor ve arka plan algılama aktif.' },
+    { icon: <UserCircle className="w-5 h-5 text-accent" />, tag: 'PROFİL', color: 'text-accent', text: 'Profil kartında tarihler dilinize göre, durum gerçek zamanlı gösteriliyor.' },
   ];
 
   return (

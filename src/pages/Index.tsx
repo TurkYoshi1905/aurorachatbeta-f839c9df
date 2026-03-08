@@ -180,6 +180,29 @@ const Index = () => {
     userRef.current = user?.id;
   }, [activeChannel, activeServer, user?.id]);
 
+  // Request notification permission on load
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Background idle detection
+  const previousStatusRef = useRef<DbMember['status'] | null>(null);
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden && myStatus === 'online') {
+        previousStatusRef.current = myStatus;
+        setMyStatus('idle');
+      } else if (!document.hidden && previousStatusRef.current) {
+        setMyStatus(previousStatusRef.current);
+        previousStatusRef.current = null;
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [myStatus]);
+
   const fetchServers = useCallback(async () => {
     const { data: serversData } = await supabase
       .from('servers')

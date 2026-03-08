@@ -5,7 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from '@/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
-import { MessageSquare } from 'lucide-react';
+import { tr as trLocale, enUS, ru as ruLocale, ja as jaLocale, de as deLocale } from 'date-fns/locale';
+import { MessageSquare, Moon, Circle, MinusCircle, EyeOff } from 'lucide-react';
+import type { Language } from '@/i18n';
 
 interface UserProfileCardProps {
   userId: string;
@@ -28,14 +30,24 @@ interface RoleData {
   color: string;
 }
 
+const dateLocaleMap: Record<string, any> = { tr: trLocale, en: enUS, az: trLocale, ru: ruLocale, ja: jaLocale, de: deLocale };
+
+const statusConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+  online: { icon: <Circle className="w-3 h-3 text-status-online fill-status-online" />, label: 'Çevrimiçi', color: 'text-status-online' },
+  idle: { icon: <Moon className="w-3 h-3 text-status-idle fill-status-idle" />, label: 'Boşta', color: 'text-status-idle' },
+  dnd: { icon: <MinusCircle className="w-3 h-3 text-status-dnd fill-status-dnd" />, label: 'Rahatsız Etmeyin', color: 'text-status-dnd' },
+  offline: { icon: <EyeOff className="w-3 h-3 text-muted-foreground" />, label: 'Çevrimdışı', color: 'text-muted-foreground' },
+};
+
 const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProfileCardProps) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const isMobile = useIsMobile();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [roles, setRoles] = useState<RoleData[]>([]);
   const [joinedAt, setJoinedAt] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
+  const [userStatus, setUserStatus] = useState<string>('offline');
 
   useEffect(() => {
     if (!open || !userId) return;
@@ -79,6 +91,28 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProf
     fetchData();
   }, [open, userId, serverId]);
 
+  // Realtime presence for this user
+  useEffect(() => {
+    if (!open || !userId) return;
+    const channel = supabase.channel(`profile-presence-${userId}`);
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      const entries = Object.values(state).flat() as any[];
+      const found = entries.find((e: any) => e.user_id === userId);
+      if (found) setUserStatus(found.status || 'online');
+    }).subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        // Check global presence channel for the user's status
+        const globalChannel = supabase.channel('global-presence');
+        const globalState = globalChannel.presenceState();
+        const allEntries = Object.values(globalState).flat() as any[];
+        const found = allEntries.find((e: any) => e.user_id === userId);
+        if (found) setUserStatus(found.status || 'online');
+      }
+    });
+    return () => { supabase.removeChannel(channel); };
+  }, [open, userId]);
+
   const handleNoteChange = (val: string) => {
     setNote(val);
     localStorage.setItem(`user_note_${userId}`, val);
@@ -91,11 +125,20 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProf
       
       {/* Avatar */}
       <div className="px-4 -mt-8 relative z-10">
-        <div className="w-16 h-16 rounded-full border-4 border-sidebar bg-secondary flex items-center justify-center text-2xl font-bold overflow-hidden">
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+        <div className="relative w-16 h-16">
+          <div className="w-16 h-16 rounded-full border-4 border-sidebar bg-secondary flex items-center justify-center text-2xl font-bold overflow-hidden">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-foreground">{profile?.display_name?.charAt(0)?.toUpperCase() || '?'}</span>
+            )}
+          </div>
+          {userStatus === 'idle' ? (
+            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 flex items-center justify-center bg-sidebar rounded-full">
+              <Moon className="w-4 h-4 text-status-idle fill-status-idle" />
+            </div>
           ) : (
-            <span className="text-foreground">{profile?.display_name?.charAt(0)?.toUpperCase() || '?'}</span>
+            <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-[3px] border-sidebar ${userStatus === 'online' ? 'bg-status-online' : userStatus === 'dnd' ? 'bg-status-dnd' : 'bg-muted-foreground'}`} />
           )}
         </div>
       </div>
@@ -139,13 +182,13 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProf
             {profile?.created_at && (
               <div className="flex items-center gap-2">
                 <span>🗓️</span>
-                <span>{format(new Date(profile.created_at), 'dd MMM yyyy')}</span>
+                <span>{format(new Date(profile.created_at), 'dd MMMM yyyy', { locale: dateLocaleMap[language] || enUS })}</span>
               </div>
             )}
             {joinedAt && (
               <div className="flex items-center gap-2">
                 <span>📥</span>
-                <span>{format(new Date(joinedAt), 'dd MMM yyyy')}</span>
+                <span>{format(new Date(joinedAt), 'dd MMMM yyyy', { locale: dateLocaleMap[language] || enUS })}</span>
               </div>
             )}
           </div>

@@ -1,74 +1,37 @@
 
 
-## Plan: v0.2.3 — Mobil Menü Başlığı, Bildirim İzni, Boşta Durumu & Tarih Lokalizasyonu
+## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
 
-### 1. Mobil Mesaj Menüsü Başlığı Düzeltmesi
+### 1. Black Screen Root Cause (CRITICAL)
 
-**Problem:** `t('chat.messageActions')` çeviri anahtarı mevcut değil, bu yüzden ham anahtar gösteriliyor.
+**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
 
-**Çözüm:**
-- `ChatArea.tsx` satır 517: Fallback yerine doğrudan `t('chat.messageActions')` kullan
-- Tüm i18n dosyalarına (`tr.ts`, `en.ts`, `az.ts`, `ru.ts`, `ja.ts`, `de.ts`) `chat.messageActions` anahtarını ekle
-  - TR: `'Mesaj İşlemleri'`, EN: `'Message Actions'`, vb.
+**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
 
-### 2. Bildirim İzni
+### 2. Server Deletion — Cascade via Foreign Keys
 
-**Çözüm:** `Index.tsx` içinde uygulama yüklendiğinde `Notification.requestPermission()` çağır:
-```typescript
-useEffect(() => {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-}, []);
-```
+Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
 
-### 3. Boşta (Idle) Durumu — Ay İkonu
+**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
+- `channels.server_id → servers.id ON DELETE CASCADE`
+- `messages.server_id → servers.id ON DELETE CASCADE`
+- `messages.channel_id → channels.id ON DELETE CASCADE`
+- `server_members.server_id → servers.id ON DELETE CASCADE`
+- `server_invites.server_id → servers.id ON DELETE CASCADE`
 
-**Problem:** UserInfoPanel ve MemberList'te idle durumu sarı nokta olarak gösteriliyor, ay ikonu olması lazım.
+Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
 
-**Çözüm:**
-- **UserInfoPanel.tsx** satır 81: Status indicator dot'u bir bileşene çevir — idle ise `Moon` SVG ikonu, diğerleri için mevcut renkli nokta
-- **MemberList.tsx** satır 44: Aynı şekilde idle durumunda ay ikonu göster
-- Ortak bir `StatusIndicator` bileşeni oluştur veya inline render et
+### 3. DM Real-time — Typing Channel Broadcast Fix
 
-### 4. Arka Plan Boşta Algılama
+In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
 
-**Çözüm:** `Index.tsx`'te `visibilitychange` event listener ekle:
-- Sayfa gizlenince (`document.hidden`) durumu `'idle'` yap (önceki durumu kaydet)
-- Sayfa tekrar görünür olunca önceki duruma geri dön
-- Sadece kullanıcı durumu `'online'` ise idle'a çevir (dnd/invisible ise dokunma)
+**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
 
-### 5. Profil Kartı Tarih Lokalizasyonu
+### File Changes
 
-**Problem:** `format(date, 'dd MMM yyyy')` her zaman İngilizce ay isimleri gösteriyor.
-
-**Çözüm:** `UserProfileCard.tsx`'te `date-fns` locale'leri kullan:
-```typescript
-import { tr, enUS, az, ru, ja, de } from 'date-fns/locale';
-const localeMap = { tr, en: enUS, az, ru, ja, de };
-format(date, 'dd MMMM yyyy', { locale: localeMap[language] })
-```
-`useTranslation()` hook'undan `language` al.
-
-### 6. Profil Kartında Gerçek Zamanlı Durum
-
-**Çözüm:** `UserProfileCard.tsx`'te kullanıcının presence durumunu göster. Members listesinden veya realtime presence'tan status bilgisini çek ve profil kartında göster.
-
-### 7. v0.2.3 Sürüm Yayını
-
-- `ReleaseNotesModal.tsx`: `CURRENT_VERSION = '0.2.3'`, notları güncelle
-- `changelogData.ts`: v0.2.3 ekle
-
-### Dosya Değişiklikleri
-
-| Dosya | Değişiklik |
+| File | Change |
 |---|---|
-| `src/i18n/tr.ts`, `en.ts`, `az.ts`, `ru.ts`, `ja.ts`, `de.ts` | `chat.messageActions` anahtarı ekle |
-| `src/components/ChatArea.tsx` | `as any` cast'i kaldır |
-| `src/pages/Index.tsx` | Bildirim izni + arka plan idle algılama |
-| `src/components/UserInfoPanel.tsx` | Idle durumunda ay ikonu göster (indicator dot) |
-| `src/components/MemberList.tsx` | Idle durumunda ay ikonu göster |
-| `src/components/UserProfileCard.tsx` | Tarih lokalizasyonu + gerçek zamanlı durum gösterimi |
-| `src/components/ReleaseNotesModal.tsx` | v0.2.3 |
-| `src/data/changelogData.ts` | v0.2.3 sürüm notları |
+| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
+| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
+| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
 
