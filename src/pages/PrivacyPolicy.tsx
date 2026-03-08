@@ -16,7 +16,7 @@ const PrivacyPolicy = () => {
         </button>
 
         <h1 className="text-3xl font-bold mb-2">Gizlilik Politikası</h1>
-        <p className="text-sm text-muted-foreground mb-8">Son güncelleme: 3 Mart 2026</p>
+        <p className="text-sm text-muted-foreground mb-8">Son güncelleme: 8 Mart 2026</p>
 
         <div className="space-y-8 text-sm leading-relaxed text-secondary-foreground">
           <section>
@@ -28,7 +28,17 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-3">2. Toplanan Veriler</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-3">2. Yaş Sınırı</h2>
+            <p>
+              Aurora Chat hizmetlerini kullanabilmek için <strong className="text-foreground">en az 13 yaşında</strong> olmanız
+              gerekmektedir. Kayıt sırasında doğum tarihi doğrulaması yapılmakta olup, 13 yaşından küçük
+              kullanıcıların hesap oluşturması engellenmektedir. 13 yaşından küçük bir kullanıcının hesap
+              açtığı tespit edilirse, hesap derhal askıya alınır ve ilgili veriler silinir.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-foreground mb-3">3. Toplanan Veriler</h2>
             <p className="mb-3">Hizmetlerimizi sunabilmek için aşağıdaki verileri toplamaktayız:</p>
             <ul className="list-disc ml-6 space-y-2">
               <li>
@@ -55,7 +65,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-3">3. Verilerin Kullanımı</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-3">4. Verilerin Kullanımı</h2>
             <p>Topladığımız veriler yalnızca aşağıdaki amaçlarla kullanılır:</p>
             <ul className="list-disc ml-6 space-y-1 mt-2">
               <li>Hesabınızın oluşturulması ve yönetilmesi</li>
@@ -67,16 +77,26 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-3">4. Veri Güvenliği</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-3">5. Veri Güvenliği</h2>
             <p>
               Verileriniz endüstri standardı güvenlik protokolleri ile korunmaktadır. Tüm veri iletişimi SSL/TLS
               şifrelemesi ile gerçekleştirilir. Veritabanlarımız düzenli olarak yedeklenir ve erişim kontrolleri
-              ile korunur.
+              ile korunur. İki faktörlü doğrulama (2FA) desteği ile hesap güvenliğinizi artırabilirsiniz.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-3">5. Üçüncü Taraf Paylaşımı</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-3">6. Bildirim İzinleri</h2>
+            <p>
+              Aurora Chat, kullanıcıları etiketleme (@mention) ve mesaj bildirimleri için tarayıcı bildirim
+              izni talep edebilir. Bildirim izni tamamen isteğe bağlıdır ve tarayıcı ayarlarından her zaman
+              kapatılabilir. Bildirimler yalnızca uygulama içi etkileşimler (etiketleme, yeni mesaj) için
+              kullanılır ve hiçbir pazarlama amacı taşımaz.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-foreground mb-3">7. Üçüncü Taraf Paylaşımı</h2>
             <p>
               Kişisel verileriniz, yasal zorunluluklar dışında üçüncü taraflarla paylaşılmaz. Hizmet
               sağlayıcılarımız (altyapı, barındırma) ile paylaşılan veriler, yalnızca hizmetin sağlanması
@@ -85,7 +105,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-3">6. Kullanıcı Hakları</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-3">8. Kullanıcı Hakları</h2>
             <p>Aşağıdaki haklara sahipsiniz:</p>
             <ul className="list-disc ml-6 space-y-1 mt-2">
               <li>Verilerinize erişim talep etme</li>
@@ -97,7 +117,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-3">7. İletişim</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-3">9. İletişim</h2>
             <p>
               Gizlilik politikamız hakkında sorularınız için uygulama içi destek kanalımız aracılığıyla
               bizimle iletişime geçebilirsiniz.

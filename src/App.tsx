@@ -59,6 +59,8 @@ const App = () => (
             <Route path="/server/:serverId/settings" element={<ProtectedRoute><ServerSettings /></ProtectedRoute>} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/invite/:code" element={<InvitePage />} />
             <Route path="/changelog" element={<Changelog />} />

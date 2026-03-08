@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Volume2, Bot, Lock, Zap, Shield } from 'lucide-react';
+import { Sparkles, Zap, Shield, Lock, UserPlus } from 'lucide-react';
 
-const CURRENT_VERSION = '0.1.7';
+const CURRENT_VERSION = '0.1.8';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {
@@ -23,10 +23,10 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'ARAYÜZ', color: 'text-primary', text: 'Mobil mesaj yazma alanı tamamen yenilendi; ikonlar ve gönder butonu hatasız çalışıyor.' },
-    { icon: <Zap className="w-5 h-5 text-status-online" />, tag: 'FIX', color: 'text-status-online', text: 'Emoji ikonunun mesaj kutusu dışına taşma sorunu giderildi.' },
-    { icon: <Shield className="w-5 h-5 text-accent" />, tag: 'UX', color: 'text-accent', text: 'Mobil cihazlar için Safe Area desteği ve klavye uyumluluğu eklendi.' },
-    { icon: <Zap className="w-5 h-5 text-status-idle" />, tag: 'PERFORMANS', color: 'text-status-idle', text: 'Alt paneldeki kullanıcı bilgi alanı mobil ekranlar için optimize edildi.' },
+    { icon: <UserPlus className="w-5 h-5 text-primary" />, tag: 'KAYIT', color: 'text-primary', text: 'Çok adımlı kayıt paneli: Doğum tarihi doğrulama (+13 yaş) ve profil fotoğrafı yükleme eklendi.' },
+    { icon: <Lock className="w-5 h-5 text-status-online" />, tag: 'GÜVENLİK', color: 'text-status-online', text: 'Şifremi Unuttum özelliği ve İki Faktörlü Doğrulama (2FA/TOTP) aktif.' },
+    { icon: <Sparkles className="w-5 h-5 text-accent" />, tag: 'FIX', color: 'text-accent', text: 'Emoji arama sistemi keyword tabanlı filtreleme ile yeniden yazıldı.' },
+    { icon: <Shield className="w-5 h-5 text-status-idle" />, tag: 'GİZLİLİK', color: 'text-status-idle', text: 'Gizlilik politikası yaş sınırı, bildirim izinleri ve 2FA maddeleri ile güncellendi.' },
   ];
 
   return (

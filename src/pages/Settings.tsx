@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, X, User, Shield, Megaphone, Camera, ExternalLink, Pencil, Check, XIcon, Calendar, Lock, Globe, Monitor, Sun, Moon as MoonIcon } from 'lucide-react';
+import { LogOut, X, User, Shield, Megaphone, Camera, ExternalLink, Pencil, Check, XIcon, Calendar, Lock, Globe, Monitor, Sun, Moon as MoonIcon, QrCode, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -17,6 +17,145 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+
+const TwoFactorSection = () => {
+  const { t } = useTranslation();
+  const [showDialog, setShowDialog] = useState(false);
+  const [qrUri, setQrUri] = useState('');
+  const [factorId, setFactorId] = useState('');
+  const [otp, setOtp] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+
+  useEffect(() => {
+    const checkMFA = async () => {
+      const { data } = await supabase.auth.mfa.listFactors();
+      if (data?.totp && data.totp.length > 0) {
+        const verified = data.totp.some(f => f.status === 'verified');
+        setIs2FAEnabled(verified);
+      }
+    };
+    checkMFA();
+  }, []);
+
+  const handleEnroll = async () => {
+    setEnrolling(true);
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+    setEnrolling(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    if (data) {
+      setQrUri(data.totp.uri);
+      setFactorId(data.id);
+      setShowDialog(true);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (otp.length !== 6) return;
+    setVerifying(true);
+    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId });
+    if (challengeError) {
+      toast.error(challengeError.message);
+      setVerifying(false);
+      return;
+    }
+    const { error: verifyError } = await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challenge.id,
+      code: otp,
+    });
+    setVerifying(false);
+    if (verifyError) {
+      toast.error(verifyError.message);
+      return;
+    }
+    toast.success(t('settings.twoFactorEnabled'));
+    setIs2FAEnabled(true);
+    setShowDialog(false);
+    setOtp('');
+  };
+
+  const handleUnenroll = async () => {
+    const { data } = await supabase.auth.mfa.listFactors();
+    const factor = data?.totp?.find(f => f.status === 'verified');
+    if (!factor) return;
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(t('settings.twoFactorDisabled'));
+    setIs2FAEnabled(false);
+  };
+
+  return (
+    <>
+      <div className="rounded-xl border border-border bg-card p-4 md:p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <Lock className="w-4 h-4 text-muted-foreground" />
+          <p className="text-sm font-semibold text-foreground">{t('settings.twoFactor')}</p>
+        </div>
+        <p className="text-xs text-muted-foreground">{t('settings.twoFactorDesc')}</p>
+        {is2FAEnabled ? (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-status-online font-medium">
+              <ShieldCheck className="w-4 h-4" />
+              {t('settings.twoFactorActive')}
+            </div>
+            <Button variant="outline" size="sm" onClick={handleUnenroll}>{t('settings.twoFactorDisable')}</Button>
+          </div>
+        ) : (
+          <Button variant="outline" size="sm" onClick={handleEnroll} disabled={enrolling}>
+            {enrolling ? <div className="w-4 h-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" /> : t('settings.twoFactorEnable')}
+          </Button>
+        )}
+      </div>
+
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-primary" />
+              {t('settings.twoFactorSetup')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">{t('settings.twoFactorScanQR')}</p>
+            {qrUri && (
+              <div className="flex justify-center p-4 bg-white rounded-xl">
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUri)}`} alt="TOTP QR Code" className="w-48 h-48" />
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground">{t('settings.twoFactorEnterCode')}</p>
+            <div className="flex justify-center">
+              <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+            <Button onClick={handleVerify} disabled={verifying || otp.length !== 6} className="w-full">
+              {verifying ? <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : t('settings.twoFactorVerify')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
 
 const Settings = () => {
   const { profile, signOut, user } = useAuth();
