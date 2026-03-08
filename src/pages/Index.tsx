@@ -768,6 +768,42 @@ const Index = () => {
   const handleSendMessage = useCallback(
     async (content: string, files?: File[]) => {
       if (!user || !profile) return;
+
+      // Bot command interception
+      if (content.startsWith('/')) {
+        const ctx = {
+          serverId: activeServer,
+          channelId: activeChannel,
+          userId: user.id,
+          isOwner: isOwner || false,
+          members: members.map(m => ({ id: m.id, name: m.name, role: m.role })),
+        };
+        const botResponse = await executeBotCommand(content, ctx);
+        if (botResponse) {
+          const botMsg: DbMessage = {
+            id: 'bot-' + crypto.randomUUID(),
+            author: 'AuroraChat Bot',
+            avatar: '🤖',
+            userId: 'bot',
+            content: botResponse.content,
+            timestamp: formatTimestamp(new Date().toISOString()),
+            isBot: true,
+          };
+          setMessages((prev) => [...prev, botMsg]);
+          // Refresh channels if lock/unlock was used
+          if (content.startsWith('/lock') || content.startsWith('/unlock')) {
+            fetchServers();
+          }
+          return;
+        }
+      }
+
+      // Check channel lock
+      if (channel?.is_locked && !isOwner) {
+        toast.error('Bu kanal kilitli. Mesaj gönderemezsiniz.');
+        return;
+      }
+
       const tempId = crypto.randomUUID();
       const optimisticMsg: DbMessage = {
         id: tempId,
@@ -803,7 +839,7 @@ const Index = () => {
         setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: data.id, status: undefined, attachments: attachmentUrls } : m));
       }
     },
-    [user, profile, activeServer, activeChannel]
+    [user, profile, activeServer, activeChannel, isOwner, members, channel, fetchServers]
   );
 
   const handleDeleteMessage = useCallback(

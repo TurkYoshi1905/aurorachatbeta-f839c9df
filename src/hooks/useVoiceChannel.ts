@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Room, RoomEvent, Track, RemoteParticipant, LocalParticipant, ConnectionState } from 'livekit-client';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface VoiceParticipant {
   identity: string;
@@ -12,7 +12,6 @@ interface VoiceParticipant {
 
 export const useVoiceChannel = () => {
   const { user, profile } = useAuth();
-  const [room, setRoom] = useState<Room | null>(null);
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [voiceChannelId, setVoiceChannelId] = useState<string | null>(null);
@@ -20,32 +19,40 @@ export const useVoiceChannel = () => {
   const [participants, setParticipants] = useState<VoiceParticipant[]>([]);
   const [micMuted, setMicMuted] = useState(false);
   const [deafened, setDeafened] = useState(false);
-  const roomRef = useRef<Room | null>(null);
+  const roomRef = useRef<any>(null);
+  const retryCountRef = useRef(0);
+  const MAX_RETRIES = 3;
 
-  const updateParticipants = useCallback((r: Room) => {
-    const parts: VoiceParticipant[] = [];
-    const allParticipants = [r.localParticipant, ...Array.from(r.remoteParticipants.values())];
-    for (const p of allParticipants) {
-      parts.push({
-        identity: p.identity,
-        displayName: p.name || p.identity,
-        avatarUrl: null,
-        isSpeaking: p.isSpeaking,
-      });
+  const updateParticipants = useCallback((r: any) => {
+    try {
+      const parts: VoiceParticipant[] = [];
+      const allParticipants = [r.localParticipant, ...Array.from(r.remoteParticipants.values())];
+      for (const p of allParticipants) {
+        parts.push({
+          identity: (p as any).identity,
+          displayName: (p as any).name || (p as any).identity,
+          avatarUrl: null,
+          isSpeaking: (p as any).isSpeaking,
+        });
+      }
+      setParticipants(parts);
+    } catch (err) {
+      console.error('Error updating participants:', err);
     }
-    setParticipants(parts);
   }, []);
 
   const connect = useCallback(async (channelId: string, channelName: string) => {
     if (!user || !profile || connecting) return;
-    // Disconnect existing connection before joining new one
     if (roomRef.current) {
       roomRef.current.disconnect();
       roomRef.current = null;
     }
     setConnecting(true);
+    toast.info(`${channelName} sesli kanalına bağlanılıyor...`);
 
     try {
+      const { Room, RoomEvent } = await import('livekit-client');
+      
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
       if (!token) throw new Error('No session');
@@ -60,7 +67,10 @@ export const useVoiceChannel = () => {
         body: JSON.stringify({ room: channelId, displayName: profile.display_name }),
       });
 
-      if (!resp.ok) throw new Error('Failed to get token');
+      if (!resp.ok) {
+        const errBody = await resp.text().catch(() => '');
+        throw new Error(`Token request failed: ${resp.status} ${errBody}`);
+      }
       const { token: livekitToken, url } = await resp.json();
 
       const newRoom = new Room();
@@ -75,20 +85,33 @@ export const useVoiceChannel = () => {
         setVoiceChannelName('');
         setParticipants([]);
         roomRef.current = null;
+        toast.warning('Sesli kanaldan ayrıldınız.');
       });
 
       await newRoom.connect(url, livekitToken);
       await newRoom.localParticipant.setMicrophoneEnabled(true);
 
-      setRoom(newRoom);
       setConnected(true);
       setVoiceChannelId(channelId);
       setVoiceChannelName(channelName);
       setMicMuted(false);
       setDeafened(false);
+      retryCountRef.current = 0;
       updateParticipants(newRoom);
+      toast.success(`${channelName} sesli kanalına bağlandı!`);
     } catch (err) {
       console.error('Voice connection failed:', err);
+      toast.error('Sesli kanala bağlanılamadı. Lütfen tekrar deneyin.');
+      
+      if (retryCountRef.current < MAX_RETRIES) {
+        retryCountRef.current++;
+        const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 8000);
+        setTimeout(() => {
+          if (!roomRef.current) {
+            connect(channelId, channelName);
+          }
+        }, delay);
+      }
     } finally {
       setConnecting(false);
     }
@@ -99,7 +122,6 @@ export const useVoiceChannel = () => {
       roomRef.current.disconnect();
       roomRef.current = null;
     }
-    setRoom(null);
     setConnected(false);
     setVoiceChannelId(null);
     setVoiceChannelName('');
@@ -109,39 +131,43 @@ export const useVoiceChannel = () => {
   const toggleMic = useCallback(async () => {
     if (!roomRef.current) return;
     const newMuted = !micMuted;
-    await roomRef.current.localParticipant.setMicrophoneEnabled(!newMuted);
-    setMicMuted(newMuted);
+    try {
+      await roomRef.current.localParticipant.setMicrophoneEnabled(!newMuted);
+      setMicMuted(newMuted);
+    } catch (err) {
+      console.error('Mic toggle failed:', err);
+      toast.error('Mikrofon durumu değiştirilemedi.');
+    }
   }, [micMuted]);
 
   const toggleDeafen = useCallback(async () => {
     if (!roomRef.current) return;
     const newDeafened = !deafened;
-    if (newDeafened) {
-      await roomRef.current.localParticipant.setMicrophoneEnabled(false);
-      setMicMuted(true);
-      // Mute all remote audio by detaching elements
-      roomRef.current.remoteParticipants.forEach((p) => {
-        p.audioTrackPublications.forEach((pub) => {
-          if (pub.audioTrack) {
-            pub.audioTrack.detach();
-          }
+    try {
+      if (newDeafened) {
+        await roomRef.current.localParticipant.setMicrophoneEnabled(false);
+        setMicMuted(true);
+        roomRef.current.remoteParticipants.forEach((p: any) => {
+          p.audioTrackPublications.forEach((pub: any) => {
+            if (pub.audioTrack) pub.audioTrack.detach();
+          });
         });
-      });
-    } else {
-      // Re-attach audio tracks
-      roomRef.current.remoteParticipants.forEach((p) => {
-        p.audioTrackPublications.forEach((pub) => {
-          if (pub.audioTrack) {
-            const el = pub.audioTrack.attach();
-            document.body.appendChild(el);
-          }
+      } else {
+        roomRef.current.remoteParticipants.forEach((p: any) => {
+          p.audioTrackPublications.forEach((pub: any) => {
+            if (pub.audioTrack) {
+              const el = pub.audioTrack.attach();
+              document.body.appendChild(el);
+            }
+          });
         });
-      });
+      }
+      setDeafened(newDeafened);
+    } catch (err) {
+      console.error('Deafen toggle failed:', err);
     }
-    setDeafened(newDeafened);
   }, [deafened]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (roomRef.current) {
