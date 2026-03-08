@@ -65,6 +65,7 @@ export interface DbChannel {
   type: 'text' | 'voice';
   position: number;
   category_id?: string | null;
+  is_locked?: boolean;
 }
 
 export interface DbServer {
