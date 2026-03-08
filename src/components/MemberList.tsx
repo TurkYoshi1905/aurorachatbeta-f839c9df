@@ -7,7 +7,7 @@ interface MemberListProps { members: DbMember[]; isMobile?: boolean; onBack?: ()
 
 const statusColor: Record<string, string> = { online: 'bg-status-online', idle: 'bg-status-idle', dnd: 'bg-status-dnd', offline: 'bg-muted-foreground' };
 
-const MemberList = ({ members, isMobile, onBack }: MemberListProps) => {
+const MemberList = ({ members, isMobile, onBack, serverId }: MemberListProps) => {
   const { t } = useTranslation();
 
   // Group members by their highest role
