@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { DbMessage, DbReaction, DbMember } from '@/pages/Index';
-import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft, Trash2, Pencil, Check, X } from 'lucide-react';
+import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft, Trash2, Pencil, Check, X, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ImageLightbox from './ImageLightbox';
 import ServerInviteEmbed from './ServerInviteEmbed';
@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import EmojiPicker from './EmojiPicker';
 import GifPicker from './GifPicker';
 import MentionPopup from './MentionPopup';
+import SlashCommandPopup from './SlashCommandPopup';
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👀', '💯', '✅', '❌', '🤔', '👏', '💪', '🙏', '😎', '🥳', '💀', '😭', '🫡', '👎', '💜', '🧡'];
 
@@ -37,6 +38,7 @@ interface ChatAreaProps {
   onTypingStart?: () => void;
   onTypingStop?: () => void;
   members?: DbMember[];
+  isLocked?: boolean;
 }
 
 const isGiphyUrl = (url: string) => /giphy\.com\/media\/|\.giphy\.com\//i.test(url);
@@ -128,7 +130,7 @@ const TypingIndicator = ({ typingUsers, t }: { typingUsers: { userId: string; di
   );
 };
 
-const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop, members = [] }: ChatAreaProps) => {
+const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop, members = [], isLocked }: ChatAreaProps) => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [input, setInput] = useState('');
@@ -136,6 +138,8 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
   const [editContent, setEditContent] = useState('');
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [showMentionPopup, setShowMentionPopup] = useState(false);
+  const [showSlashPopup, setShowSlashPopup] = useState(false);
+  const [slashQuery, setSlashQuery] = useState('');
   const [mentionQuery, setMentionQuery] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
@@ -149,6 +153,15 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInput(val);
+    
+    // Check for slash commands
+    if (val.startsWith('/')) {
+      setShowSlashPopup(true);
+      setSlashQuery(val.slice(1).split(' ')[0]);
+    } else {
+      setShowSlashPopup(false);
+      setSlashQuery('');
+    }
     
     // Check for @mention
     const cursorPos = e.target.selectionStart || val.length;
@@ -165,6 +178,13 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
     if (val.trim()) { const now = Date.now(); if (now - lastTypingSentRef.current > 2000) { lastTypingSentRef.current = now; onTypingStart?.(); } }
     else { onTypingStop?.(); }
   }, [onTypingStart, onTypingStop]);
+
+  const handleSlashSelect = useCallback((cmd: string) => {
+    setInput(cmd + ' ');
+    setShowSlashPopup(false);
+    setSlashQuery('');
+    inputRef.current?.focus();
+  }, []);
 
   const handleMentionSelect = useCallback((name: string) => {
     const cursorPos = inputRef.current?.selectionStart || input.length;
@@ -304,6 +324,14 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
       <FileUploadPreview files={pendingFiles} onRemove={handleRemoveFile} />
 
       <div className="px-4 pb-6 relative">
+        {showSlashPopup && (
+          <SlashCommandPopup
+            query={slashQuery}
+            onSelect={handleSlashSelect}
+            onClose={() => setShowSlashPopup(false)}
+            isOwner={!!isOwner}
+          />
+        )}
         {showMentionPopup && members.length > 0 && (
           <MentionPopup
             query={mentionQuery}
@@ -313,17 +341,24 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
             position={{ bottom: 60, left: 16 }}
           />
         )}
-        <div className="bg-input rounded-xl flex items-center px-4 gap-2 ring-1 ring-border focus-within:ring-primary/40 transition-all">
-          <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
-          <button onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
-          <input ref={inputRef} type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => { if (e.key === 'Enter' && !showMentionPopup) handleSend(); }} placeholder={t('chat.messagePlaceholder', { channel: channelName })} className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground" />
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
-            <GifPicker onGifSelect={(url) => { onSendMessage(url); }} />
-            <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
-            {(input.trim() || pendingFiles.length > 0) && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
+        {isLocked && !isOwner ? (
+          <div className="bg-secondary/50 rounded-xl flex items-center justify-center px-4 py-3 gap-2 text-muted-foreground">
+            <Lock className="w-4 h-4" />
+            <span className="text-sm">Bu kanal kilitli. Yalnızca sunucu sahibi mesaj gönderebilir.</span>
           </div>
-        </div>
+        ) : (
+          <div className="bg-input rounded-xl flex items-center px-4 gap-2 ring-1 ring-border focus-within:ring-primary/40 transition-all">
+            <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+            <button onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
+            <input ref={inputRef} type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => { if (e.key === 'Enter' && !showMentionPopup && !showSlashPopup) handleSend(); }} placeholder={t('chat.messagePlaceholder', { channel: channelName })} className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground" />
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
+              <GifPicker onGifSelect={(url) => { onSendMessage(url); }} />
+              <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
+              {(input.trim() || pendingFiles.length > 0) && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

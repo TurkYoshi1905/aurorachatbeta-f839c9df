@@ -1,106 +1,37 @@
 
 
-## Plan: v0.1.6 — AuroraChat Bot, Slash Komutları, Sesli Sohbet Stabilizasyonu
+## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
 
-Bu büyük bir güncelleme. Adım adım:
+### 1. Black Screen Root Cause (CRITICAL)
 
----
+**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
 
-### 1. Veritabanı Değişiklikleri (Migration)
+**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
 
-**Yeni tablolar ve sütunlar:**
-- `channels` tablosuna `is_locked BOOLEAN DEFAULT false` sütunu ekle
-- `server_members` tablosuna `timeout_until TIMESTAMPTZ DEFAULT NULL` sütunu ekle
-- Yeni `server_bans` tablosu: `id, server_id, user_id, banned_by, reason, created_at`
-  - RLS: Sunucu üyeleri okuyabilir, sunucu sahibi yazabilir/silebilir
+### 2. Server Deletion — Cascade via Foreign Keys
 
-**RLS güncellemesi:**
-- `server_bans` için SELECT (sunucu üyeleri), INSERT/DELETE (sunucu sahibi) politikaları
+Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
 
----
+**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
+- `channels.server_id → servers.id ON DELETE CASCADE`
+- `messages.server_id → servers.id ON DELETE CASCADE`
+- `messages.channel_id → channels.id ON DELETE CASCADE`
+- `server_members.server_id → servers.id ON DELETE CASCADE`
+- `server_invites.server_id → servers.id ON DELETE CASCADE`
 
-### 2. Bot Mesaj Sistemi (Client-Side Command Parser)
+Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
 
-Sunuculara gerçek bir "bot kullanıcısı" eklemek yerine, **komutları istemci tarafında parse edip bot yanıtlarını özel mesaj olarak** göstereceğiz. Bu yaklaşım daha basit ve veritabanı karmaşıklığını azaltır.
+### 3. DM Real-time — Typing Channel Broadcast Fix
 
-**Akış:**
-1. Kullanıcı `/komut` yazıp gönderir
-2. `handleSendMessage` içinde komut algılanır (normal mesaj olarak DB'ye kaydedilmez)
-3. Komut işlenir ve sonuç bot yanıtı olarak mesaj listesine eklenir
-4. Bot yanıtları `isBot: true` ile işaretlenir ve özel UI ile gösterilir
+In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
 
-**Yeni dosya: `src/utils/botCommands.ts`**
-- Komut parse ve yürütme mantığı
-- Her komut için: yetki kontrolü (sunucu sahibi mi?), DB işlemi, yanıt mesajı
+**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
 
-**Komutlar:**
+### File Changes
 
-| Komut | İşlev | DB İşlemi |
-|---|---|---|
-| `/help` | Tüm komutları listele | Yok |
-| `/info` | Sunucu istatistikleri | SELECT count |
-| `/list` | Üye listesi + roller | Mevcut members verisi |
-| `/lock` | Kanalı kilitle | `channels.update({ is_locked: true })` |
-| `/unlock` | Kilidi aç | `channels.update({ is_locked: false })` |
-| `/kick @user` | Üyeyi çıkar | `server_members.delete()` |
-| `/ban @user` | Kalıcı uzaklaştırma | `server_bans.insert()` + `server_members.delete()` |
-| `/unban @user` | Yasağı kaldır | `server_bans.delete()` |
-| `/timeout @user [dakika]` | Geçici susturma | `server_members.update({ timeout_until })` |
-| `/untimeout @user` | Susturmayı kaldır | `server_members.update({ timeout_until: null })` |
-
----
-
-### 3. Kanal Kilitleme UI
-
-- `ChatArea` bileşeninde: eğer kanal `is_locked` ve kullanıcı sunucu sahibi değilse, mesaj giriş kutusunu devre dışı bırak ve "🔒 Bu kanal kilitli" mesajı göster
-- `channels` verisine `is_locked` alanını ekle (`DbChannel` interface güncellemesi)
-- `Index.tsx`'te `handleSendMessage`'da kilit kontrolü
-
----
-
-### 4. Bot Mesaj UI
-
-`ChatArea.tsx`'te bot mesajları için:
-- Sol tarafta mor/mavi gradient arka plan
-- Kullanıcı adının yanında `BOT` badge'i
-- Avatar yerine bot ikonu
-
----
-
-### 5. Slash Komut Öneri Popup'ı
-
-Mesaj kutusuna `/` yazıldığında mevcut komutları gösteren bir autocomplete popup:
-- Yeni bileşen: `SlashCommandPopup.tsx`
-- Komut listesi, açıklama ve parametre bilgileri
-- Seçim yapıldığında komutu mesaj kutusuna yaz
-
----
-
-### 6. Sesli Sohbet Stabilizasyonu
-
-- `useVoiceChannel.ts`: Bağlantı hata yönetimini güçlendir, retry mantığı ekle
-- Bağlantı durumu için kullanıcıya toast bildirimleri
-- `VoiceParticipants.tsx`: Konuşan kullanıcılarda ses dalgası animasyonu (CSS pulse)
-
----
-
-### 7. v0.1.6 Sürüm Notları
-
-- `changelogData.ts` ve `ReleaseNotesModal.tsx` güncelle
-
----
-
-### Dosya Değişiklikleri
-
-| Dosya | Değişiklik |
+| File | Change |
 |---|---|
-| **SQL Migration** | `is_locked` sütunu, `timeout_until` sütunu, `server_bans` tablosu + RLS |
-| `src/utils/botCommands.ts` | **YENİ** — Komut parser ve yürütücü |
-| `src/components/SlashCommandPopup.tsx` | **YENİ** — `/` autocomplete popup |
-| `src/pages/Index.tsx` | `handleSendMessage`'da komut algılama, `is_locked` kontrolü, `DbChannel` güncelle |
-| `src/components/ChatArea.tsx` | Bot mesaj UI, kanal kilit UI, slash popup entegrasyonu |
-| `src/hooks/useVoiceChannel.ts` | Hata yönetimi, retry, toast bildirimleri |
-| `src/components/VoiceParticipants.tsx` | Ses dalgası animasyonu |
-| `src/data/changelogData.ts` | v0.1.6 notları |
-| `src/components/ReleaseNotesModal.tsx` | Versiyon güncelle |
+| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
+| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
+| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
 

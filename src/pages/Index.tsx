@@ -17,6 +17,7 @@ import SplashScreen from '@/components/SplashScreen';
 import ReleaseNotesModal from '@/components/ReleaseNotesModal';
 import { useVoiceChannel } from '@/hooks/useVoiceChannel';
 import { toast } from 'sonner';
+import { executeBotCommand } from '@/utils/botCommands';
 
 export interface DbMessage {
   id: string;
@@ -65,6 +66,7 @@ export interface DbChannel {
   type: 'text' | 'voice';
   position: number;
   category_id?: string | null;
+  is_locked?: boolean;
 }
 
 export interface DbServer {
@@ -199,6 +201,7 @@ const Index = () => {
             type: c.type as 'text' | 'voice',
             position: c.position,
             category_id: (c as any).category_id || null,
+            is_locked: (c as any).is_locked || false,
           })),
         categories: (categoriesData || [])
           .filter((cat: any) => cat.server_id === s.id)
@@ -729,7 +732,7 @@ const Index = () => {
         owner_id: s.owner_id,
         channels: channelsData
           .filter((c) => c.server_id === s.id)
-          .map((c) => ({ id: c.id, name: c.name, type: c.type as 'text' | 'voice', position: c.position, category_id: (c as any).category_id || null })),
+          .map((c) => ({ id: c.id, name: c.name, type: c.type as 'text' | 'voice', position: c.position, category_id: (c as any).category_id || null, is_locked: (c as any).is_locked || false })),
         categories: (categoriesData || [])
           .filter((cat: any) => cat.server_id === s.id)
           .map((cat: any) => ({ id: cat.id, name: cat.name, position: cat.position, server_id: cat.server_id })),
@@ -765,6 +768,42 @@ const Index = () => {
   const handleSendMessage = useCallback(
     async (content: string, files?: File[]) => {
       if (!user || !profile) return;
+
+      // Bot command interception
+      if (content.startsWith('/')) {
+        const ctx = {
+          serverId: activeServer,
+          channelId: activeChannel,
+          userId: user.id,
+          isOwner: isOwner || false,
+          members: members.map(m => ({ id: m.id, name: m.name, role: m.role })),
+        };
+        const botResponse = await executeBotCommand(content, ctx);
+        if (botResponse) {
+          const botMsg: DbMessage = {
+            id: 'bot-' + crypto.randomUUID(),
+            author: 'AuroraChat Bot',
+            avatar: '🤖',
+            userId: 'bot',
+            content: botResponse.content,
+            timestamp: formatTimestamp(new Date().toISOString()),
+            isBot: true,
+          };
+          setMessages((prev) => [...prev, botMsg]);
+          // Refresh channels if lock/unlock was used
+          if (content.startsWith('/lock') || content.startsWith('/unlock')) {
+            fetchServers();
+          }
+          return;
+        }
+      }
+
+      // Check channel lock
+      if (channel?.is_locked && !isOwner) {
+        toast.error('Bu kanal kilitli. Mesaj gönderemezsiniz.');
+        return;
+      }
+
       const tempId = crypto.randomUUID();
       const optimisticMsg: DbMessage = {
         id: tempId,
@@ -800,7 +839,7 @@ const Index = () => {
         setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: data.id, status: undefined, attachments: attachmentUrls } : m));
       }
     },
-    [user, profile, activeServer, activeChannel]
+    [user, profile, activeServer, activeChannel, isOwner, members, channel, fetchServers]
   );
 
   const handleDeleteMessage = useCallback(
@@ -973,6 +1012,7 @@ const Index = () => {
               onTypingStart={handleTypingStart}
               onTypingStop={handleTypingStop}
               members={members}
+              isLocked={channel.is_locked}
             />
           )}
           {mobileView === 'members' && (
@@ -1034,6 +1074,7 @@ const Index = () => {
         onTypingStart={handleTypingStart}
         onTypingStop={handleTypingStop}
         members={members}
+        isLocked={channel.is_locked}
       />
       {showMembers && <MemberList members={members} />}
     </div>
