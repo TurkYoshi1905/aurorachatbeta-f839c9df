@@ -45,7 +45,7 @@ const GifImage = ({ url }: { url: string }) => {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <img src={url} alt="GIF" className="max-w-xs rounded-lg mt-1 cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" onClick={() => setOpen(true)} />
+      <img src={url} alt="GIF" className="max-w-[min(320px,100%)] rounded-lg mt-1 cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" onClick={() => setOpen(true)} />
       <ImageLightbox images={[url]} currentIndex={0} open={open} onOpenChange={setOpen} onIndexChange={() => {}} />
     </>
   );

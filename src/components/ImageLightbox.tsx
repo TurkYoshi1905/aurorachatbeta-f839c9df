@@ -157,13 +157,22 @@ const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange
     }
   }, [scale, goPrev, goNext]);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     const url = images[currentIndex];
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = url.split('/').pop() || 'image';
-    a.target = '_blank';
-    a.click();
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = url.split('/').pop()?.split('?')[0] || 'image';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
   };
 
   const handleOpenOriginal = () => {
