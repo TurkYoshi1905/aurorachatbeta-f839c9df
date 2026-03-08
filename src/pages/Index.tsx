@@ -162,6 +162,9 @@ const Index = () => {
   const [mobileView, setMobileView] = useState<MobileView>('channels');
   const [reactions, setReactions] = useState<Record<string, DbReaction[]>>({});
   const [typingUsers, setTypingUsers] = useState<{ userId: string; displayName: string }[]>([]);
+  const [activeThread, setActiveThread] = useState<{ messageId: string; author: string; content: string; threadId: string | null } | null>(null);
+  const [threadCounts, setThreadCounts] = useState<Record<string, number>>({});
+  const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>({});
   const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [activeDMUser, setActiveDMUser] = useState<{ userId: string; displayName: string; username: string; avatarUrl: string | null } | null>(null);
