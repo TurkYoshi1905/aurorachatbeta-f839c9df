@@ -27,7 +27,6 @@ const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
   const [channelDialogType, setChannelDialogType] = useState<'text' | 'voice'>('text');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const textChannels = channels.filter((c) => c.type === 'text');
   const voiceChannels = channels.filter((c) => c.type === 'voice');
 
