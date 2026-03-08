@@ -527,7 +527,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                 className="w-full bg-input rounded-2xl py-3 pl-4 pr-10 text-sm outline-none text-foreground placeholder:text-muted-foreground ring-1 ring-border focus:ring-primary/40 transition-all min-h-[44px]"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
-                <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
+                <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} serverEmojis={serverEmojis} />
               </div>
             </div>
 
