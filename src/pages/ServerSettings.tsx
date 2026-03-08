@@ -37,13 +37,45 @@ const ServerSettings = () => {
   const [loadingMembers, setLoadingMembers] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [categories, setCategories] = useState<{ id: string; name: string; position: number }[]>([]);
+  const [channelsList, setChannelsList] = useState<{ id: string; name: string; type: string; position: number; category_id: string | null }[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
   const tabs = [
     { id: 'general', label: t('serverSettings.general'), icon: Settings },
+    { id: 'channels', label: 'Kanallar', icon: Hash },
     { id: 'roles', label: t('serverSettings.rolesTab') || 'Roller', icon: Shield },
     { id: 'members', label: t('serverSettings.membersTab'), icon: Users },
     { id: 'audit', label: t('serverSettings.auditTab') || 'Denetim Kaydı', icon: ScrollText },
     { id: 'danger', label: t('serverSettings.dangerZone'), icon: Trash2 },
   ];
+
+  const fetchChannelsAndCategories = useCallback(async () => {
+    if (!serverId) return;
+    const { data: cats } = await supabase.from('channel_categories').select('*').eq('server_id', serverId).order('position');
+    const { data: chs } = await supabase.from('channels').select('*').eq('server_id', serverId).order('position');
+    if (cats) setCategories(cats as any);
+    if (chs) setChannelsList((chs as any[]).map(c => ({ id: c.id, name: c.name, type: c.type, position: c.position, category_id: c.category_id || null })));
+  }, [serverId]);
+
+  useEffect(() => { if (activeTab === 'channels') fetchChannelsAndCategories(); }, [activeTab, fetchChannelsAndCategories]);
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim() || !serverId) return;
+    await supabase.from('channel_categories').insert({ server_id: serverId, name: newCategoryName.trim(), position: categories.length });
+    setNewCategoryName('');
+    fetchChannelsAndCategories();
+  };
+
+  const handleDeleteCategory = async (catId: string) => {
+    await supabase.from('channel_categories').delete().eq('id', catId);
+    fetchChannelsAndCategories();
+  };
+
+  const handleDeleteChannel = async (channelId: string) => {
+    await supabase.from('channels').delete().eq('id', channelId);
+    fetchChannelsAndCategories();
+  };
 
   useEffect(() => {
     if (!serverId) return;
