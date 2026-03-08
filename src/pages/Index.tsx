@@ -203,7 +203,7 @@ const Index = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [myStatus]);
 
-
+  const fetchServers = useCallback(async () => {
     const { data: serversData } = await supabase
       .from('servers')
       .select('*')
