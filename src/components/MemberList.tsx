@@ -1,8 +1,9 @@
 import { DbMember } from '@/pages/Index';
 import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from '@/i18n';
+import UserProfileCard from './UserProfileCard';
 
-interface MemberListProps { members: DbMember[]; isMobile?: boolean; onBack?: () => void; }
+interface MemberListProps { members: DbMember[]; isMobile?: boolean; onBack?: () => void; serverId?: string; }
 
 const statusColor: Record<string, string> = { online: 'bg-status-online', idle: 'bg-status-idle', dnd: 'bg-status-dnd', offline: 'bg-muted-foreground' };
 
