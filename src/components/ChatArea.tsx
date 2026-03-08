@@ -66,7 +66,7 @@ export const renderMessageContent = (content: string) => {
     if (urlRegex.test(part)) {
       urlRegex.lastIndex = 0;
       if (isGiphyUrl(part)) {
-        return (<a key={i} href={part} target="_blank" rel="noopener noreferrer"><img src={part} alt="GIF" className="max-w-xs rounded-lg mt-1 inline-block cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" /></a>);
+        return <GifImage key={i} url={part} />;
       }
       return (<a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>);
     }
