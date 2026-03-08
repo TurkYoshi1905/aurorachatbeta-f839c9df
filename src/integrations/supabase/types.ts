@@ -92,6 +92,7 @@ export type Database = {
           category_id: string | null
           created_at: string
           id: string
+          is_locked: boolean
           name: string
           position: number
           server_id: string
@@ -101,6 +102,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           id?: string
+          is_locked?: boolean
           name: string
           position?: number
           server_id: string
@@ -110,6 +112,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           id?: string
+          is_locked?: boolean
           name?: string
           position?: number
           server_id?: string
@@ -302,6 +305,41 @@ export type Database = {
         }
         Relationships: []
       }
+      server_bans: {
+        Row: {
+          banned_by: string
+          created_at: string
+          id: string
+          reason: string | null
+          server_id: string
+          user_id: string
+        }
+        Insert: {
+          banned_by: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          server_id: string
+          user_id: string
+        }
+        Update: {
+          banned_by?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          server_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "server_bans_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       server_invites: {
         Row: {
           code: string
@@ -387,18 +425,21 @@ export type Database = {
           id: string
           joined_at: string
           server_id: string
+          timeout_until: string | null
           user_id: string
         }
         Insert: {
           id?: string
           joined_at?: string
           server_id: string
+          timeout_until?: string | null
           user_id: string
         }
         Update: {
           id?: string
           joined_at?: string
           server_id?: string
+          timeout_until?: string | null
           user_id?: string
         }
         Relationships: [
