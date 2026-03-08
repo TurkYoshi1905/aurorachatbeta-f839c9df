@@ -45,14 +45,21 @@ const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange
     }
   }, [hasNext, currentIndex, onIndexChange, scale, resetZoom]);
 
-  // Reset zoom and fade transition when image changes or dialog closes
+  // Two-phase fade transition when image changes
   useEffect(() => {
     resetZoom();
     if (prevIndex.current !== currentIndex) {
-      setFadeIn(false);
-      const t = setTimeout(() => setFadeIn(true), 20);
+      setAnimatingOut(true);
+      const t = setTimeout(() => {
+        setDisplayIndex(currentIndex);
+        requestAnimationFrame(() => {
+          setAnimatingOut(false);
+        });
+      }, 150);
       prevIndex.current = currentIndex;
       return () => clearTimeout(t);
+    } else {
+      setDisplayIndex(currentIndex);
     }
   }, [currentIndex, open, resetZoom]);
 
