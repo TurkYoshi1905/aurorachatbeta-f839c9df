@@ -44,9 +44,15 @@ const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange
     }
   }, [hasNext, currentIndex, onIndexChange, scale, resetZoom]);
 
-  // Reset zoom when image changes or dialog closes
+  // Reset zoom and fade transition when image changes or dialog closes
   useEffect(() => {
     resetZoom();
+    if (prevIndex.current !== currentIndex) {
+      setFadeIn(false);
+      const t = setTimeout(() => setFadeIn(true), 20);
+      prevIndex.current = currentIndex;
+      return () => clearTimeout(t);
+    }
   }, [currentIndex, open, resetZoom]);
 
   // Keyboard navigation
