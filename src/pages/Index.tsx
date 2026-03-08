@@ -885,7 +885,7 @@ const Index = () => {
         setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: data.id, status: undefined, attachments: attachmentUrls } : m));
       }
     },
-    [user, profile, activeServer, activeChannel, isOwner, members, channel, fetchServers]
+    [user, profile, activeServer, activeChannel, isOwner, members, channel, fetchServers, messages]
   );
 
   const handleDeleteMessage = useCallback(
