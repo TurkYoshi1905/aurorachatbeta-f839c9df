@@ -266,6 +266,20 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
     inputRef.current?.focus();
   }, [input]);
 
+  const handleEmojiAutocompleteSelect = useCallback((value: string, isCustom: boolean) => {
+    const cursorPos = inputRef.current?.selectionStart || input.length;
+    const textBeforeCursor = input.slice(0, cursorPos);
+    const emojiMatch = textBeforeCursor.match(/:([a-z0-9_]{2,})$/);
+    if (emojiMatch) {
+      const beforeEmoji = textBeforeCursor.slice(0, emojiMatch.index);
+      const afterCursor = input.slice(cursorPos);
+      setInput(`${beforeEmoji}${value} ${afterCursor}`);
+    }
+    setShowEmojiAutocomplete(false);
+    setEmojiAutocompleteQuery('');
+    inputRef.current?.focus();
+  }, [input]);
+
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
