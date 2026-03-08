@@ -1012,6 +1012,7 @@ const Index = () => {
               onTypingStart={handleTypingStart}
               onTypingStop={handleTypingStop}
               members={members}
+              isLocked={channel.is_locked}
             />
           )}
           {mobileView === 'members' && (
