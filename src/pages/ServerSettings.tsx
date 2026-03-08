@@ -515,7 +515,7 @@ const ServerSettings = () => {
                       <Plus className="w-4 h-4 mr-1" /> {emojiUploading ? 'Yükleniyor...' : 'Ekle'}
                     </Button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">Maks. 256KB, otomatik olarak optimize edilir. Kullanım: <code className="bg-secondary px-1 rounded">:emoji_adi:</code></p>
+                  <p className="text-[11px] text-muted-foreground">Maks. 256KB, otomatik olarak 64x64px'e optimize edilir. Kullanım: <code className="bg-secondary px-1 rounded">:emoji_adi:</code></p>
                 </div>
               )}
 
