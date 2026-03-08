@@ -23,6 +23,8 @@ const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '�
 const MAX_FILES = 3;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+interface ServerEmoji { id: string; name: string; image_url: string; }
+
 interface ChatAreaProps {
   channelName: string;
   messages: DbMessage[];
@@ -48,6 +50,7 @@ interface ChatAreaProps {
   threadCounts?: Record<string, number>;
   onOpenThread?: (messageId: string, author: string, content: string, threadId: string | null) => void;
   userPermissions?: Record<string, boolean>;
+  serverEmojis?: ServerEmoji[];
 }
 
 const isGiphyUrl = (url: string) => /giphy\.com\/media\/|\.giphy\.com\//i.test(url);
