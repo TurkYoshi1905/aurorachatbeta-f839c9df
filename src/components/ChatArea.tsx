@@ -324,6 +324,14 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
       <FileUploadPreview files={pendingFiles} onRemove={handleRemoveFile} />
 
       <div className="px-4 pb-6 relative">
+        {showSlashPopup && (
+          <SlashCommandPopup
+            query={slashQuery}
+            onSelect={handleSlashSelect}
+            onClose={() => setShowSlashPopup(false)}
+            isOwner={!!isOwner}
+          />
+        )}
         {showMentionPopup && members.length > 0 && (
           <MentionPopup
             query={mentionQuery}
@@ -333,17 +341,24 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
             position={{ bottom: 60, left: 16 }}
           />
         )}
-        <div className="bg-input rounded-xl flex items-center px-4 gap-2 ring-1 ring-border focus-within:ring-primary/40 transition-all">
-          <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
-          <button onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
-          <input ref={inputRef} type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => { if (e.key === 'Enter' && !showMentionPopup) handleSend(); }} placeholder={t('chat.messagePlaceholder', { channel: channelName })} className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground" />
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
-            <GifPicker onGifSelect={(url) => { onSendMessage(url); }} />
-            <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
-            {(input.trim() || pendingFiles.length > 0) && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
+        {isLocked && !isOwner ? (
+          <div className="bg-secondary/50 rounded-xl flex items-center justify-center px-4 py-3 gap-2 text-muted-foreground">
+            <Lock className="w-4 h-4" />
+            <span className="text-sm">Bu kanal kilitli. Yalnızca sunucu sahibi mesaj gönderebilir.</span>
           </div>
-        </div>
+        ) : (
+          <div className="bg-input rounded-xl flex items-center px-4 gap-2 ring-1 ring-border focus-within:ring-primary/40 transition-all">
+            <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+            <button onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
+            <input ref={inputRef} type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => { if (e.key === 'Enter' && !showMentionPopup && !showSlashPopup) handleSend(); }} placeholder={t('chat.messagePlaceholder', { channel: channelName })} className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground" />
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
+              <GifPicker onGifSelect={(url) => { onSendMessage(url); }} />
+              <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
+              {(input.trim() || pendingFiles.length > 0) && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
