@@ -165,6 +165,7 @@ const Index = () => {
   const [activeThread, setActiveThread] = useState<{ messageId: string; author: string; content: string; threadId: string | null } | null>(null);
   const [threadCounts, setThreadCounts] = useState<Record<string, number>>({});
   const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>({});
+  const [serverEmojis, setServerEmojis] = useState<{ id: string; name: string; image_url: string }[]>([]);
   const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [activeDMUser, setActiveDMUser] = useState<{ userId: string; displayName: string; username: string; avatarUrl: string | null } | null>(null);
