@@ -1,37 +1,138 @@
 
 
-## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
+## Plan: v0.2.0 — Thread Sistemi, Rol İzinleri & Gelişmiş Profil Kartı
 
-### 1. Black Screen Root Cause (CRITICAL)
+Bu plan 3 ana özellik içerir: Thread/Konu sistemi, Discord benzeri rol izinleri ve gelişmiş kullanıcı profil kartı.
 
-**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
+---
 
-**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
+### 1. Thread (Konu) Sistemi
 
-### 2. Server Deletion — Cascade via Foreign Keys
+**Veritabanı:**
+```sql
+CREATE TABLE public.threads (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id uuid NOT NULL REFERENCES public.messages(id) ON DELETE CASCADE,
+  channel_id uuid NOT NULL,
+  server_id uuid NOT NULL,
+  name text,
+  created_by uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 
-Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
+CREATE TABLE public.thread_messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  thread_id uuid NOT NULL REFERENCES public.threads(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL,
+  author_name text NOT NULL,
+  content text NOT NULL,
+  attachments text[],
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz
+);
+```
+- RLS: Sunucu üyeleri okuyabilir, giriş yapmış kullanıcılar yazabilir
+- Realtime: `thread_messages` tablosunu realtime'a ekle
 
-**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
-- `channels.server_id → servers.id ON DELETE CASCADE`
-- `messages.server_id → servers.id ON DELETE CASCADE`
-- `messages.channel_id → channels.id ON DELETE CASCADE`
-- `server_members.server_id → servers.id ON DELETE CASCADE`
-- `server_invites.server_id → servers.id ON DELETE CASCADE`
+**UI:**
+- `ChatArea.tsx`: Mesaj hover menüsüne "Konu Başlat" butonu ekle (MessageSquare ikonu)
+- Yeni `ThreadPanel.tsx` bileşeni: Sağ taraftan açılan panel (Sheet/side panel), thread mesajlarını listeler ve yeni mesaj gönderme input'u içerir
+- Bir mesajın altında kaç yanıt olduğunu gösteren küçük bir buton: "3 yanıt" → tıklanınca thread paneli açılır
+- Thread paneli açıkken MemberList gizlenir
 
-Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
+### 2. Rol & İzin Sistemi (Discord Benzeri)
 
-### 3. DM Real-time — Typing Channel Broadcast Fix
+**Veritabanı:**
+```sql
+-- server_roles tablosuna permissions sütunu ekle
+ALTER TABLE public.server_roles ADD COLUMN permissions jsonb NOT NULL DEFAULT '{}';
+```
 
-In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
+Permissions JSON yapısı:
+```json
+{
+  "manage_channels": false,
+  "manage_roles": false,
+  "kick_members": false,
+  "ban_members": false,
+  "manage_messages": false,
+  "pin_messages": false,
+  "mention_everyone": false
+}
+```
 
-**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
+**ServerSettings.tsx — Roles sekmesi güncelleme:**
+- Her role tıklandığında izin düzenleme paneli aç
+- Discord tarzı toggle switch'ler ile her izni aç/kapa
+- İzin kategorileri: Genel (kanal yönetimi, rol yönetimi), Üye (kick, ban), Metin (mesaj silme, sabitleme, @everyone)
 
-### File Changes
+**İzin kontrolü:**
+- `Index.tsx`'te mevcut `isOwner` kontrollerini genişlet: `isOwner || hasPermission('manage_messages')` gibi
+- Yeni yardımcı fonksiyon: `checkPermission(userRoles, permission)` — kullanıcının rollerinden herhangi birinde ilgili izin varsa true döner
+- Pin, delete, kick gibi aksiyonlar artık hem owner hem de ilgili izne sahip roller tarafından yapılabilir
 
-| File | Change |
+### 3. Kullanıcı Profil Kartı (Discord Benzeri)
+
+Mevcut `UserProfileCard.tsx` popover'ını genişlet:
+
+- **Banner**: Renkli gradient (mevcut) yerine kullanıcı özel banner rengi desteği (profil tablosuna `banner_color` sütunu ekle)
+- **Durum göstergesi**: Avatar'ın yanında online/idle/dnd/offline durumu göster (members listesinden aktarılacak)
+- **Bio/Hakkımda**: Profil tablosuna `bio` sütunu ekle, kartda göster
+- **Not alanı**: Kullanıcı başka bir kullanıcıya özel not yazabilsin (client-side localStorage)
+- **Mesaj gönder butonu**: Profil kartından direkt DM başlatma butonu
+
+**Veritabanı:**
+```sql
+ALTER TABLE public.profiles ADD COLUMN bio text DEFAULT '';
+ALTER TABLE public.profiles ADD COLUMN banner_color text DEFAULT '#5865F2';
+```
+
+**Profil kartı genişletilmiş görünüm:**
+```text
+┌─────────────────────────┐
+│  ████ BANNER ████████  │
+│  ┌──────┐               │
+│  │Avatar│ ● Online      │
+│  └──────┘               │
+│  Görünen Ad             │
+│  @kullaniciadi          │
+│  ─────────────────────  │
+│  HAKKIMDA               │
+│  Merhaba! Ben bir...    │
+│  ─────────────────────  │
+│  ROLLER                 │
+│  [Admin] [Moderatör]    │
+│  ─────────────────────  │
+│  ÜYE OLMA TARİHİ       │
+│  🗓️ 01 Oca 2026        │
+│  📥 15 Mar 2026         │
+│  ─────────────────────  │
+│  NOT                    │
+│  [not yaz...]           │
+│  ─────────────────────  │
+│  [📩 Mesaj Gönder]      │
+└─────────────────────────┘
+```
+
+### 4. Sürüm Notları & i18n
+
+- `changelogData.ts` ve `ReleaseNotesModal.tsx`: v0.2.0 güncelle
+- 6 dile yeni anahtarlar ekle: thread, permissions, profileCard genişletme
+
+---
+
+### Dosya Değişiklikleri
+
+| Dosya | Değişiklik |
 |---|---|
-| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
-| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
-| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
+| **SQL Migration** | `threads` + `thread_messages` tabloları, `permissions` jsonb sütunu, `bio` + `banner_color` profil sütunları |
+| `src/components/ThreadPanel.tsx` | **YENİ** — Thread mesaj paneli |
+| `src/components/ChatArea.tsx` | Thread başlatma butonu, thread yanıt sayısı gösterimi |
+| `src/pages/Index.tsx` | Thread state/handler'ları, permission kontrol fonksiyonu |
+| `src/pages/ServerSettings.tsx` | Rol izin düzenleme UI (toggle switch'ler) |
+| `src/components/UserProfileCard.tsx` | Banner, bio, durum, not, DM butonu |
+| `src/components/MemberList.tsx` | Profil kartına status bilgisi aktarımı |
+| `src/data/changelogData.ts` | v0.2.0 notları |
+| `src/components/ReleaseNotesModal.tsx` | Versiyon güncelle |
+| `src/i18n/*.ts` | 6 dilde yeni anahtarlar |
 
