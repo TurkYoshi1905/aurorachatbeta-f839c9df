@@ -31,6 +31,10 @@ export interface DbMessage {
   edited?: boolean;
   status?: 'sending' | 'failed';
   attachments?: string[];
+  replyTo?: string;
+  replyAuthor?: string;
+  replyContent?: string;
+  isPinned?: boolean;
 }
 
 export interface DbReaction {
