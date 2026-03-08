@@ -717,6 +717,10 @@ const Index = () => {
       .from('channels')
       .select('*')
       .order('position', { ascending: true });
+    const { data: categoriesData } = await supabase
+      .from('channel_categories')
+      .select('*')
+      .order('position', { ascending: true });
     if (serversData && channelsData) {
       const mapped: DbServer[] = serversData.map((s) => ({
         id: s.id,
@@ -725,7 +729,10 @@ const Index = () => {
         owner_id: s.owner_id,
         channels: channelsData
           .filter((c) => c.server_id === s.id)
-          .map((c) => ({ id: c.id, name: c.name, type: c.type as 'text' | 'voice', position: c.position })),
+          .map((c) => ({ id: c.id, name: c.name, type: c.type as 'text' | 'voice', position: c.position, category_id: (c as any).category_id || null })),
+        categories: (categoriesData || [])
+          .filter((cat: any) => cat.server_id === s.id)
+          .map((cat: any) => ({ id: cat.id, name: cat.name, position: cat.position, server_id: cat.server_id })),
       }));
       setServers(mapped);
       const last = mapped[mapped.length - 1];
@@ -744,9 +751,16 @@ const Index = () => {
   }, [fetchServers]);
 
   const handleChannelChange = useCallback((id: string) => {
+    // Check if it's a voice channel
+    const currentServer = servers.find(s => s.id === activeServer);
+    const ch = currentServer?.channels.find(c => c.id === id);
+    if (ch?.type === 'voice') {
+      voice.connect(id, ch.name);
+      return;
+    }
     setActiveChannel(id);
     if (isMobile) setMobileView('chat');
-  }, [isMobile]);
+  }, [isMobile, servers, activeServer, voice]);
 
   const handleSendMessage = useCallback(
     async (content: string, files?: File[]) => {
