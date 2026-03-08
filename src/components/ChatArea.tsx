@@ -326,7 +326,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
 
       <FileUploadPreview files={pendingFiles} onRemove={handleRemoveFile} />
 
-      <div className="px-4 pb-6 relative">
+      <div className={`px-4 relative ${isMobileDevice ? 'pb-[calc(env(safe-area-inset-bottom,0px)+12px)]' : 'pb-6'}`}>
         {showSlashPopup && (
           <SlashCommandPopup
             query={slashQuery}
@@ -349,7 +349,58 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
             <Lock className="w-4 h-4" />
             <span className="text-sm">Bu kanal kilitli. Yalnızca sunucu sahibi mesaj gönderebilir.</span>
           </div>
+        ) : isMobileDevice ? (
+          /* ===== MOBILE INPUT BAR ===== */
+          <div className="flex items-center gap-2">
+            {/* Plus menu: file + image + gif */}
+            <Popover open={plusMenuOpen} onOpenChange={setPlusMenuOpen}>
+              <PopoverTrigger asChild>
+                <button className="text-muted-foreground hover:text-foreground transition-colors shrink-0 p-1">
+                  <PlusCircle className="w-6 h-6" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="start" className="w-48 p-1.5 bg-popover border-border">
+                <button onClick={() => { fileInputRef.current?.click(); setPlusMenuOpen(false); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-colors">
+                  <ImagePlus className="w-4 h-4" /> Resim Ekle
+                </button>
+                <div className="w-full">
+                  <GifPicker onGifSelect={(url) => { onSendMessage(url); setPlusMenuOpen(false); }}>
+                    <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-colors">
+                      <img src="/src/assets/gif-icon.png" alt="GIF" className="w-4 h-4 opacity-70" /> GIF Gönder
+                    </button>
+                  </GifPicker>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+
+            {/* Input with emoji inside */}
+            <div className="flex-1 relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={handleInputChange}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !showMentionPopup && !showSlashPopup) handleSend(); }}
+                placeholder={t('chat.mobileMessagePlaceholder') || 'Mesaj gönder...'}
+                className="w-full bg-input rounded-2xl py-3 pl-4 pr-10 text-sm outline-none text-foreground placeholder:text-muted-foreground ring-1 ring-border focus:ring-primary/40 transition-all min-h-[44px]"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
+                <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
+              </div>
+            </div>
+
+            {/* Send button - always visible on mobile */}
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() && pendingFiles.length === 0}
+              className="shrink-0 p-2 rounded-full bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <SendHorizontal className="w-5 h-5" />
+            </button>
+          </div>
         ) : (
+          /* ===== DESKTOP INPUT BAR ===== */
           <div className="bg-input rounded-xl flex items-center px-4 gap-2 ring-1 ring-border focus-within:ring-primary/40 transition-all">
             <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
             <button onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
