@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { X, Settings, Users, Shield, ScrollText, Trash2, Camera, UserMinus, Plus, ArrowUp, ArrowDown, ChevronDown, Hash, Volume2, SmilePlus, Upload, Pencil, Check, Checkbox as CheckboxIcon } from 'lucide-react';
+import { X, Settings, Users, Shield, ScrollText, Trash2, Camera, UserMinus, Plus, ArrowUp, ArrowDown, ChevronDown, Hash, Volume2, SmilePlus, Upload, Pencil, Check } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
