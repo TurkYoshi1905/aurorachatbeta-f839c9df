@@ -302,7 +302,8 @@ const de = {
   },
   voice: { connected: 'Verbunden', connecting: 'Verbinden...', disconnect: 'Trennen' },
   common: { user: 'Benutzer', loading: 'Wird geladen...' },
-  profileCard: { roles: 'Rollen', memberSince: 'Mitglied seit' },
+  profileCard: { roles: 'Rollen', memberSince: 'Mitglied seit', aboutMe: 'Über mich', note: 'Notiz', notePlaceholder: 'Klicke um eine Notiz hinzuzufügen', sendMessage: 'Nachricht senden' },
+  thread: { title: 'Thread', startThread: 'Thread starten', replies: 'Antworten', noMessages: 'Noch keine Nachrichten. Starte die Unterhaltung!', messagePlaceholder: 'Im Thread antworten...' },
 };
 
 export default de;

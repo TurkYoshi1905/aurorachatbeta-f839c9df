@@ -16,6 +16,36 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.2.0',
+    date: '8 Mart 2026',
+    summary: 'Thread/Konu sistemi, Discord benzeri rol izinleri ve gelişmiş kullanıcı profil kartı.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Thread (Konu) Sistemi: Herhangi bir mesajdan konu başlat, sağ panelde yanıtla',
+          'Mesaj altında yanıt sayısı gösterimi ve tıklayarak konuya giriş',
+          'Rol İzin Sistemi: Discord benzeri izin toggle\'ları ile detaylı yetki yönetimi',
+          'İzin kategorileri: Kanal yönetimi, üye atma/yasaklama, mesaj silme/sabitleme',
+          'Gelişmiş Profil Kartı: Banner rengi, hakkımda bölümü, özel not alanı',
+          'Profil kartından direkt mesaj gönderme butonu',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Rol izinleri artık pin, delete ve kick aksiyonlarını kontrol ediyor',
+          'Profil tablosuna bio ve banner_color sütunları eklendi',
+          'Tüm çeviri dosyaları (6 dil) thread ve profil kartı için güncellendi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.9',
     date: '8 Mart 2026',
     summary: 'Mesaj yanıtlama, mesaj sabitleme ve kullanıcı profil kartı.',

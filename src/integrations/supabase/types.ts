@@ -288,6 +288,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          banner_color: string | null
+          bio: string | null
           created_at: string
           display_name: string
           id: string
@@ -298,6 +300,8 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          banner_color?: string | null
+          bio?: string | null
           created_at?: string
           display_name: string
           id?: string
@@ -308,6 +312,8 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          banner_color?: string | null
+          bio?: string | null
           created_at?: string
           display_name?: string
           id?: string
@@ -471,6 +477,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          permissions: Json
           position: number
           server_id: string
         }
@@ -479,6 +486,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          permissions?: Json
           position?: number
           server_id: string
         }
@@ -487,6 +495,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          permissions?: Json
           position?: number
           server_id?: string
         }
@@ -523,6 +532,99 @@ export type Database = {
           owner_id?: string | null
         }
         Relationships: []
+      }
+      thread_messages: {
+        Row: {
+          attachments: string[] | null
+          author_name: string
+          content: string
+          created_at: string
+          id: string
+          thread_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attachments?: string[] | null
+          author_name: string
+          content: string
+          created_at?: string
+          id?: string
+          thread_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attachments?: string[] | null
+          author_name?: string
+          content?: string
+          created_at?: string
+          id?: string
+          thread_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      threads: {
+        Row: {
+          channel_id: string
+          created_at: string
+          created_by: string
+          id: string
+          message_id: string
+          name: string | null
+          server_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          message_id: string
+          name?: string | null
+          server_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          message_id?: string
+          name?: string | null
+          server_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "threads_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "threads_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "threads_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

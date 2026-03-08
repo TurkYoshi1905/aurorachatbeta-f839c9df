@@ -9,12 +9,29 @@ import { X, Settings, Users, Shield, ScrollText, Trash2, Camera, UserMinus, Plus
 import { useTranslation } from '@/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
 
 interface Member { id: string; user_id: string; display_name: string; avatar_url: string | null; roles: { id: string; name: string; color: string }[]; }
-interface Role { id: string; name: string; color: string; position: number; }
+interface Role { id: string; name: string; color: string; position: number; permissions: Record<string, boolean>; }
 interface AuditLog { id: string; action: string; user_id: string; target_type: string | null; details: any; created_at: string; user_name?: string; }
 
 const PRESET_COLORS = ['#E74C3C', '#E91E63', '#9B59B6', '#8E44AD', '#3498DB', '#2196F3', '#1ABC9C', '#2ECC71', '#F1C40F', '#FF9800', '#E67E22', '#95A5A6', '#607D8B', '#99AAB5'];
+
+const PERMISSION_CATEGORIES = [
+  { label: 'Genel', permissions: [
+    { key: 'manage_channels', label: 'Kanal Yönetimi' },
+    { key: 'manage_roles', label: 'Rol Yönetimi' },
+  ]},
+  { label: 'Üye', permissions: [
+    { key: 'kick_members', label: 'Üye Atma' },
+    { key: 'ban_members', label: 'Üye Yasaklama' },
+  ]},
+  { label: 'Metin', permissions: [
+    { key: 'manage_messages', label: 'Mesaj Silme' },
+    { key: 'pin_messages', label: 'Mesaj Sabitleme' },
+    { key: 'mention_everyone', label: '@everyone Etiketleme' },
+  ]},
+];
 
 const ServerSettings = () => {
   const { serverId } = useParams<{ serverId: string }>();
@@ -34,6 +51,7 @@ const ServerSettings = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleColor, setNewRoleColor] = useState('#3498DB');
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -90,8 +108,19 @@ const ServerSettings = () => {
   const fetchRoles = useCallback(async () => {
     if (!serverId) return;
     const { data } = await supabase.from('server_roles').select('*').eq('server_id', serverId).order('position', { ascending: false });
-    if (data) setRoles(data as Role[]);
+    if (data) setRoles(data.map((r: any) => ({ ...r, permissions: r.permissions || {} })));
   }, [serverId]);
+
+  const handleUpdatePermission = async (roleId: string, permKey: string, value: boolean) => {
+    const role = roles.find(r => r.id === roleId);
+    if (!role) return;
+    const newPerms = { ...role.permissions, [permKey]: value };
+    const { error } = await supabase.from('server_roles').update({ permissions: newPerms } as any).eq('id', roleId);
+    if (!error) {
+      setRoles(prev => prev.map(r => r.id === roleId ? { ...r, permissions: newPerms } : r));
+      if (editingRole?.id === roleId) setEditingRole({ ...editingRole, permissions: newPerms });
+    }
+  };
 
   const fetchMembers = useCallback(async () => {
     if (!serverId) return;
@@ -332,14 +361,39 @@ const ServerSettings = () => {
               <div className="space-y-2">
                 {roles.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Henüz rol oluşturulmamış</p>}
                 {roles.map((role, idx) => (
-                  <div key={role.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-card">
-                    <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: role.color }} />
-                    <span className="flex-1 text-sm font-medium text-foreground">{role.name}</span>
-                    {isOwner && (
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => handleMoveRole(role.id, 'up')} disabled={idx === 0} className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => handleMoveRole(role.id, 'down')} disabled={idx === roles.length - 1} className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => handleDeleteRole(role.id)} className="p-1 text-destructive hover:text-destructive/80"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <div key={role.id} className="rounded-lg border border-border bg-card">
+                    <div className="flex items-center gap-3 px-3 py-2.5">
+                      <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: role.color }} />
+                      <span className="flex-1 text-sm font-medium text-foreground">{role.name}</span>
+                      {isOwner && (
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setEditingRole(editingRole?.id === role.id ? null : role)} className={`p-1 rounded text-muted-foreground hover:text-foreground ${editingRole?.id === role.id ? 'bg-secondary text-foreground' : ''}`}><Shield className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => handleMoveRole(role.id, 'up')} disabled={idx === 0} className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => handleMoveRole(role.id, 'down')} disabled={idx === roles.length - 1} className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => handleDeleteRole(role.id)} className="p-1 text-destructive hover:text-destructive/80"><Trash2 className="w-3.5 h-3.5" /></button>
+                        </div>
+                      )}
+                    </div>
+                    {/* Permission editor */}
+                    {editingRole?.id === role.id && isOwner && (
+                      <div className="px-3 pb-3 pt-1 border-t border-border space-y-3">
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">İzinler</p>
+                        {PERMISSION_CATEGORIES.map(cat => (
+                          <div key={cat.label}>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">{cat.label}</p>
+                            <div className="space-y-1.5">
+                              {cat.permissions.map(perm => (
+                                <div key={perm.key} className="flex items-center justify-between">
+                                  <span className="text-xs text-foreground">{perm.label}</span>
+                                  <Switch
+                                    checked={!!role.permissions[perm.key]}
+                                    onCheckedChange={(v) => handleUpdatePermission(role.id, perm.key, v)}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

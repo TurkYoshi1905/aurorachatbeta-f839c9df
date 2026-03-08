@@ -302,7 +302,8 @@ const az = {
   },
   voice: { connected: 'Qoşuldu', connecting: 'Qoşulur...', disconnect: 'Bağlantını Kəs' },
   common: { user: 'İstifadəçi', loading: 'Yüklənir...' },
-  profileCard: { roles: 'Rollar', memberSince: 'Üzv olma tarixi' },
+  profileCard: { roles: 'Rollar', memberSince: 'Üzv olma tarixi', aboutMe: 'Haqqımda', note: 'Qeyd', notePlaceholder: 'Qeyd əlavə etmək üçün klikləyin', sendMessage: 'Mesaj Göndər' },
+  thread: { title: 'Mövzu', startThread: 'Mövzu Başlat', replies: 'cavab', noMessages: 'Hələ mesaj yoxdur. Söhbəti başladın!', messagePlaceholder: 'Mövzuya cavab yaz...' },
 };
 
 export default az;

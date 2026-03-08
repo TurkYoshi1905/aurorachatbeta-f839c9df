@@ -316,6 +316,17 @@ const en = {
   profileCard: {
     roles: 'Roles',
     memberSince: 'Member Since',
+    aboutMe: 'About Me',
+    note: 'Note',
+    notePlaceholder: 'Click to add a note',
+    sendMessage: 'Send Message',
+  },
+  thread: {
+    title: 'Thread',
+    startThread: 'Start Thread',
+    replies: 'replies',
+    noMessages: 'No messages yet. Start the conversation!',
+    messagePlaceholder: 'Reply in thread...',
   },
 };
 

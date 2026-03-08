@@ -354,6 +354,17 @@ const tr = {
   profileCard: {
     roles: 'Roller',
     memberSince: 'Üyelik Tarihi',
+    aboutMe: 'Hakkımda',
+    note: 'Not',
+    notePlaceholder: 'Not eklemek için tıkla',
+    sendMessage: 'Mesaj Gönder',
+  },
+  thread: {
+    title: 'Konu',
+    startThread: 'Konu Başlat',
+    replies: 'yanıt',
+    noMessages: 'Henüz mesaj yok. Sohbeti başlat!',
+    messagePlaceholder: 'Konuya yanıt yaz...',
   },
 };
 

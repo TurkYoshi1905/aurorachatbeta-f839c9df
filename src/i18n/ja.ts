@@ -302,7 +302,8 @@ const ja = {
   },
   voice: { connected: '接続済み', connecting: '接続中...', disconnect: '切断' },
   common: { user: 'ユーザー', loading: '読み込み中...' },
-  profileCard: { roles: 'ロール', memberSince: '参加日' },
+  profileCard: { roles: 'ロール', memberSince: '参加日', aboutMe: '自己紹介', note: 'メモ', notePlaceholder: 'クリックしてメモを追加', sendMessage: 'メッセージを送信' },
+  thread: { title: 'スレッド', startThread: 'スレッドを開始', replies: '件の返信', noMessages: 'まだメッセージはありません。会話を始めましょう！', messagePlaceholder: 'スレッドに返信...' },
 };
 
 export default ja;

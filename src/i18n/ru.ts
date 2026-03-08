@@ -302,7 +302,8 @@ const ru = {
   },
   voice: { connected: 'Подключено', connecting: 'Подключение...', disconnect: 'Отключить' },
   common: { user: 'Пользователь', loading: 'Загрузка...' },
-  profileCard: { roles: 'Роли', memberSince: 'Участник с' },
+  profileCard: { roles: 'Роли', memberSince: 'Участник с', aboutMe: 'Обо мне', note: 'Заметка', notePlaceholder: 'Нажмите, чтобы добавить заметку', sendMessage: 'Отправить сообщение' },
+  thread: { title: 'Тема', startThread: 'Начать тему', replies: 'ответов', noMessages: 'Пока нет сообщений. Начните разговор!', messagePlaceholder: 'Ответить в теме...' },
 };
 
 export default ru;
