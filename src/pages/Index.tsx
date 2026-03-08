@@ -1118,6 +1118,9 @@ const Index = () => {
               onPinMessage={handlePinMessage}
               onUnpinMessage={handleUnpinMessage}
               serverId={activeServer}
+              threadCounts={threadCounts}
+              onOpenThread={handleOpenThread}
+              userPermissions={userPermissions}
             />
           )}
           {mobileView === 'members' && (
