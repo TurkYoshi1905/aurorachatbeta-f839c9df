@@ -30,7 +30,7 @@ interface RoleData {
   color: string;
 }
 
-const dateLocaleMap: Record<string, Locale> = { tr: trLocale, en: enUS, az: trLocale, ru: ruLocale, ja: jaLocale, de: deLocale };
+const dateLocaleMap: Record<string, any> = { tr: trLocale, en: enUS, az: trLocale, ru: ruLocale, ja: jaLocale, de: deLocale };
 
 const statusConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
   online: { icon: <Circle className="w-3 h-3 text-status-online fill-status-online" />, label: 'Çevrimiçi', color: 'text-status-online' },
