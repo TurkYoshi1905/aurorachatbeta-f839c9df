@@ -122,7 +122,7 @@ const UserInfoPanel = ({ currentUserStatus = 'offline', onStatusChange }: UserIn
         {/* Headphones button with device dropdown */}
         <div className="flex items-center">
           <button onClick={handleToggleDeafen} className={`p-1.5 rounded-l hover:bg-secondary/60 transition-colors ${deafened ? 'text-destructive' : 'text-muted-foreground hover:text-foreground'}`}>
-            {deafened ? <HeadphonesOff className="w-4 h-4" /> : <Headphones className="w-4 h-4" />}
+            {deafened ? <HeadphoneOff className="w-4 h-4" /> : <Headphones className="w-4 h-4" />}
           </button>
           <Popover open={speakerDevicesOpen} onOpenChange={setSpeakerDevicesOpen}>
             <PopoverTrigger asChild>
