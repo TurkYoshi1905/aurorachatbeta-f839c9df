@@ -101,6 +101,7 @@ const tr = {
     welcomeChannel: '#{channel} kanalına hoş geldiniz!',
     channelStart: 'Bu #{channel} kanalının başlangıcıdır.',
     messagePlaceholder: '#{channel} kanalına mesaj gönder',
+    mobileMessagePlaceholder: 'Mesaj gönder...',
     search: 'Ara',
     edited: '(Düzenlendi)',
     addReaction: 'Tepki Ekle',
