@@ -250,7 +250,8 @@ const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange
             className="max-w-[90vw] max-h-[80vh] object-contain pointer-events-none"
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-              transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+              transition: isDragging ? 'none' : 'transform 0.2s ease-out, opacity 0.3s ease-in-out',
+              opacity: fadeIn ? 1 : 0,
             }}
             draggable={false}
           />
