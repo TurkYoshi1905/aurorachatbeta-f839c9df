@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Send, PlusCircle, SmilePlus, Pencil, Trash2, Check, X, ImagePlus } from 'lucide-react';
+import { ArrowLeft, Send, PlusCircle, Pencil, Trash2, Check, X, ImagePlus } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -12,6 +12,8 @@ import { renderMessageContent } from './ChatArea';
 import MessageAttachments from './MessageAttachments';
 import FileUploadPreview from './FileUploadPreview';
 import { toast } from 'sonner';
+import EmojiPicker from './EmojiPicker';
+import GifPicker from './GifPicker';
 
 const MAX_FILES = 3;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
