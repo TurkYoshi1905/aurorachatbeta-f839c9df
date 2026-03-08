@@ -171,7 +171,6 @@ const EmojiPicker = ({ onEmojiSelect, children, serverEmojis = [] }: EmojiPicker
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(serverEmojis.length > 0 ? -1 : 0);
-  const [activeCategory, setActiveCategory] = useState(0);
 
   const filteredEmojis = useMemo(() => {
     if (!search.trim()) return null;
