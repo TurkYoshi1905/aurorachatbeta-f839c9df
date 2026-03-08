@@ -1,37 +1,42 @@
 
 
-## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
+## Plan: Discord Tarzı Gelişmiş Lightbox + v0.1.2 Changelog
 
-### 1. Black Screen Root Cause (CRITICAL)
+### 1. `src/components/ImageLightbox.tsx` — Tamamen yeniden yaz
 
-**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
+**Zoom & Pan desteği:**
+- `useState` ile `scale` ve `position` (x, y) state'leri
+- Mouse wheel → `scale` değiştir (1x–5x arası, step 0.25)
+- Mouse drag (mousedown/mousemove/mouseup) → pan (sadece scale > 1 iken)
+- Mobilde: `onTouchStart/onTouchMove/onTouchEnd` ile pinch-to-zoom ve tek parmak sürükleme
+- Çift tıklama ile zoom reset
 
-**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
+**Mobil swipe ile galeri geçişi:**
+- Touch start/end X koordinat farkı > 50px ise önceki/sonraki resme geç (sadece scale === 1 iken)
 
-### 2. Server Deletion — Cascade via Foreign Keys
+**Alt bar (Discord tarzı):**
+- Resmin altında yarı saydam bar: "Orijinali Aç" (yeni sekmede açar) + "İndir" butonları
+- Sayfa numarası göstergesi: `2 / 5`
 
-Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
+**Arka plan:**
+- `bg-black/90 backdrop-blur-xl` (derin bulanıklık)
+- ESC tuşu zaten mevcut, korunacak
 
-**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
-- `channels.server_id → servers.id ON DELETE CASCADE`
-- `messages.server_id → servers.id ON DELETE CASCADE`
-- `messages.channel_id → channels.id ON DELETE CASCADE`
-- `server_members.server_id → servers.id ON DELETE CASCADE`
-- `server_invites.server_id → servers.id ON DELETE CASCADE`
+**Ok tuşları ve galeri:**
+- Mevcut sol/sağ ok tuşları ve dot göstergeleri korunacak
+- Zoom aktifken ok tuşları devre dışı
 
-Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
+### 2. `src/data/changelogData.ts` — v0.1.2 ekle
 
-### 3. DM Real-time — Typing Channel Broadcast Fix
+Array'in başına yeni sürüm:
+- Version: `0.1.2`, Date: `8 Mart 2026`
+- Yeni Özellikler: Discord tarzı lightbox (zoom, pan, swipe, galeri modu), Giphy entegrasyonu
+- Geliştirmeler: Lightbox backdrop-blur, mobil touch desteği
 
-In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
+### Dosyalar
 
-**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
-
-### File Changes
-
-| File | Change |
+| Dosya | İşlem |
 |---|---|
-| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
-| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
-| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
+| `src/components/ImageLightbox.tsx` | Zoom/pan/swipe/alt bar ekle, tamamen yeniden yaz |
+| `src/data/changelogData.ts` | v0.1.2 changelog ekle |
 
