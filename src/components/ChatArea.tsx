@@ -548,7 +548,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
             <div className="flex items-center gap-2 text-muted-foreground">
               <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
               <GifPicker onGifSelect={(url) => { onSendMessage(url); }} />
-              <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
+              <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} serverEmojis={serverEmojis} />
               {(input.trim() || pendingFiles.length > 0) && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
             </div>
           </div>
