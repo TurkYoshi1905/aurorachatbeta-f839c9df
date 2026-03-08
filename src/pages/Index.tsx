@@ -340,6 +340,17 @@ const Index = () => {
               });
               return;
             }
+            // Check for @mention notification
+            if (m.content && userRef.current && profile?.username) {
+              const mentionPattern = `@${profile.username}`;
+              if (m.content.includes(mentionPattern) && document.hidden) {
+                if (Notification.permission === 'granted') {
+                  new Notification(`${m.author_name} seni etiketledi`, { body: m.content, icon: '/favicon.ico' });
+                } else if (Notification.permission === 'default') {
+                  Notification.requestPermission();
+                }
+              }
+            }
             // Fetch avatar url for the message author
             const { data: prof } = await supabase
               .from('profiles')
