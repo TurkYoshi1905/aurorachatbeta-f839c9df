@@ -30,14 +30,24 @@ interface RoleData {
   color: string;
 }
 
+const dateLocaleMap: Record<string, Locale> = { tr: trLocale, en: enUS, az: trLocale, ru: ruLocale, ja: jaLocale, de: deLocale };
+
+const statusConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+  online: { icon: <Circle className="w-3 h-3 text-status-online fill-status-online" />, label: 'Çevrimiçi', color: 'text-status-online' },
+  idle: { icon: <Moon className="w-3 h-3 text-status-idle fill-status-idle" />, label: 'Boşta', color: 'text-status-idle' },
+  dnd: { icon: <MinusCircle className="w-3 h-3 text-status-dnd fill-status-dnd" />, label: 'Rahatsız Etmeyin', color: 'text-status-dnd' },
+  offline: { icon: <EyeOff className="w-3 h-3 text-muted-foreground" />, label: 'Çevrimdışı', color: 'text-muted-foreground' },
+};
+
 const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProfileCardProps) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const isMobile = useIsMobile();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [roles, setRoles] = useState<RoleData[]>([]);
   const [joinedAt, setJoinedAt] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
+  const [userStatus, setUserStatus] = useState<string>('offline');
 
   useEffect(() => {
     if (!open || !userId) return;
