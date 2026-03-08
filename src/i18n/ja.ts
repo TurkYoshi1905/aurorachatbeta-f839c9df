@@ -91,6 +91,7 @@ const ja = {
     welcomeChannel: '#{channel}へようこそ！',
     channelStart: 'ここは#{channel}の始まりです。',
     messagePlaceholder: '#{channel}にメッセージを送信',
+    mobileMessagePlaceholder: 'メッセージを送信...',
     search: '検索',
     edited: '(編集済み)',
     addReaction: 'リアクションを追加',

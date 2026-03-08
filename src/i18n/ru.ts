@@ -91,6 +91,7 @@ const ru = {
     welcomeChannel: 'Добро пожаловать в #{channel}!',
     channelStart: 'Это начало канала #{channel}.',
     messagePlaceholder: 'Написать в #{channel}',
+    mobileMessagePlaceholder: 'Написать сообщение...',
     search: 'Поиск',
     edited: '(Изменено)',
     addReaction: 'Добавить реакцию',

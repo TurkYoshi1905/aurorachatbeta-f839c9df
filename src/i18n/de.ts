@@ -91,6 +91,7 @@ const de = {
     welcomeChannel: 'Willkommen in #{channel}!',
     channelStart: 'Dies ist der Anfang von #{channel}.',
     messagePlaceholder: 'Nachricht an #{channel} senden',
+    mobileMessagePlaceholder: 'Nachricht senden...',
     search: 'Suchen',
     edited: '(Bearbeitet)',
     addReaction: 'Reaktion hinzufügen',
