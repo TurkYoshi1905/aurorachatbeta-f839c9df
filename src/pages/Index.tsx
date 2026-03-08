@@ -846,6 +846,7 @@ const Index = () => {
       }
 
       const tempId = crypto.randomUUID();
+      const replyMsg = replyTo ? messages.find(m => m.id === replyTo) : undefined;
       const optimisticMsg: DbMessage = {
         id: tempId,
         author: profile.display_name,
@@ -856,6 +857,9 @@ const Index = () => {
         timestamp: formatTimestamp(new Date().toISOString()),
         edited: false,
         status: 'sending',
+        replyTo: replyTo || undefined,
+        replyAuthor: replyMsg?.author,
+        replyContent: replyMsg?.content,
       };
       setMessages((prev) => [...prev, optimisticMsg]);
 
@@ -881,7 +885,7 @@ const Index = () => {
         setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, id: data.id, status: undefined, attachments: attachmentUrls } : m));
       }
     },
-    [user, profile, activeServer, activeChannel, isOwner, members, channel, fetchServers]
+    [user, profile, activeServer, activeChannel, isOwner, members, channel, fetchServers, messages]
   );
 
   const handleDeleteMessage = useCallback(
@@ -1139,6 +1143,21 @@ const Index = () => {
             <MemberList members={members} isMobile onBack={() => setMobileView('chat')} serverId={activeServer} />
           )}
         </div>
+        {activeThread && (
+          <Sheet open={!!activeThread} onOpenChange={(open) => { if (!open) setActiveThread(null); }}>
+            <SheetContent side="bottom" className="p-0 h-[85dvh] rounded-t-xl">
+              <ThreadPanel
+                threadId={activeThread.threadId}
+                messageId={activeThread.messageId}
+                channelId={activeChannel}
+                serverId={activeServer}
+                messageAuthor={activeThread.author}
+                messageContent={activeThread.content}
+                onClose={() => setActiveThread(null)}
+              />
+            </SheetContent>
+          </Sheet>
+        )}
         <MobileBottomNav
           activeView={mobileView}
           onHome={() => handleServerChange('home')}
