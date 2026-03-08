@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import EmojiPicker from './EmojiPicker';
 import GifPicker from './GifPicker';
 import MentionPopup from './MentionPopup';
+import SlashCommandPopup from './SlashCommandPopup';
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👀', '💯', '✅', '❌', '🤔', '👏', '💪', '🙏', '😎', '🥳', '💀', '😭', '🫡', '👎', '💜', '🧡'];
 
