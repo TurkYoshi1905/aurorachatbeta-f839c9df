@@ -303,14 +303,7 @@ const Settings = () => {
                   <div className="flex items-center gap-3"><RadioGroupItem value="none" id="fr-none" /><Label htmlFor="fr-none" className="text-sm cursor-pointer">{t('settings.nobody')}</Label></div>
                 </RadioGroup>
               </div>
-              <div className="rounded-xl border border-border bg-card p-4 md:p-5 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-muted-foreground" />
-                  <p className="text-sm font-semibold text-foreground">{t('settings.twoFactor')}</p>
-                </div>
-                <p className="text-xs text-muted-foreground">{t('settings.twoFactorDesc')}</p>
-                <Button variant="outline" size="sm" disabled>{t('settings.comingSoon')}</Button>
-              </div>
+              <TwoFactorSection />
               <div className="rounded-xl border border-border bg-card p-4 md:p-5">
                 <button onClick={() => navigate('/privacy-policy')} className="flex items-center gap-2 text-sm text-primary hover:underline">
                   <ExternalLink className="w-3.5 h-3.5" />
