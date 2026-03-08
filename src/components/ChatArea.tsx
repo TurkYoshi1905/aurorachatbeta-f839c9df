@@ -113,9 +113,37 @@ export const renderMessageContent = (content: string, currentUserId?: string, se
   while ((urlMatch = urlScanRegex.exec(content)) !== null) { allUrls.push(urlMatch[1]); }
   const inviteUrlRegex = /https?:\/\/[^\s]+invite\/[a-zA-Z0-9]+/;
   const nonInviteUrls = allUrls.filter((u) => !inviteUrlRegex.test(u) && !isGiphyUrl(u));
+  // Process custom server emojis :name: pattern
+  const processCustomEmojis = (node: React.ReactNode): React.ReactNode => {
+    if (typeof node !== 'string') return node;
+    if (!serverEmojis || serverEmojis.length === 0) return node;
+    const emojiRegex = /:([a-z0-9_]+):/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = emojiRegex.exec(node)) !== null) {
+      const emoji = serverEmojis.find(e => e.name === match![1]);
+      if (emoji) {
+        if (match.index > lastIndex) parts.push(node.slice(lastIndex, match.index));
+        parts.push(<img key={`emoji-${match.index}`} src={emoji.image_url} alt={`:${emoji.name}:`} title={`:${emoji.name}:`} className="inline-block w-6 h-6 object-contain align-middle mx-0.5" />);
+        lastIndex = match.index + match[0].length;
+      }
+    }
+    if (lastIndex === 0) return node;
+    if (lastIndex < node.length) parts.push(node.slice(lastIndex));
+    return <>{parts}</>;
+  };
+
   return (
     <>
-      <p className="text-sm text-secondary-foreground leading-relaxed">{elements}</p>
+      <p className="text-sm text-secondary-foreground leading-relaxed">{elements.map((el, i) => {
+        if (typeof el === 'string') return <span key={i}>{processCustomEmojis(el)}</span>;
+        if (el && typeof el === 'object' && 'props' in el && el.props?.children) {
+          // For span elements containing text
+          return el;
+        }
+        return el;
+      })}</p>
       {embeds.length > 0 && <div className="flex flex-col gap-1">{embeds}</div>}
       {nonInviteUrls.map((u) => (<LinkEmbed key={u} url={u} />))}
     </>
