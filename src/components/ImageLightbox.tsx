@@ -13,7 +13,8 @@ interface ImageLightboxProps {
 const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange }: ImageLightboxProps) => {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [fadeIn, setFadeIn] = useState(true);
+  const [animatingOut, setAnimatingOut] = useState(false);
+  const [displayIndex, setDisplayIndex] = useState(currentIndex);
   const prevIndex = useRef(currentIndex);
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
@@ -44,14 +45,21 @@ const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange
     }
   }, [hasNext, currentIndex, onIndexChange, scale, resetZoom]);
 
-  // Reset zoom and fade transition when image changes or dialog closes
+  // Two-phase fade transition when image changes
   useEffect(() => {
     resetZoom();
     if (prevIndex.current !== currentIndex) {
-      setFadeIn(false);
-      const t = setTimeout(() => setFadeIn(true), 20);
+      setAnimatingOut(true);
+      const t = setTimeout(() => {
+        setDisplayIndex(currentIndex);
+        requestAnimationFrame(() => {
+          setAnimatingOut(false);
+        });
+      }, 150);
       prevIndex.current = currentIndex;
       return () => clearTimeout(t);
+    } else {
+      setDisplayIndex(currentIndex);
     }
   }, [currentIndex, open, resetZoom]);
 
@@ -245,13 +253,13 @@ const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange
           style={{ cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default', touchAction: 'none' }}
         >
           <img
-            src={images[currentIndex]}
+            src={images[displayIndex]}
             alt=""
             className="max-w-[90vw] max-h-[80vh] object-contain pointer-events-none"
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
               transition: isDragging ? 'none' : 'transform 0.2s ease-out, opacity 0.3s ease-in-out',
-              opacity: fadeIn ? 1 : 0,
+              opacity: animatingOut ? 0 : 1,
             }}
             draggable={false}
           />
