@@ -16,6 +16,32 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.1.5',
+    date: '8 Mart 2026',
+    summary: 'Navigasyon döngüsü düzeltmeleri, kanal yönetimi iyileştirmeleri ve sesli sohbet stabilitesi.',
+    sections: [
+      {
+        title: 'Düzeltmeler',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Ayarlar sayfasına girerken oluşan sonsuz yükleme ekranı döngüsü (Splash Screen Loop) giderildi',
+          'Sunucu ayarlarında kanalların kategorilere sürüklenememesi sorunu çözüldü',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Uygulama içi navigasyon hızı artırıldı; sayfalar arası geçiş artık anlık',
+          'Kanal ve kategori hiyerarşisi, görsel olarak daha anlaşılır hale getirildi',
+          'Sesli kanallar arası geçişte eski bağlantı temizlenerek stabilite artırıldı',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.4',
     date: '8 Mart 2026',
     summary: 'WebRTC sesli sohbet, kanal kategorileri, @etiketleme ve akıllı yükleme ekranı.',

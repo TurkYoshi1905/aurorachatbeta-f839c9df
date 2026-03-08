@@ -142,7 +142,7 @@ const ChannelList = ({ serverName, serverId, serverIcon, channels, categories = 
                   {cat.name}
                 </p>
               </button>
-              {!isCollapsed && catChannels.map(renderChannel)}
+              {!isCollapsed && <div className="pl-2">{catChannels.map(renderChannel)}</div>}
             </div>
           );
         })}

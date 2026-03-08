@@ -130,7 +130,7 @@ const ServerSettings = () => {
   useEffect(() => { if (activeTab === 'audit') fetchAuditLogs(); }, [activeTab, fetchAuditLogs]);
 
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') navigate('/'); };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (window.history.length > 1) navigate(-1); else navigate('/'); } };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [navigate]);
@@ -238,7 +238,7 @@ const ServerSettings = () => {
     <div className="h-screen flex flex-col md:flex-row bg-background text-foreground overflow-hidden">
       {isMobile && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-sidebar overflow-x-auto shrink-0">
-          <button onClick={() => navigate('/')} className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0">
+          <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate('/'); }} className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0">
             <X className="w-4 h-4" />
           </button>
           {tabs.map(tab => (
@@ -261,7 +261,7 @@ const ServerSettings = () => {
               </button>
             ))}
             <div className="border-t border-border my-2" />
-            <button onClick={() => navigate('/')} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50">
+            <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate('/'); }} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50">
               <X className="w-4 h-4" /> Geri
             </button>
           </div>
@@ -269,7 +269,7 @@ const ServerSettings = () => {
       )}
 
       {!isMobile && (
-        <button onClick={() => navigate('/')} className="absolute top-6 right-6 w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors z-10">
+        <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate('/'); }} className="absolute top-6 right-6 w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors z-10">
           <X className="w-5 h-5" />
         </button>
       )}
@@ -451,6 +451,7 @@ const ServerSettings = () => {
                   </div>
                 </div>
               )}
+              <p className="text-xs text-muted-foreground">Kanalları kategoriler arasında taşımak için aşağıdaki açılır menüyü kullanın.</p>
               {channelsList.filter(c => !c.category_id).length > 0 && (
                 <div className="space-y-1">
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Kategorisiz</p>
@@ -458,7 +459,22 @@ const ServerSettings = () => {
                     <div key={ch.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card">
                       {ch.type === 'voice' ? <Volume2 className="w-4 h-4 text-muted-foreground" /> : <Hash className="w-4 h-4 text-muted-foreground" />}
                       <span className="flex-1 text-sm text-foreground">{ch.name}</span>
-                      <span className="text-[10px] text-muted-foreground uppercase">{ch.type}</span>
+                      {isOwner && categories.length > 0 && (
+                        <select
+                          className="text-xs bg-secondary border border-border rounded px-1.5 py-1 text-foreground"
+                          value=""
+                          onChange={async (e) => {
+                            const catId = e.target.value;
+                            if (!catId) return;
+                            const targetChannels = channelsList.filter(c => c.category_id === catId);
+                            await supabase.from('channels').update({ category_id: catId, position: targetChannels.length } as any).eq('id', ch.id);
+                            fetchChannelsAndCategories();
+                          }}
+                        >
+                          <option value="">Taşı...</option>
+                          {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                        </select>
+                      )}
                       {isOwner && <button onClick={() => handleDeleteChannel(ch.id)} className="p-1 text-destructive hover:text-destructive/80"><Trash2 className="w-3.5 h-3.5" /></button>}
                     </div>
                   ))}
@@ -471,9 +487,24 @@ const ServerSettings = () => {
                     {isOwner && <button onClick={() => handleDeleteCategory(cat.id)} className="text-destructive hover:text-destructive/80"><Trash2 className="w-3 h-3" /></button>}
                   </div>
                   {channelsList.filter(c => c.category_id === cat.id).map(ch => (
-                    <div key={ch.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card ml-2">
+                    <div key={ch.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card ml-3">
                       {ch.type === 'voice' ? <Volume2 className="w-4 h-4 text-muted-foreground" /> : <Hash className="w-4 h-4 text-muted-foreground" />}
                       <span className="flex-1 text-sm text-foreground">{ch.name}</span>
+                      {isOwner && (
+                        <select
+                          className="text-xs bg-secondary border border-border rounded px-1.5 py-1 text-foreground"
+                          value={cat.id}
+                          onChange={async (e) => {
+                            const newCatId = e.target.value || null;
+                            const targetChannels = channelsList.filter(c => c.category_id === newCatId);
+                            await supabase.from('channels').update({ category_id: newCatId, position: targetChannels.length } as any).eq('id', ch.id);
+                            fetchChannelsAndCategories();
+                          }}
+                        >
+                          <option value="">Kategorisiz</option>
+                          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      )}
                       {isOwner && <button onClick={() => handleDeleteChannel(ch.id)} className="p-1 text-destructive hover:text-destructive/80"><Trash2 className="w-3.5 h-3.5" /></button>}
                     </div>
                   ))}

@@ -138,7 +138,7 @@ const Index = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const voice = useVoiceChannel();
-  const [splashDone, setSplashDone] = useState(false);
+  const [splashDone, setSplashDone] = useState(() => sessionStorage.getItem('aurorachat_splash_done') === 'true');
   const [loadingSteps, setLoadingSteps] = useState([
     { label: 'Oturum kontrol ediliyor...', done: false },
     { label: 'Sunucular yükleniyor...', done: false },
@@ -859,7 +859,7 @@ const Index = () => {
   // Splash screen
   const allStepsDone = loadingSteps.every(s => s.done);
   if (!splashDone) {
-    return <SplashScreen loadingSteps={loadingSteps} allDone={allStepsDone} onEnter={() => setSplashDone(true)} />;
+    return <SplashScreen loadingSteps={loadingSteps} allDone={allStepsDone} onEnter={() => { sessionStorage.setItem('aurorachat_splash_done', 'true'); setSplashDone(true); }} />;
   }
 
   if (activeServer === 'home') {

@@ -38,6 +38,11 @@ export const useVoiceChannel = () => {
 
   const connect = useCallback(async (channelId: string, channelName: string) => {
     if (!user || !profile || connecting) return;
+    // Disconnect existing connection before joining new one
+    if (roomRef.current) {
+      roomRef.current.disconnect();
+      roomRef.current = null;
+    }
     setConnecting(true);
 
     try {

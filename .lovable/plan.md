@@ -1,60 +1,37 @@
 
 
-## Plan: v0.1.5 — Navigasyon Döngüsü Düzeltme, DnD Fix, UI Stabilizasyonu
+## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
 
----
+### 1. Black Screen Root Cause (CRITICAL)
 
-### 1. Splash Screen Döngüsünü Kır (Kritik)
+**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
 
-**Sorun:** `splashDone` state'i `Index` bileşeninde tutuluyor. Kullanıcı `/settings`'e gidip geri döndüğünde `Index` unmount/remount oluyor ve `splashDone` sıfırlanıyor → tekrar splash screen gösteriliyor.
+**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
 
-**Çözüm:**
-- `splashDone` durumunu `sessionStorage` ile persist et. İlk açılışta splash göster, sonraki navigasyonlarda atla.
-- `Index.tsx`'de: `useState(() => sessionStorage.getItem('splashDone') === 'true')` ile başlat, `onEnter`'da `sessionStorage.setItem('splashDone', 'true')` yaz.
+### 2. Server Deletion — Cascade via Foreign Keys
 
-### 2. ServerSettings Navigasyonu Düzelt
+Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
 
-**Sorun:** ESC/Geri butonu `navigate('/')` yapıyor, bu da `Index`'i yeniden mount ediyor.
+**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
+- `channels.server_id → servers.id ON DELETE CASCADE`
+- `messages.server_id → servers.id ON DELETE CASCADE`
+- `messages.channel_id → channels.id ON DELETE CASCADE`
+- `server_members.server_id → servers.id ON DELETE CASCADE`
+- `server_invites.server_id → servers.id ON DELETE CASCADE`
 
-**Çözüm:**
-- `navigate('/')` yerine `navigate(-1)` kullan (tarayıcı geçmişinde geri git). Eğer geçmiş yoksa fallback olarak `navigate('/')` kullan.
-- `ServerSettings.tsx` line 133 ve diğer `navigate('/')` çağrılarını güncelle.
+Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
 
-### 3. Drag & Drop Kanal Yönetimi (ServerSettings)
+### 3. DM Real-time — Typing Channel Broadcast Fix
 
-**Sorun:** Şu an kanallar sadece liste halinde görünüyor, sürükle-bırak yok.
+In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
 
-**Çözüm:** `@dnd-kit/core` ve `@dnd-kit/sortable` kullanarak ServerSettings channels sekmesine DnD ekle:
-- Her kanal bir `SortableItem` olacak
-- Kategoriler arası sürükleme: `onDragEnd`'de hedef kategorinin `category_id`'sini ve `position`'ını güncelle
-- DB'ye kaydet: `supabase.from('channels').update({ category_id, position })`
-- Kayıt sonrası sidebar otomatik güncellenir (realtime channel zaten var)
+**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
 
-### 4. Sidebar Kanal Hiyerarşisi İyileştirmesi
+### File Changes
 
-**Çözüm:** `ChannelList.tsx`'de kategorili kanallar için `pl-4` (sol girinti) ekle, kategorisiz kanallardan görsel olarak ayrıştır.
-
-### 5. Sesli Kanal Geçiş Temizliği
-
-**Sorun:** Bir ses kanalından diğerine geçerken eski bağlantı temizlenmiyor.
-
-**Çözüm:** `useVoiceChannel.ts` `connect` fonksiyonunda, yeni bağlantı kurmadan önce mevcut `roomRef.current` varsa `disconnect()` çağır.
-
-### 6. v0.1.5 Sürüm Notları
-
-- `changelogData.ts`'ye v0.1.5 girişi ekle
-- `ReleaseNotesModal`'daki versiyon kontrolünü `0.1.5`'e güncelle
-
----
-
-### Dosya Değişiklikleri
-
-| Dosya | Değişiklik |
+| File | Change |
 |---|---|
-| `src/pages/Index.tsx` | `splashDone` → sessionStorage persist |
-| `src/pages/ServerSettings.tsx` | DnD entegrasyonu + `navigate(-1)` |
-| `src/components/ChannelList.tsx` | Kategorili kanallara girinti (`pl-4`) |
-| `src/hooks/useVoiceChannel.ts` | `connect` içinde eski bağlantıyı temizle |
-| `src/data/changelogData.ts` | v0.1.5 notları |
-| `src/components/ReleaseNotesModal.tsx` | Versiyon güncelleme |
+| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
+| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
+| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
 
