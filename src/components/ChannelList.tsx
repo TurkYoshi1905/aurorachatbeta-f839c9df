@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import CreateChannelDialog from '@/components/CreateChannelDialog';
 import InviteDialog from '@/components/InviteDialog';
-import InviteDialog from '@/components/InviteDialog';
 import { useTranslation } from '@/i18n';
 
 interface ChannelListProps {
