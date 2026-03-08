@@ -130,7 +130,7 @@ const TypingIndicator = ({ typingUsers, t }: { typingUsers: { userId: string; di
   );
 };
 
-const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop, members = [] }: ChatAreaProps) => {
+const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop, members = [], isLocked }: ChatAreaProps) => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [input, setInput] = useState('');
@@ -138,6 +138,8 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
   const [editContent, setEditContent] = useState('');
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [showMentionPopup, setShowMentionPopup] = useState(false);
+  const [showSlashPopup, setShowSlashPopup] = useState(false);
+  const [slashQuery, setSlashQuery] = useState('');
   const [mentionQuery, setMentionQuery] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
