@@ -16,6 +16,44 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.1.6',
+    date: '8 Mart 2026',
+    summary: 'AuroraChat Bot, slash komutları, kanal kilitleme ve sesli sohbet stabilizasyonu.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'AuroraChat Bot: Her sunucuya entegre edilmiş akıllı bot asistanı',
+          'Slash komutları: /help, /info, /list, /lock, /unlock, /kick, /ban, /timeout ve daha fazlası',
+          'Kanal kilitleme: /lock komutuyla kanalları anında kilit altına alabilirsin',
+          'Kullanıcı yasaklama ve susturma sistemi eklendi',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Sesli sohbet altyapısı LiveKit SDK ile yeniden stabilize edildi',
+          'Sesli kanallarda konuşma animasyonu eklendi',
+          'Bot mesajları özel arayüzle (BOT etiketi) gösteriliyor',
+          'Slash komut öneri popup\'ı: / yazarken otomatik tamamlama',
+        ],
+      },
+      {
+        title: 'Düzeltmeler',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Ses kanalı bağlantı hata yönetimi ve otomatik yeniden deneme eklendi',
+          'Üye listesi ve kullanıcı etiketleme sistemindeki senkronizasyon hataları giderildi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.5',
     date: '8 Mart 2026',
     summary: 'Navigasyon döngüsü düzeltmeleri, kanal yönetimi iyileştirmeleri ve sesli sohbet stabilitesi.',
