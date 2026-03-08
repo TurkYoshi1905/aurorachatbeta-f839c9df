@@ -1201,6 +1201,7 @@ const Index = () => {
         threadCounts={threadCounts}
         onOpenThread={handleOpenThread}
         userPermissions={userPermissions}
+        serverEmojis={serverEmojis}
       />
       {activeThread ? (
         <ThreadPanel
