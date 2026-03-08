@@ -92,8 +92,8 @@ const UserInfoPanel = ({ currentUserStatus = 'offline', onStatusChange }: UserIn
         </PopoverContent>
       </Popover>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">{profile?.display_name || t('common.user')}</p>
-        <p className="text-[10px] text-muted-foreground">@{profile?.username || 'user'}</p>
+        <p className="text-sm font-medium text-foreground truncate max-w-[80px] sm:max-w-none">{profile?.display_name || t('common.user')}</p>
+        <p className="text-[10px] text-muted-foreground truncate max-w-[80px] sm:max-w-none">@{profile?.username || 'user'}</p>
       </div>
       <div className="flex items-center gap-0.5">
         {/* Mic button with device dropdown */}
@@ -103,7 +103,7 @@ const UserInfoPanel = ({ currentUserStatus = 'offline', onStatusChange }: UserIn
           </button>
           <Popover open={micDevicesOpen} onOpenChange={setMicDevicesOpen}>
             <PopoverTrigger asChild>
-              <button className="p-0.5 rounded-r hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors">
+              <button className="p-1 min-w-[30px] min-h-[30px] flex items-center justify-center rounded-r hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors">
                 <ChevronDown className="w-3 h-3" />
               </button>
             </PopoverTrigger>
@@ -126,7 +126,7 @@ const UserInfoPanel = ({ currentUserStatus = 'offline', onStatusChange }: UserIn
           </button>
           <Popover open={speakerDevicesOpen} onOpenChange={setSpeakerDevicesOpen}>
             <PopoverTrigger asChild>
-              <button className="p-0.5 rounded-r hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors">
+              <button className="p-1 min-w-[30px] min-h-[30px] flex items-center justify-center rounded-r hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors">
                 <ChevronDown className="w-3 h-3" />
               </button>
             </PopoverTrigger>

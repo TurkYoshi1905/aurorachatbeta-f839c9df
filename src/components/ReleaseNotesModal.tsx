@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Sparkles, Volume2, Bot, Lock, Zap, Shield } from 'lucide-react';
 
-const CURRENT_VERSION = '0.1.6';
+const CURRENT_VERSION = '0.1.7';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {
@@ -23,10 +23,10 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <Bot className="w-5 h-5 text-primary" />, tag: 'YENİ', color: 'text-primary', text: 'AuroraChat Bot: Her sunucunun kendi asistanı var! /help ile komutları keşfet.' },
-    { icon: <Shield className="w-5 h-5 text-status-online" />, tag: 'SİSTEM', color: 'text-status-online', text: 'Slash komutları: /lock, /ban, /timeout, /list ve daha fazlası!' },
-    { icon: <Volume2 className="w-5 h-5 text-accent" />, tag: 'SES', color: 'text-accent', text: 'LiveKit sesli sohbet altyapısı stabilize edildi. Daha düşük gecikme.' },
-    { icon: <Lock className="w-5 h-5 text-status-idle" />, tag: 'GÜVENLİK', color: 'text-status-idle', text: 'Kanal kilitleme: /lock ile kanalları anında kilit altına al.' },
+    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'ARAYÜZ', color: 'text-primary', text: 'Mobil mesaj yazma alanı tamamen yenilendi; ikonlar ve gönder butonu hatasız çalışıyor.' },
+    { icon: <Zap className="w-5 h-5 text-status-online" />, tag: 'FIX', color: 'text-status-online', text: 'Emoji ikonunun mesaj kutusu dışına taşma sorunu giderildi.' },
+    { icon: <Shield className="w-5 h-5 text-accent" />, tag: 'UX', color: 'text-accent', text: 'Mobil cihazlar için Safe Area desteği ve klavye uyumluluğu eklendi.' },
+    { icon: <Zap className="w-5 h-5 text-status-idle" />, tag: 'PERFORMANS', color: 'text-status-idle', text: 'Alt paneldeki kullanıcı bilgi alanı mobil ekranlar için optimize edildi.' },
   ];
 
   return (

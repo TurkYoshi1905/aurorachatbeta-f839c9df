@@ -91,6 +91,7 @@ const en = {
     welcomeChannel: 'Welcome to #{channel}!',
     channelStart: 'This is the beginning of #{channel}.',
     messagePlaceholder: 'Send a message to #{channel}',
+    mobileMessagePlaceholder: 'Send a message...',
     search: 'Search',
     edited: '(Edited)',
     addReaction: 'Add Reaction',

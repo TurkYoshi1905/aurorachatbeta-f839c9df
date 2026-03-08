@@ -91,6 +91,7 @@ const az = {
     welcomeChannel: '#{channel} kanalına xoş gəldiniz!',
     channelStart: 'Bu #{channel} kanalının başlanğıcıdır.',
     messagePlaceholder: '#{channel} kanalına mesaj göndər',
+    mobileMessagePlaceholder: 'Mesaj göndər...',
     search: 'Axtar',
     edited: '(Redaktə edilib)',
     addReaction: 'Reaksiya Əlavə Et',
