@@ -45,6 +45,9 @@ interface ChatAreaProps {
   onPinMessage?: (messageId: string) => void;
   onUnpinMessage?: (messageId: string) => void;
   serverId?: string;
+  threadCounts?: Record<string, number>;
+  onOpenThread?: (messageId: string, author: string, content: string, threadId: string | null) => void;
+  userPermissions?: Record<string, boolean>;
 }
 
 const isGiphyUrl = (url: string) => /giphy\.com\/media\/|\.giphy\.com\//i.test(url);
