@@ -408,7 +408,7 @@ const Index = () => {
             setMessages((prev) =>
               prev.map((msg) =>
                 msg.id === m.id
-                  ? { ...msg, content: m.content, edited: !!m.updated_at }
+                  ? { ...msg, content: m.content, edited: !!m.updated_at, isPinned: !!(m as any).is_pinned }
                   : msg
               )
             );
