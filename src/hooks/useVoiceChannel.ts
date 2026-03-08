@@ -112,20 +112,24 @@ export const useVoiceChannel = () => {
     if (!roomRef.current) return;
     const newDeafened = !deafened;
     if (newDeafened) {
-      // Mute mic + mute all audio
       await roomRef.current.localParticipant.setMicrophoneEnabled(false);
       setMicMuted(true);
-      // Mute all remote tracks
+      // Mute all remote audio by detaching elements
       roomRef.current.remoteParticipants.forEach((p) => {
         p.audioTrackPublications.forEach((pub) => {
-          if (pub.track) pub.track.setEnabled(false);
+          if (pub.audioTrack) {
+            pub.audioTrack.detach();
+          }
         });
       });
     } else {
-      // Unmute audio tracks
+      // Re-attach audio tracks
       roomRef.current.remoteParticipants.forEach((p) => {
         p.audioTrackPublications.forEach((pub) => {
-          if (pub.track) pub.track.setEnabled(true);
+          if (pub.audioTrack) {
+            const el = pub.audioTrack.attach();
+            document.body.appendChild(el);
+          }
         });
       });
     }
