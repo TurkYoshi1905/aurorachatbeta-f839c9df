@@ -1,37 +1,129 @@
 
 
-## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
+## Plan: v0.1.4 — Sesli Sohbet, Kanal Kategorileri, @Mention, Splash Screen
 
-### 1. Black Screen Root Cause (CRITICAL)
+Bu plan 5 ana modülden oluşuyor. Sırasıyla uygulayacağız.
 
-**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
+---
 
-**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
+### 1. Veritabanı Değişiklikleri (SQL Migration)
 
-### 2. Server Deletion — Cascade via Foreign Keys
+**Yeni tablo: `channel_categories`**
+```sql
+CREATE TABLE channel_categories (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  server_id uuid NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  position integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE channel_categories ENABLE ROW LEVEL SECURITY;
+-- RLS: server üyeleri görebilir, sahipler CRUD yapabilir
+```
 
-Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
+**`channels` tablosuna `category_id` sütunu ekleme:**
+```sql
+ALTER TABLE channels ADD COLUMN category_id uuid REFERENCES channel_categories(id) ON DELETE SET NULL;
+```
 
-**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
-- `channels.server_id → servers.id ON DELETE CASCADE`
-- `messages.server_id → servers.id ON DELETE CASCADE`
-- `messages.channel_id → channels.id ON DELETE CASCADE`
-- `server_members.server_id → servers.id ON DELETE CASCADE`
-- `server_invites.server_id → servers.id ON DELETE CASCADE`
+**`DbChannel` interface güncelleme:** `category_id?: string` eklenir.
 
-Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
+---
 
-### 3. DM Real-time — Typing Channel Broadcast Fix
+### 2. WebRTC Sesli Sohbet (LiveKit Cloud)
 
-In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
+**Gerekli secret'lar:**
+- `LIVEKIT_API_KEY`
+- `LIVEKIT_API_SECRET`
+- `LIVEKIT_URL`
 
-**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
+Kullanıcıdan [LiveKit Cloud](https://cloud.livekit.io) üzerinden ücretsiz hesap açıp bu değerleri girmesi istenecek.
 
-### File Changes
+**Edge Function: `livekit-token`**
+- Kullanıcı ses kanalına tıkladığında çağrılır
+- `room` (channel_id) ve `identity` (user_id) alır, LiveKit JWT token üretir
+- CORS + auth doğrulaması
 
-| File | Change |
+**Client tarafı:**
+- `livekit-client` npm paketi eklenir
+- Yeni `VoiceChannel` bileşeni: ses kanalına bağlanma, mikrofon/kulaklık toggle, bağlantıyı kes
+- `ChannelList` içinde ses kanalı altında bağlı kullanıcı listesi + voice activity (yeşil halka)
+- `UserInfoPanel` altına "Bağlanıldı: #kanal-adı" bar'ı eklenir
+
+**Yeni bileşenler:**
+| Bileşen | Görev |
 |---|---|
-| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
-| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
-| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
+| `VoicePanel.tsx` | Bağlantı durumu, mikrofon/kulaklık kontrolleri, bağlantıyı kes |
+| `VoiceParticipants.tsx` | Katılımcı listesi + speaking indicator |
+
+---
+
+### 3. Kanal Kategorileri + Sürükle-Bırak
+
+**`@dnd-kit/core` ve `@dnd-kit/sortable`** paketleri eklenir.
+
+**ServerSettings — yeni "Kanallar" sekmesi:**
+- Kategorileri ve altındaki kanalları hiyerarşik liste olarak gösterir
+- Yeni kategori oluştur / sil butonları
+- Yeni kanal oluştur (kategoriye bağlı) / sil butonları
+- Sürükle-bırak ile kanal sırası ve kategori atamasını değiştir → `position` + `category_id` güncelle
+
+**ChannelList sidebar güncelleme:**
+- Kanalları kategorilere göre grupla
+- Kategorisi olmayanları "Genel" başlığı altında göster
+- Collapsible kategori başlıkları
+
+---
+
+### 4. @Mention Sistemi
+
+**Mesaj inputu:**
+- `@` yazıldığında sunucu üyelerini filtreleyen bir popup açılır (cmdk zaten kurulu, onu kullanabiliriz)
+- Seçilen kullanıcı `@kullanıcıAdı` formatında eklenir
+
+**Mesaj render:**
+- `renderMessageContent` fonksiyonunda `@kullanıcıAdı` kalıpları mavi/vurgulu `<span>` olarak render edilir
+
+**Bildirim:**
+- Etiketlenen kullanıcıya toast bildirimi + tarayıcı Notification API ile sesli uyarı (sekme açıksa)
+
+---
+
+### 5. Splash Screen (Yükleme Ekranı)
+
+**`SplashScreen.tsx` bileşeni:**
+- AuroraChat logosu + "AuroraChat Yükleniyor..." animasyonu
+- Yükleme adımları göstergesi (session, sunucular, profil)
+
+**`Index.tsx` entegrasyonu:**
+- Tüm ilk veriler (`Promise.all`: session, servers, profile) yüklenene kadar splash göster
+- Yükleme tamamlandığında "Uygulamaya Giriş Yapılıyor" geçiş animasyonu → ana ekran
+
+---
+
+### 6. v0.1.4 Sürüm Notları
+
+**`changelogData.ts`** — v0.1.4 girişi eklenir.
+
+**Release Notes Modal:**
+- Uygulama yüklendiğinde, kullanıcı bu sürümü ilk kez görüyorsa (`localStorage` flag) modal gösterir:
+  - [SES] WebRTC tabanlı sesli sohbet kanalları
+  - [YÖNETİM] Sürükle-bırak kanal yönetimi ve kategori sistemi
+  - [SOSYAL] @Etiketleme özelliği
+  - [PERFORMANS] Akıllı yükleme ekranı
+
+---
+
+### Uygulama Sırası
+
+1. DB migration (categories + channels.category_id)
+2. LiveKit secret'ları iste → edge function → VoicePanel/VoiceParticipants
+3. dnd-kit kurulumu → ServerSettings kanal sekmesi → ChannelList kategori görünümü
+4. @Mention popup + render + bildirim
+5. SplashScreen bileşeni + Index entegrasyonu
+6. Changelog + release modal
+
+### Yeni Paketler
+- `livekit-client` — WebRTC ses bağlantısı
+- `@dnd-kit/core`, `@dnd-kit/sortable` — sürükle-bırak
 
