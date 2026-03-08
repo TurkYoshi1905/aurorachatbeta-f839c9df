@@ -182,8 +182,9 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [pendingFiles, t]);
 
-  const handleSend = useCallback(async () => {
-    if ((!input.trim() && pendingFiles.length === 0) || !user || !profile) return;
+  const handleSend = useCallback(async (overrideContent?: string) => {
+    const contentToSend = overrideContent ?? input.trim();
+    if ((!contentToSend && pendingFiles.length === 0) || !user || !profile) return;
     const content = input.trim();
     const filesToUpload = [...pendingFiles];
     setInput('');
