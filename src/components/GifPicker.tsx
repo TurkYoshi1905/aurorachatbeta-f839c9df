@@ -72,7 +72,7 @@ const GifPicker = ({ onGifSelect, children }: GifPickerProps) => {
       <PopoverTrigger asChild>
         {children || (
           <button className="hover:text-foreground transition-colors text-muted-foreground">
-            <Gift className="w-5 h-5" />
+            <img src={gifIcon} alt="GIF" className="w-5 h-5 dark:invert opacity-70 hover:opacity-100 transition-opacity" />
           </button>
         )}
       </PopoverTrigger>
