@@ -9,6 +9,8 @@ import { useTranslation } from '@/i18n';
 import MessageAttachments from './MessageAttachments';
 import FileUploadPreview from './FileUploadPreview';
 import { toast } from 'sonner';
+import EmojiPicker from './EmojiPicker';
+import GifPicker from './GifPicker';
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👀', '💯', '✅', '❌', '🤔', '👏', '💪', '🙏', '😎', '🥳', '💀', '😭', '🫡', '👎', '💜', '🧡'];
 
