@@ -51,6 +51,8 @@ export interface DbMember {
   avatarUrl?: string | null;
   status: 'online' | 'idle' | 'dnd' | 'offline';
   role?: string;
+  roleColor?: string;
+  rolePosition?: number;
 }
 
 export interface DbChannel {
