@@ -65,7 +65,7 @@ const GifImage = ({ url }: { url: string }) => {
   );
 };
 
-export const renderMessageContent = (content: string, currentUserId?: string) => {
+export const renderMessageContent = (content: string, currentUserId?: string, serverEmojis?: ServerEmoji[]) => {
   // Check if entire content is a single Giphy URL
   const trimmed = content.trim();
   if (isGiphyUrl(trimmed) && /^https?:\/\/\S+$/.test(trimmed)) {
