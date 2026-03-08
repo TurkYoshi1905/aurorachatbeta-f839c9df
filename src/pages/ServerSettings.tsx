@@ -108,8 +108,19 @@ const ServerSettings = () => {
   const fetchRoles = useCallback(async () => {
     if (!serverId) return;
     const { data } = await supabase.from('server_roles').select('*').eq('server_id', serverId).order('position', { ascending: false });
-    if (data) setRoles(data as Role[]);
+    if (data) setRoles(data.map((r: any) => ({ ...r, permissions: r.permissions || {} })));
   }, [serverId]);
+
+  const handleUpdatePermission = async (roleId: string, permKey: string, value: boolean) => {
+    const role = roles.find(r => r.id === roleId);
+    if (!role) return;
+    const newPerms = { ...role.permissions, [permKey]: value };
+    const { error } = await supabase.from('server_roles').update({ permissions: newPerms } as any).eq('id', roleId);
+    if (!error) {
+      setRoles(prev => prev.map(r => r.id === roleId ? { ...r, permissions: newPerms } : r));
+      if (editingRole?.id === roleId) setEditingRole({ ...editingRole, permissions: newPerms });
+    }
+  };
 
   const fetchMembers = useCallback(async () => {
     if (!serverId) return;
