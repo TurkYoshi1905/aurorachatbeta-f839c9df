@@ -92,8 +92,8 @@ const UserInfoPanel = ({ currentUserStatus = 'offline', onStatusChange }: UserIn
         </PopoverContent>
       </Popover>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">{profile?.display_name || t('common.user')}</p>
-        <p className="text-[10px] text-muted-foreground">@{profile?.username || 'user'}</p>
+        <p className="text-sm font-medium text-foreground truncate max-w-[80px] sm:max-w-none">{profile?.display_name || t('common.user')}</p>
+        <p className="text-[10px] text-muted-foreground truncate max-w-[80px] sm:max-w-none">@{profile?.username || 'user'}</p>
       </div>
       <div className="flex items-center gap-0.5">
         {/* Mic button with device dropdown */}
