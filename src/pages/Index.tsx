@@ -856,6 +856,12 @@ const Index = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Splash screen
+  const allStepsDone = loadingSteps.every(s => s.done);
+  if (!splashDone) {
+    return <SplashScreen loadingSteps={loadingSteps} allDone={allStepsDone} onEnter={() => setSplashDone(true)} />;
+  }
+
   if (activeServer === 'home') {
     const dmContent = activeDMUser ? (
       <DMChatArea dmUser={activeDMUser} onBack={() => setActiveDMUser(null)} />
