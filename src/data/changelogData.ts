@@ -16,6 +16,44 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.1.8',
+    date: '8 Mart 2026',
+    summary: 'Çok adımlı kayıt, şifre sıfırlama, emoji arama düzeltmesi, 2FA ve gizlilik güncellemesi.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Çok adımlı kayıt paneli: İsim → Doğum Tarihi → Profil Fotoğrafı → Şifre → E-posta',
+          'Doğum tarihi doğrulaması: 13 yaşından küçük kullanıcılar kayıt olamaz',
+          'Kayıt sırasında profil fotoğrafı yükleme ve önizleme',
+          'Şifremi Unuttum: E-posta ile şifre sıfırlama bağlantısı',
+          'İki Faktörlü Doğrulama (2FA): TOTP QR kodu ile hesap güvenliği',
+        ],
+      },
+      {
+        title: 'Düzeltmeler',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Emoji arama sistemi keyword tabanlı filtreleme ile tamamen yeniden yazıldı',
+          'Arama sonuçları artık doğru filtreleniyor (smile, heart, fire vb.)',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Gizlilik politikası: Yaş sınırı, bildirim izinleri ve 2FA maddeleri eklendi',
+          'Bildirim sistemi: @mention etiketlemelerinde masaüstü bildirimleri',
+          'Giriş sayfasına "Şifremi Unuttum" bağlantısı eklendi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.7',
     date: '8 Mart 2026',
     summary: 'Mobil mesaj çubuğu yenilendi, safe area desteği ve kullanıcı paneli optimizasyonu.',
