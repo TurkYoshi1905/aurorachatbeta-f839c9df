@@ -130,7 +130,7 @@ const ServerSettings = () => {
   useEffect(() => { if (activeTab === 'audit') fetchAuditLogs(); }, [activeTab, fetchAuditLogs]);
 
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') navigate('/'); };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (window.history.length > 1) navigate(-1); else navigate('/'); } };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [navigate]);
