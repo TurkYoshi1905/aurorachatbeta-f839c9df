@@ -866,6 +866,7 @@ const Index = () => {
         author_name: profile.display_name,
         content: content || '',
       };
+      if (replyTo) insertData.reply_to = replyTo;
       if (attachmentUrls && attachmentUrls.length > 0) insertData.attachments = attachmentUrls;
 
       const { data, error } = await supabase.from('messages').insert(insertData).select().single();
