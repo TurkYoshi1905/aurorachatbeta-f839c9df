@@ -156,6 +156,14 @@ const tr = {
     maxFiles: 'En fazla 3 fotoğraf seçebilirsiniz',
     fileTooLarge: 'Dosya boyutu 5MB\'dan küçük olmalı',
     uploading: 'Yükleniyor...',
+    reply: 'Yanıtla',
+    replyingTo: 'Yanıtlanan',
+    pin: 'Mesajı Sabitle',
+    unpin: 'Sabitlemeyi Kaldır',
+    pinnedMessages: 'Sabitlenmiş Mesajlar',
+    noPinnedMessages: 'Henüz sabitlenmiş mesaj yok.',
+    messagePinned: 'Mesaj sabitlendi!',
+    messageUnpinned: 'Mesaj sabitleme kaldırıldı.',
   },
 
   // DM

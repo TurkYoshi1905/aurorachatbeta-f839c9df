@@ -313,6 +313,10 @@ const en = {
     user: 'User',
     loading: 'Loading...',
   },
+  profileCard: {
+    roles: 'Roles',
+    memberSince: 'Member Since',
+  },
 };
 
 export default en;
