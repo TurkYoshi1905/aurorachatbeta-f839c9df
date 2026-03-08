@@ -42,7 +42,7 @@ const MessageAttachments = ({ attachments }: MessageAttachmentsProps) => {
               <img
                 src={url}
                 alt=""
-                className="w-full h-auto max-h-72 object-cover transition-transform group-hover:scale-[1.02]"
+                className="w-full h-auto max-h-96 object-contain transition-transform group-hover:scale-[1.02]"
                 loading="lazy"
                 onError={() => setFailedImages((prev) => new Set(prev).add(i))}
               />

@@ -13,7 +13,7 @@ const FileUploadPreview = ({ files, onRemove, uploading }: FileUploadPreviewProp
     <div className="px-4 pt-2">
       <div className="bg-secondary/50 rounded-lg p-2 flex gap-2 flex-wrap border border-border/30">
         {files.map((file, i) => (
-          <div key={i} className="relative group w-20 h-20 rounded-md overflow-hidden border border-border/50">
+          <div key={i} className="relative group w-24 h-24 rounded-md overflow-hidden border border-border/50">
             <img
               src={URL.createObjectURL(file)}
               alt=""

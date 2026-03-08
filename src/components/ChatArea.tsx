@@ -21,7 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👀', '💯', '✅', '❌', '🤔', '👏', '💪', '🙏', '😎', '🥳', '💀', '😭', '🫡', '👎', '💜', '🧡'];
 
 const MAX_FILES = 3;
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 interface ServerEmoji { id: string; name: string; image_url: string; }
 
