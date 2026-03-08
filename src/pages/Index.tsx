@@ -940,6 +940,7 @@ const Index = () => {
               serverId={server.id}
               serverIcon={server.icon}
               channels={server.channels}
+              categories={server.categories}
               activeChannel={activeChannel}
               onChannelChange={handleChannelChange}
               currentUserStatus={myStatus}
@@ -950,6 +951,7 @@ const Index = () => {
               onServerUpdated={fetchServers}
               onLeaveServer={handleLeaveServer}
               isMobile
+              voiceState={voice}
             />
           )}
           {mobileView === 'chat' && (
