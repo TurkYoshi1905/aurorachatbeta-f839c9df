@@ -263,6 +263,7 @@ const az = {
     fileTooLarge: 'Fayl ölçüsü 5MB-dan kiçik olmalıdır',
     uploadFailed: 'Yükləmə uğursuz oldu',
     iconUploaded: 'Server şəkli yükləndi!',
+    emojisTab: 'Emojilər',
   },
   invite: {
     title: 'Dostlarını {server} serverinə dəvət et',

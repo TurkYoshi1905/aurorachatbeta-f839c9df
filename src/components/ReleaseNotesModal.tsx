@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Sparkles, MessageSquare, Shield, UserCircle } from 'lucide-react';
 
-const CURRENT_VERSION = '0.2.0';
+const CURRENT_VERSION = '0.2.1';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {
@@ -23,9 +23,9 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <MessageSquare className="w-5 h-5 text-primary" />, tag: 'KONU', color: 'text-primary', text: 'Thread Sistemi: Mesajlardan konu başlat, sağ panelde yanıt ver ve takip et.' },
-    { icon: <Shield className="w-5 h-5 text-status-online" />, tag: 'İZİN', color: 'text-status-online', text: 'Rol İzinleri: Discord benzeri toggle switch\'ler ile detaylı yetki yönetimi.' },
-    { icon: <UserCircle className="w-5 h-5 text-accent" />, tag: 'PROFİL', color: 'text-accent', text: 'Gelişmiş Profil Kartı: Banner rengi, bio, özel not ve DM butonu.' },
+    { icon: <MessageSquare className="w-5 h-5 text-primary" />, tag: 'EMOJİ', color: 'text-primary', text: 'Özel Emojiler: Sunucunuza 50 adede kadar özel emoji yükleyin ve sohbette :ad: şeklinde kullanın!' },
+    { icon: <Shield className="w-5 h-5 text-status-online" />, tag: 'YETKİ', color: 'text-status-online', text: 'Gelişmiş Rol Sistemi: HEX renk seçici, Yönetici yetkisi ve detaylı izin yönetimi.' },
+    { icon: <UserCircle className="w-5 h-5 text-accent" />, tag: 'OPTİMİZE', color: 'text-accent', text: 'Emoji görselleri otomatik optimize edilerek performans artırıldı.' },
   ];
 
   return (

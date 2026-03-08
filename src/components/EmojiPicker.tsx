@@ -159,15 +159,18 @@ const EMOJI_CATEGORIES = [
   },
 ];
 
+interface ServerEmoji { id: string; name: string; image_url: string; }
+
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
   children?: React.ReactNode;
+  serverEmojis?: ServerEmoji[];
 }
 
-const EmojiPicker = ({ onEmojiSelect, children }: EmojiPickerProps) => {
+const EmojiPicker = ({ onEmojiSelect, children, serverEmojis = [] }: EmojiPickerProps) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState(0);
+  const [activeCategory, setActiveCategory] = useState(serverEmojis.length > 0 ? -1 : 0);
 
   const filteredEmojis = useMemo(() => {
     if (!search.trim()) return null;
@@ -208,19 +211,47 @@ const EmojiPicker = ({ onEmojiSelect, children }: EmojiPickerProps) => {
             className="flex-1 bg-transparent text-sm outline-none text-foreground placeholder:text-muted-foreground"
           />
         </div>
-        <div className="flex gap-1 px-2 py-1.5 border-b border-border">
+        <div className="flex gap-1 px-2 py-1.5 border-b border-border overflow-x-auto">
+          {serverEmojis.length > 0 && (
+            <button
+              onClick={() => { setActiveCategory(-1); setSearch(''); }}
+              className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold hover:bg-secondary transition-colors shrink-0 ${activeCategory === -1 && !search ? 'bg-secondary' : ''}`}
+              title="Sunucu"
+            >
+              ⭐
+            </button>
+          )}
           {EMOJI_CATEGORIES.map((cat, i) => (
             <button
               key={i}
               onClick={() => { setActiveCategory(i); setSearch(''); }}
-              className={`w-8 h-8 flex items-center justify-center rounded text-lg hover:bg-secondary transition-colors ${activeCategory === i && !search ? 'bg-secondary' : ''}`}
+              className={`w-8 h-8 flex items-center justify-center rounded text-lg hover:bg-secondary transition-colors shrink-0 ${activeCategory === i && !search ? 'bg-secondary' : ''}`}
             >
               {cat.name}
             </button>
           ))}
         </div>
         <div className="h-52 overflow-y-auto scrollbar-thin p-2">
-          {!search && (
+          {!search && activeCategory === -1 && serverEmojis.length > 0 && (
+            <>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground px-1 mb-1">
+                Sunucu Emojileri
+              </p>
+              <div className="grid grid-cols-8 gap-0.5">
+                {serverEmojis.map((emoji) => (
+                  <button
+                    key={emoji.id}
+                    onClick={() => handleSelect(`:${emoji.name}:`)}
+                    className="w-8 h-8 flex items-center justify-center rounded hover:bg-secondary transition-colors"
+                    title={`:${emoji.name}:`}
+                  >
+                    <img src={emoji.image_url} alt={emoji.name} className="w-6 h-6 object-contain" />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          {!search && activeCategory >= 0 && (
             <>
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground px-1 mb-1">
                 {EMOJI_CATEGORIES[activeCategory].label}
@@ -238,22 +269,40 @@ const EmojiPicker = ({ onEmojiSelect, children }: EmojiPickerProps) => {
               </div>
             </>
           )}
-          {search && filteredEmojis && (
-            filteredEmojis.length > 0 ? (
-              <div className="grid grid-cols-8 gap-0.5">
-                {filteredEmojis.map((emoji, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleSelect(emoji)}
-                    className="w-8 h-8 flex items-center justify-center rounded hover:bg-secondary text-lg transition-colors"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">Sonuç bulunamadı</p>
-            )
+          {search && (
+            <>
+              {/* Search in server emojis too */}
+              {serverEmojis.length > 0 && (
+                (() => {
+                  const q = search.toLowerCase().trim();
+                  const matched = serverEmojis.filter(e => e.name.includes(q));
+                  if (matched.length === 0) return null;
+                  return (
+                    <div className="mb-2">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground px-1 mb-1">Sunucu</p>
+                      <div className="grid grid-cols-8 gap-0.5">
+                        {matched.map(emoji => (
+                          <button key={emoji.id} onClick={() => handleSelect(`:${emoji.name}:`)} className="w-8 h-8 flex items-center justify-center rounded hover:bg-secondary transition-colors" title={`:${emoji.name}:`}>
+                            <img src={emoji.image_url} alt={emoji.name} className="w-6 h-6 object-contain" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+              {filteredEmojis && filteredEmojis.length > 0 ? (
+                <div className="grid grid-cols-8 gap-0.5">
+                  {filteredEmojis.map((emoji, i) => (
+                    <button key={i} onClick={() => handleSelect(emoji)} className="w-8 h-8 flex items-center justify-center rounded hover:bg-secondary text-lg transition-colors">{emoji}</button>
+                  ))}
+                </div>
+              ) : (
+                !serverEmojis.some(e => e.name.includes(search.toLowerCase().trim())) && (
+                  <p className="text-sm text-muted-foreground text-center py-8">Sonuç bulunamadı</p>
+                )
+              )}
+            </>
           )}
         </div>
       </PopoverContent>

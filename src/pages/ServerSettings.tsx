@@ -5,31 +5,39 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { X, Settings, Users, Shield, ScrollText, Trash2, Camera, UserMinus, Plus, ArrowUp, ArrowDown, ChevronDown, Hash, Volume2 } from 'lucide-react';
+import { X, Settings, Users, Shield, ScrollText, Trash2, Camera, UserMinus, Plus, ArrowUp, ArrowDown, ChevronDown, Hash, Volume2, SmilePlus, Upload, Pencil, Check } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Member { id: string; user_id: string; display_name: string; avatar_url: string | null; roles: { id: string; name: string; color: string }[]; }
 interface Role { id: string; name: string; color: string; position: number; permissions: Record<string, boolean>; }
 interface AuditLog { id: string; action: string; user_id: string; target_type: string | null; details: any; created_at: string; user_name?: string; }
+interface ServerEmoji { id: string; name: string; image_url: string; uploaded_by: string; created_at: string; }
 
 const PRESET_COLORS = ['#E74C3C', '#E91E63', '#9B59B6', '#8E44AD', '#3498DB', '#2196F3', '#1ABC9C', '#2ECC71', '#F1C40F', '#FF9800', '#E67E22', '#95A5A6', '#607D8B', '#99AAB5'];
+const MAX_EMOJIS = 50;
 
 const PERMISSION_CATEGORIES = [
   { label: 'Genel', permissions: [
-    { key: 'manage_channels', label: 'Kanal Yönetimi' },
-    { key: 'manage_roles', label: 'Rol Yönetimi' },
+    { key: 'administrator', label: 'Yönetici', description: 'Tüm yetkilere sahip olur' },
+    { key: 'manage_server', label: 'Sunucuyu Yönet', description: 'Sunucu adını ve ikonunu değiştirebilir' },
+    { key: 'manage_channels', label: 'Kanalları Yönet', description: 'Kanal oluşturabilir, düzenleyebilir ve silebilir' },
+    { key: 'manage_roles', label: 'Rolleri Yönet', description: 'Rol oluşturabilir ve düzenleyebilir' },
+    { key: 'manage_emojis', label: 'Emoji Yönetimi', description: 'Özel emoji yükleyebilir ve silebilir' },
   ]},
   { label: 'Üye', permissions: [
-    { key: 'kick_members', label: 'Üye Atma' },
-    { key: 'ban_members', label: 'Üye Yasaklama' },
+    { key: 'kick_members', label: 'Üyeleri At', description: 'Sunucudan üye atabilir' },
+    { key: 'ban_members', label: 'Üyeleri Yasakla', description: 'Sunucudan üye yasaklayabilir' },
   ]},
   { label: 'Metin', permissions: [
-    { key: 'manage_messages', label: 'Mesaj Silme' },
-    { key: 'pin_messages', label: 'Mesaj Sabitleme' },
-    { key: 'mention_everyone', label: '@everyone Etiketleme' },
+    { key: 'send_messages', label: 'Mesaj Gönder', description: 'Kanallarda mesaj gönderebilir' },
+    { key: 'manage_messages', label: 'Mesajları Yönet', description: 'Başkalarının mesajlarını silebilir' },
+    { key: 'pin_messages', label: 'Mesaj Sabitle', description: 'Mesajları sabitleyebilir' },
+    { key: 'mention_everyone', label: '@everyone Etiketle', description: 'Herkesi etiketleyebilir' },
+    { key: 'attach_files', label: 'Dosya Ekle', description: 'Dosya ve resim yükleyebilir' },
   ]},
 ];
 
@@ -51,9 +59,20 @@ const ServerSettings = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleColor, setNewRoleColor] = useState('#3498DB');
+  const [hexInput, setHexInput] = useState('#3498DB');
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Emoji state
+  const [emojis, setEmojis] = useState<ServerEmoji[]>([]);
+  const [emojiName, setEmojiName] = useState('');
+  const [emojiFile, setEmojiFile] = useState<File | null>(null);
+  const [emojiUploading, setEmojiUploading] = useState(false);
+  const [editingEmojiId, setEditingEmojiId] = useState<string | null>(null);
+  const [editingEmojiName, setEditingEmojiName] = useState('');
+  const [selectedEmojis, setSelectedEmojis] = useState<Set<string>>(new Set());
+  const emojiFileInputRef = useRef<HTMLInputElement>(null);
 
   const [categories, setCategories] = useState<{ id: string; name: string; position: number }[]>([]);
   const [channelsList, setChannelsList] = useState<{ id: string; name: string; type: string; position: number; category_id: string | null }[]>([]);
@@ -62,6 +81,7 @@ const ServerSettings = () => {
   const tabs = [
     { id: 'general', label: t('serverSettings.general'), icon: Settings },
     { id: 'channels', label: 'Kanallar', icon: Hash },
+    { id: 'emojis', label: 'Emojiler', icon: SmilePlus },
     { id: 'roles', label: t('serverSettings.rolesTab') || 'Roller', icon: Shield },
     { id: 'members', label: t('serverSettings.membersTab'), icon: Users },
     { id: 'audit', label: t('serverSettings.auditTab') || 'Denetim Kaydı', icon: ScrollText },
@@ -114,12 +134,103 @@ const ServerSettings = () => {
   const handleUpdatePermission = async (roleId: string, permKey: string, value: boolean) => {
     const role = roles.find(r => r.id === roleId);
     if (!role) return;
-    const newPerms = { ...role.permissions, [permKey]: value };
+    // If toggling administrator on, set all perms to true
+    let newPerms: Record<string, boolean>;
+    if (permKey === 'administrator' && value) {
+      newPerms = { ...role.permissions };
+      PERMISSION_CATEGORIES.forEach(cat => cat.permissions.forEach(p => { newPerms[p.key] = true; }));
+    } else if (permKey === 'administrator' && !value) {
+      newPerms = { ...role.permissions, administrator: false };
+    } else {
+      newPerms = { ...role.permissions, [permKey]: value };
+    }
     const { error } = await supabase.from('server_roles').update({ permissions: newPerms } as any).eq('id', roleId);
     if (!error) {
       setRoles(prev => prev.map(r => r.id === roleId ? { ...r, permissions: newPerms } : r));
       if (editingRole?.id === roleId) setEditingRole({ ...editingRole, permissions: newPerms });
     }
+  };
+
+  // Emoji functions
+  const fetchEmojis = useCallback(async () => {
+    if (!serverId) return;
+    const { data } = await supabase.from('server_emojis').select('*').eq('server_id', serverId).order('created_at', { ascending: true });
+    if (data) setEmojis(data as any);
+  }, [serverId]);
+
+  useEffect(() => { if (activeTab === 'emojis') fetchEmojis(); }, [activeTab, fetchEmojis]);
+
+  const handleEmojiUpload = async () => {
+    if (!emojiFile || !emojiName.trim() || !serverId || !user) return;
+    if (emojis.length >= MAX_EMOJIS) { toast.error(`Maksimum ${MAX_EMOJIS} emoji yükleyebilirsiniz`); return; }
+    if (!emojiFile.type.startsWith('image/')) { toast.error('Lütfen bir resim dosyası seçin'); return; }
+    if (emojiFile.size > 256 * 1024) { toast.error('Emoji dosyası 256KB\'dan küçük olmalı'); return; }
+
+    setEmojiUploading(true);
+    const emojiId = crypto.randomUUID();
+    const ext = emojiFile.name.split('.').pop() || 'png';
+    const path = `${user.id}/servers/${serverId}/emojis/${emojiId}.${ext}`;
+    
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, emojiFile, { upsert: true });
+    if (uploadError) { toast.error('Yükleme başarısız'); setEmojiUploading(false); return; }
+    
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+    const cleanName = emojiName.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    
+    const { error } = await supabase.from('server_emojis').insert({
+      server_id: serverId,
+      name: cleanName,
+      image_url: urlData.publicUrl,
+      uploaded_by: user.id,
+    } as any);
+    
+    setEmojiUploading(false);
+    if (error) {
+      if (error.code === '23505') toast.error('Bu isimde bir emoji zaten var');
+      else toast.error('Emoji eklenemedi');
+    } else {
+      toast.success(`${cleanName} emojisi eklendi!`);
+      setEmojiName('');
+      setEmojiFile(null);
+      if (emojiFileInputRef.current) emojiFileInputRef.current.value = '';
+      fetchEmojis();
+    }
+  };
+
+  const handleDeleteEmoji = async (emojiId: string) => {
+    await supabase.from('server_emojis').delete().eq('id', emojiId);
+    fetchEmojis();
+  };
+
+  const handleBulkDeleteEmojis = async () => {
+    if (selectedEmojis.size === 0) return;
+    for (const id of selectedEmojis) {
+      await supabase.from('server_emojis').delete().eq('id', id);
+    }
+    setSelectedEmojis(new Set());
+    fetchEmojis();
+    toast.success(`${selectedEmojis.size} emoji silindi`);
+  };
+
+  const handleRenameEmoji = async (emojiId: string) => {
+    if (!editingEmojiName.trim()) return;
+    const cleanName = editingEmojiName.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const { error } = await supabase.from('server_emojis').update({ name: cleanName } as any).eq('id', emojiId);
+    if (error) {
+      if (error.code === '23505') toast.error('Bu isimde bir emoji zaten var');
+      else toast.error('İsim değiştirilemedi');
+    } else {
+      setEditingEmojiId(null);
+      fetchEmojis();
+    }
+  };
+
+  const toggleEmojiSelection = (id: string) => {
+    setSelectedEmojis(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   };
 
   const fetchMembers = useCallback(async () => {
@@ -204,7 +315,6 @@ const ServerSettings = () => {
     if (!error) {
       setNewRoleName('');
       fetchRoles();
-      // Audit log
       if (user) await supabase.from('audit_logs').insert({ server_id: serverId, user_id: user.id, action: 'role_created', target_type: 'role', details: { name: newRoleName.trim(), color: newRoleColor } });
     }
   };
@@ -247,6 +357,13 @@ const ServerSettings = () => {
       setMembers(prev => prev.filter(m => m.id !== memberId));
       toast.success(t('serverSettings.kicked'));
       if (user && serverId) await supabase.from('audit_logs').insert({ server_id: serverId, user_id: user.id, action: 'member_kicked', target_type: 'member', target_id: userId });
+    }
+  };
+
+  const handleHexInputChange = (val: string) => {
+    setHexInput(val);
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      setNewRoleColor(val);
     }
   };
 
@@ -340,6 +457,82 @@ const ServerSettings = () => {
             </div>
           )}
 
+          {/* Emojis Tab */}
+          {activeTab === 'emojis' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Emojiler</h2>
+                <span className="text-sm text-muted-foreground font-medium">{emojis.length}/{MAX_EMOJIS}</span>
+              </div>
+              
+              {isOwner && (
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <p className="text-sm font-semibold text-foreground">Yeni Emoji Yükle</p>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1 space-y-1.5">
+                      <label className="text-xs text-muted-foreground">Emoji Adı</label>
+                      <Input value={emojiName} onChange={e => setEmojiName(e.target.value)} placeholder="emoji_adi" className="bg-input border-border" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-muted-foreground">Görsel</label>
+                      <Button variant="outline" size="sm" onClick={() => emojiFileInputRef.current?.click()}>
+                        <Upload className="w-4 h-4 mr-1" />
+                        {emojiFile ? emojiFile.name.slice(0, 15) : 'Dosya Seç'}
+                      </Button>
+                      <input ref={emojiFileInputRef} type="file" accept="image/*" className="hidden" onChange={e => setEmojiFile(e.target.files?.[0] || null)} />
+                    </div>
+                    <Button onClick={handleEmojiUpload} disabled={emojiUploading || !emojiName.trim() || !emojiFile} size="sm">
+                      <Plus className="w-4 h-4 mr-1" /> {emojiUploading ? 'Yükleniyor...' : 'Ekle'}
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Maks. 256KB, otomatik olarak optimize edilir. Kullanım: <code className="bg-secondary px-1 rounded">:emoji_adi:</code></p>
+                </div>
+              )}
+
+              {/* Bulk delete */}
+              {isOwner && selectedEmojis.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <Button variant="destructive" size="sm" onClick={handleBulkDeleteEmojis}>
+                    <Trash2 className="w-4 h-4 mr-1" /> {selectedEmojis.size} Emoji Sil
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => setSelectedEmojis(new Set())}>İptal</Button>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                {emojis.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Henüz özel emoji eklenmemiş</p>}
+                {emojis.map(emoji => (
+                  <div key={emoji.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border bg-card">
+                    {isOwner && (
+                      <Checkbox
+                        checked={selectedEmojis.has(emoji.id)}
+                        onCheckedChange={() => toggleEmojiSelection(emoji.id)}
+                      />
+                    )}
+                    <img src={emoji.image_url} alt={emoji.name} className="w-8 h-8 object-contain rounded" />
+                    {editingEmojiId === emoji.id ? (
+                      <div className="flex items-center gap-1.5 flex-1">
+                        <Input value={editingEmojiName} onChange={e => setEditingEmojiName(e.target.value)} className="h-7 text-sm bg-input border-border" />
+                        <button onClick={() => handleRenameEmoji(emoji.id)} className="p-1 text-green-500 hover:text-green-400"><Check className="w-4 h-4" /></button>
+                        <button onClick={() => setEditingEmojiId(null)} className="p-1 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="flex-1 text-sm text-foreground font-mono">:{emoji.name}:</span>
+                        {isOwner && (
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => { setEditingEmojiId(emoji.id); setEditingEmojiName(emoji.name); }} className="p-1 text-muted-foreground hover:text-foreground"><Pencil className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => handleDeleteEmoji(emoji.id)} className="p-1 text-destructive hover:text-destructive/80"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Roles */}
           {activeTab === 'roles' && (
             <div className="space-y-4">
@@ -351,10 +544,21 @@ const ServerSettings = () => {
                     <Input value={newRoleName} onChange={e => setNewRoleName(e.target.value)} placeholder="Rol adı" className="bg-input border-border flex-1" />
                     <Button onClick={handleCreateRole} disabled={!newRoleName.trim()} size="sm"><Plus className="w-4 h-4 mr-1" /> Ekle</Button>
                   </div>
-                  <div className="flex gap-1.5 flex-wrap">
+                  <div className="flex gap-1.5 flex-wrap items-center">
                     {PRESET_COLORS.map(c => (
-                      <button key={c} onClick={() => setNewRoleColor(c)} className={`w-7 h-7 rounded-full border-2 transition-all ${newRoleColor === c ? 'border-foreground scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />
+                      <button key={c} onClick={() => { setNewRoleColor(c); setHexInput(c); }} className={`w-7 h-7 rounded-full border-2 transition-all ${newRoleColor === c ? 'border-foreground scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />
                     ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full border-2 border-border shrink-0" style={{ backgroundColor: newRoleColor }} />
+                    <Input
+                      value={hexInput}
+                      onChange={e => handleHexInputChange(e.target.value)}
+                      placeholder="#3498DB"
+                      className="bg-input border-border w-28 font-mono text-sm h-8"
+                      maxLength={7}
+                    />
+                    <span className="text-xs text-muted-foreground">HEX renk kodu</span>
                   </div>
                 </div>
               )}
@@ -381,16 +585,25 @@ const ServerSettings = () => {
                         {PERMISSION_CATEGORIES.map(cat => (
                           <div key={cat.label}>
                             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">{cat.label}</p>
-                            <div className="space-y-1.5">
-                              {cat.permissions.map(perm => (
-                                <div key={perm.key} className="flex items-center justify-between">
-                                  <span className="text-xs text-foreground">{perm.label}</span>
-                                  <Switch
-                                    checked={!!role.permissions[perm.key]}
-                                    onCheckedChange={(v) => handleUpdatePermission(role.id, perm.key, v)}
-                                  />
-                                </div>
-                              ))}
+                            <div className="space-y-2">
+                              {cat.permissions.map(perm => {
+                                const isAdmin = !!role.permissions.administrator;
+                                const isAdminPerm = perm.key === 'administrator';
+                                const isDisabled = isAdmin && !isAdminPerm;
+                                return (
+                                  <div key={perm.key} className="flex items-center justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <span className="text-xs text-foreground block">{perm.label}</span>
+                                      {'description' in perm && <span className="text-[10px] text-muted-foreground">{perm.description}</span>}
+                                    </div>
+                                    <Switch
+                                      checked={isDisabled ? true : !!role.permissions[perm.key]}
+                                      onCheckedChange={(v) => handleUpdatePermission(role.id, perm.key, v)}
+                                      disabled={isDisabled}
+                                    />
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         ))}

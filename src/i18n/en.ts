@@ -267,6 +267,7 @@ const en = {
     fileTooLarge: 'File size must be less than 5MB',
     uploadFailed: 'Upload failed',
     iconUploaded: 'Server photo uploaded!',
+    emojisTab: 'Emojis',
   },
   invite: {
     title: 'Invite friends to {server}',

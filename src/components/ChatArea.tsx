@@ -23,6 +23,8 @@ const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '�
 const MAX_FILES = 3;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+interface ServerEmoji { id: string; name: string; image_url: string; }
+
 interface ChatAreaProps {
   channelName: string;
   messages: DbMessage[];
@@ -48,6 +50,7 @@ interface ChatAreaProps {
   threadCounts?: Record<string, number>;
   onOpenThread?: (messageId: string, author: string, content: string, threadId: string | null) => void;
   userPermissions?: Record<string, boolean>;
+  serverEmojis?: ServerEmoji[];
 }
 
 const isGiphyUrl = (url: string) => /giphy\.com\/media\/|\.giphy\.com\//i.test(url);
@@ -62,7 +65,7 @@ const GifImage = ({ url }: { url: string }) => {
   );
 };
 
-export const renderMessageContent = (content: string, currentUserId?: string) => {
+export const renderMessageContent = (content: string, currentUserId?: string, serverEmojis?: ServerEmoji[]) => {
   // Check if entire content is a single Giphy URL
   const trimmed = content.trim();
   if (isGiphyUrl(trimmed) && /^https?:\/\/\S+$/.test(trimmed)) {
@@ -110,9 +113,37 @@ export const renderMessageContent = (content: string, currentUserId?: string) =>
   while ((urlMatch = urlScanRegex.exec(content)) !== null) { allUrls.push(urlMatch[1]); }
   const inviteUrlRegex = /https?:\/\/[^\s]+invite\/[a-zA-Z0-9]+/;
   const nonInviteUrls = allUrls.filter((u) => !inviteUrlRegex.test(u) && !isGiphyUrl(u));
+  // Process custom server emojis :name: pattern
+  const processCustomEmojis = (node: React.ReactNode): React.ReactNode => {
+    if (typeof node !== 'string') return node;
+    if (!serverEmojis || serverEmojis.length === 0) return node;
+    const emojiRegex = /:([a-z0-9_]+):/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = emojiRegex.exec(node)) !== null) {
+      const emoji = serverEmojis.find(e => e.name === match![1]);
+      if (emoji) {
+        if (match.index > lastIndex) parts.push(node.slice(lastIndex, match.index));
+        parts.push(<img key={`emoji-${match.index}`} src={emoji.image_url} alt={`:${emoji.name}:`} title={`:${emoji.name}:`} className="inline-block w-6 h-6 object-contain align-middle mx-0.5" />);
+        lastIndex = match.index + match[0].length;
+      }
+    }
+    if (lastIndex === 0) return node;
+    if (lastIndex < node.length) parts.push(node.slice(lastIndex));
+    return <>{parts}</>;
+  };
+
   return (
     <>
-      <p className="text-sm text-secondary-foreground leading-relaxed">{elements}</p>
+      <p className="text-sm text-secondary-foreground leading-relaxed">{elements.map((el, i) => {
+        if (typeof el === 'string') return <span key={i}>{processCustomEmojis(el)}</span>;
+        if (el && typeof el === 'object' && 'props' in el && el.props?.children) {
+          // For span elements containing text
+          return el;
+        }
+        return el;
+      })}</p>
       {embeds.length > 0 && <div className="flex flex-col gap-1">{embeds}</div>}
       {nonInviteUrls.map((u) => (<LinkEmbed key={u} url={u} />))}
     </>
@@ -138,7 +169,7 @@ const TypingIndicator = ({ typingUsers, t }: { typingUsers: { userId: string; di
   );
 };
 
-const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop, members = [], isLocked, onPinMessage, onUnpinMessage, serverId, threadCounts, onOpenThread, userPermissions }: ChatAreaProps) => {
+const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop, members = [], isLocked, onPinMessage, onUnpinMessage, serverId, threadCounts, onOpenThread, userPermissions, serverEmojis }: ChatAreaProps) => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const isMobileDevice = useIsMobile();
@@ -350,7 +381,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                   </div>
                 ) : (
                   <>
-                    {msg.content && renderMessageContent(msg.content)}
+                    {msg.content && renderMessageContent(msg.content, user?.id, serverEmojis)}
                     {msg.attachments && msg.attachments.length > 0 && (
                       <MessageAttachments attachments={msg.attachments} />
                     )}
@@ -496,7 +527,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                 className="w-full bg-input rounded-2xl py-3 pl-4 pr-10 text-sm outline-none text-foreground placeholder:text-muted-foreground ring-1 ring-border focus:ring-primary/40 transition-all min-h-[44px]"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
-                <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
+                <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} serverEmojis={serverEmojis} />
               </div>
             </div>
 
@@ -517,7 +548,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
             <div className="flex items-center gap-2 text-muted-foreground">
               <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
               <GifPicker onGifSelect={(url) => { onSendMessage(url); }} />
-              <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
+              <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} serverEmojis={serverEmojis} />
               {(input.trim() || pendingFiles.length > 0) && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
             </div>
           </div>

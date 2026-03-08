@@ -263,6 +263,7 @@ const ja = {
     fileTooLarge: 'ファイルサイズは5MB以下にしてください',
     uploadFailed: 'アップロードに失敗しました',
     iconUploaded: 'サーバー写真をアップロードしました！',
+    emojisTab: '絵文字',
   },
   invite: {
     title: '友達を{server}に招待',

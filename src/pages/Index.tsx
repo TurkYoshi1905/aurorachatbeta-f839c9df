@@ -165,6 +165,7 @@ const Index = () => {
   const [activeThread, setActiveThread] = useState<{ messageId: string; author: string; content: string; threadId: string | null } | null>(null);
   const [threadCounts, setThreadCounts] = useState<Record<string, number>>({});
   const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>({});
+  const [serverEmojis, setServerEmojis] = useState<{ id: string; name: string; image_url: string }[]>([]);
   const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [activeDMUser, setActiveDMUser] = useState<{ userId: string; displayName: string; username: string; avatarUrl: string | null } | null>(null);
@@ -986,6 +987,16 @@ const Index = () => {
     fetchPermissions();
   }, [activeServer, user?.id]);
 
+  // Fetch server emojis
+  useEffect(() => {
+    if (!activeServer || activeServer === 'home') { setServerEmojis([]); return; }
+    const fetchEmojis = async () => {
+      const { data } = await supabase.from('server_emojis').select('id, name, image_url').eq('server_id', activeServer).order('created_at');
+      if (data) setServerEmojis(data as any);
+    };
+    fetchEmojis();
+  }, [activeServer]);
+
   const handleOpenThread = useCallback((messageId: string, author: string, content: string, threadId: string | null) => {
     // Find existing thread for this message
     const fetchThread = async () => {
@@ -1121,6 +1132,7 @@ const Index = () => {
               threadCounts={threadCounts}
               onOpenThread={handleOpenThread}
               userPermissions={userPermissions}
+              serverEmojis={serverEmojis}
             />
           )}
           {mobileView === 'members' && (
@@ -1189,6 +1201,7 @@ const Index = () => {
         threadCounts={threadCounts}
         onOpenThread={handleOpenThread}
         userPermissions={userPermissions}
+        serverEmojis={serverEmojis}
       />
       {activeThread ? (
         <ThreadPanel

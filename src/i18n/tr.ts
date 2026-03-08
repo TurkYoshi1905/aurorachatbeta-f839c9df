@@ -295,6 +295,7 @@ const tr = {
     fileTooLarge: 'Dosya boyutu 5MB\'dan küçük olmalı',
     uploadFailed: 'Yükleme başarısız',
     iconUploaded: 'Sunucu fotoğrafı yüklendi!',
+    emojisTab: 'Emojiler',
   },
 
   // Invite

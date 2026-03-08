@@ -263,6 +263,7 @@ const ru = {
     fileTooLarge: 'Размер файла должен быть менее 5МБ',
     uploadFailed: 'Ошибка загрузки',
     iconUploaded: 'Фото сервера загружено!',
+    emojisTab: 'Эмодзи',
   },
   invite: {
     title: 'Пригласить друзей на {server}',
