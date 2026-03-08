@@ -253,13 +253,13 @@ const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange
           style={{ cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default', touchAction: 'none' }}
         >
           <img
-            src={images[currentIndex]}
+            src={images[displayIndex]}
             alt=""
             className="max-w-[90vw] max-h-[80vh] object-contain pointer-events-none"
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
               transition: isDragging ? 'none' : 'transform 0.2s ease-out, opacity 0.3s ease-in-out',
-              opacity: fadeIn ? 1 : 0,
+              opacity: animatingOut ? 0 : 1,
             }}
             draggable={false}
           />
