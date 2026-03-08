@@ -23,10 +23,10 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <Volume2 className="w-5 h-5 text-status-online" />, tag: 'SES', color: 'text-status-online', text: 'WebRTC tabanlı, düşük gecikmeli sesli sohbet kanalları eklendi!' },
-    { icon: <GripVertical className="w-5 h-5 text-primary" />, tag: 'YÖNETİM', color: 'text-primary', text: 'Sunucu ayarlarında sürükle-bırak kanal yönetimi ve kategori sistemi aktif.' },
-    { icon: <AtSign className="w-5 h-5 text-accent" />, tag: 'SOSYAL', color: 'text-accent', text: '@Etiketleme özelliği ile arkadaşlarına seslenmek artık daha kolay.' },
-    { icon: <Zap className="w-5 h-5 text-status-idle" />, tag: 'PERFORMANS', color: 'text-status-idle', text: 'Akıllı yükleme ekranı (Splash Screen) ile uygulama stabilitesi artırıldı.' },
+    { icon: <Zap className="w-5 h-5 text-status-online" />, tag: 'DÜZELTİLDİ', color: 'text-status-online', text: 'Ayarlar sayfasındaki sonsuz yükleme döngüsü giderildi.' },
+    { icon: <GripVertical className="w-5 h-5 text-primary" />, tag: 'KANAL', color: 'text-primary', text: 'Kanalları kategoriler arasında taşıma artık çalışıyor.' },
+    { icon: <Volume2 className="w-5 h-5 text-accent" />, tag: 'SES', color: 'text-accent', text: 'Sesli kanallar arası geçiş stabilitesi artırıldı.' },
+    { icon: <Sparkles className="w-5 h-5 text-status-idle" />, tag: 'NAVİGASYON', color: 'text-status-idle', text: 'Sayfa geçişleri artık anlık ve kesintisiz.' },
   ];
 
   return (

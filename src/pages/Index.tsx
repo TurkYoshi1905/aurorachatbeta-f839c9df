@@ -859,7 +859,7 @@ const Index = () => {
   // Splash screen
   const allStepsDone = loadingSteps.every(s => s.done);
   if (!splashDone) {
-    return <SplashScreen loadingSteps={loadingSteps} allDone={allStepsDone} onEnter={() => setSplashDone(true)} />;
+    return <SplashScreen loadingSteps={loadingSteps} allDone={allStepsDone} onEnter={() => { sessionStorage.setItem('aurorachat_splash_done', 'true'); setSplashDone(true); }} />;
   }
 
   if (activeServer === 'home') {
