@@ -16,6 +16,35 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.1.2',
+    date: '8 Mart 2026',
+    summary: 'Discord tarzı gelişmiş medya görüntüleyici: zoom, pan, swipe galeri ve GIF lightbox desteği.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Discord tarzı tam ekran lightbox: mouse tekerleği ile yakınlaştırma (1x–5x) ve sürükleme desteği',
+          'Mobil pinch-to-zoom ve tek parmak sürükleme ile görsel inceleme',
+          'Galeri modu: ok tuşları ve mobil swipe ile sohbetteki görseller arasında geçiş',
+          'GIF görselleri artık lightbox içinde büyük boyutta açılıyor',
+          '"Orijinali Aç" ve "İndir" butonları lightbox alt barına eklendi',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Lightbox arka planı derin bulanıklık (backdrop-blur-xl) efekti ile karartıldı',
+          'Çift tıklama ile zoom toggle, sıfırlama ve klavye kısayolları (+/-/0) eklendi',
+          'Zoom aktifken galeri navigasyonu devre dışı bırakılarak yanlış geçiş engellendi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.1',
     date: '8 Mart 2026',
     summary: 'Gelişmiş rol sistemi, Discord tarzı davet UI, emoji/GIF desteği ve tam sayfa sunucu ayarları.',
