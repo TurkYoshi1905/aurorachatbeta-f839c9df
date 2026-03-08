@@ -351,6 +351,10 @@ const tr = {
     user: 'Kullanıcı',
     loading: 'Yükleniyor...',
   },
+  profileCard: {
+    roles: 'Roller',
+    memberSince: 'Üyelik Tarihi',
+  },
 };
 
 export default tr;
