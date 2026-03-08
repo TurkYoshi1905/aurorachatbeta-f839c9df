@@ -16,6 +16,33 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.2.3',
+    date: '9 Mart 2026',
+    summary: 'Mobil menü başlığı düzeltmesi, bildirim izni, boşta ay ikonu ve profil kartı tarih lokalizasyonu.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Bildirim izni: Uygulama açılışında tarayıcı bildirimi izni isteniyor',
+          'Boşta durumu ay ikonu ile gösteriliyor (kullanıcı paneli + üye listesi + profil kartı)',
+          'Arka plan algılama: Uygulama arka plana alındığında otomatik boşta durumuna geçiş',
+          'Profil kartında tarihler seçili dile göre lokalize ediliyor',
+          'Profil kartında gerçek zamanlı durum gösterimi',
+        ],
+      },
+      {
+        title: 'Düzeltmeler',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Mobil mesaj menüsündeki "chat.messageActions" çeviri hatası düzeltildi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.2',
     date: '8 Mart 2026',
     summary: 'Mobil mesaj uzun basma menüsü, pürüzsüz lightbox geçişleri ve profil kartı mobil düzeltmesi.',
