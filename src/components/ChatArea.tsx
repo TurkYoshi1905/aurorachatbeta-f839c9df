@@ -134,6 +134,8 @@ const TypingIndicator = ({ typingUsers, t }: { typingUsers: { userId: string; di
 const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop, members = [], isLocked }: ChatAreaProps) => {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const isMobileDevice = useIsMobile();
+  const [plusMenuOpen, setPlusMenuOpen] = useState(false);
   const [input, setInput] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
