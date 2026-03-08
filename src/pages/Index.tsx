@@ -802,7 +802,7 @@ const Index = () => {
   }, [isMobile, servers, activeServer, voice]);
 
   const handleSendMessage = useCallback(
-    async (content: string, files?: File[]) => {
+    async (content: string, files?: File[], replyTo?: string) => {
       if (!user || !profile) return;
 
       // Bot command interception
