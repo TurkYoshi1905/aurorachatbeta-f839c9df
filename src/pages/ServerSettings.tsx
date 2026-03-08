@@ -269,7 +269,7 @@ const ServerSettings = () => {
       )}
 
       {!isMobile && (
-        <button onClick={() => navigate('/')} className="absolute top-6 right-6 w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors z-10">
+        <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate('/'); }} className="absolute top-6 right-6 w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors z-10">
           <X className="w-5 h-5" />
         </button>
       )}
