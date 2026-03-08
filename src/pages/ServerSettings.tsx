@@ -238,7 +238,7 @@ const ServerSettings = () => {
     <div className="h-screen flex flex-col md:flex-row bg-background text-foreground overflow-hidden">
       {isMobile && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-sidebar overflow-x-auto shrink-0">
-          <button onClick={() => navigate('/')} className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0">
+          <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate('/'); }} className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0">
             <X className="w-4 h-4" />
           </button>
           {tabs.map(tab => (
