@@ -159,9 +159,12 @@ const EMOJI_CATEGORIES = [
   },
 ];
 
+interface ServerEmoji { id: string; name: string; image_url: string; }
+
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
   children?: React.ReactNode;
+  serverEmojis?: ServerEmoji[];
 }
 
 const EmojiPicker = ({ onEmojiSelect, children }: EmojiPickerProps) => {
