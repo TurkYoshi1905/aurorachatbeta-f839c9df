@@ -118,14 +118,22 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${dmUser.userId}` }, handleDelete)
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') console.log('DM incoming channel connected:', pairKey);
-        else if (status === 'CHANNEL_ERROR') console.error('DM incoming channel error:', err);
+        else if (status === 'CHANNEL_ERROR') {
+          console.error('DM incoming channel error, resubscribing in 2s:', err);
+          setTimeout(() => { supabase.removeChannel(ch1); }, 2000);
+        }
       });
 
     const ch2 = supabase.channel(`dm-outgoing-${pairKey}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleInsert)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleUpdate)
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleDelete)
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error('DM outgoing channel error, resubscribing in 2s:', err);
+          setTimeout(() => { supabase.removeChannel(ch2); }, 2000);
+        }
+      });
 
     return () => {
       supabase.removeChannel(ch1);
