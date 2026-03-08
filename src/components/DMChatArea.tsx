@@ -334,7 +334,7 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
             <GifPicker onGifSelect={(url) => handleSend(url)} />
             <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
             <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
-            {(input.trim() || pendingFiles.length > 0) && (<button data-dm-send onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
+            {(input.trim() || pendingFiles.length > 0) && (<button onClick={() => handleSend()} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
           </div>
         </div>
       </div>
