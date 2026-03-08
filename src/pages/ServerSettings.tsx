@@ -9,6 +9,9 @@ import { X, Settings, Users, Shield, ScrollText, Trash2, Camera, UserMinus, Plus
 import { useTranslation } from '@/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface Member { id: string; user_id: string; display_name: string; avatar_url: string | null; roles: { id: string; name: string; color: string }[]; }
 interface Role { id: string; name: string; color: string; position: number; }
