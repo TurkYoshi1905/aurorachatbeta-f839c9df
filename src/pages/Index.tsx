@@ -950,6 +950,51 @@ const Index = () => {
     }
   }, [t]);
 
+  // Fetch thread counts when messages change
+  useEffect(() => {
+    if (!activeChannel || messages.length === 0) { setThreadCounts({}); return; }
+    const fetchThreadCounts = async () => {
+      const msgIds = messages.map(m => m.id).filter(id => !id.startsWith('bot-') && !id.startsWith('temp-'));
+      if (msgIds.length === 0) return;
+      const { data } = await supabase.from('threads').select('message_id').in('message_id', msgIds);
+      if (data) {
+        const counts: Record<string, number> = {};
+        data.forEach(t => { counts[t.message_id] = (counts[t.message_id] || 0) + 1; });
+        setThreadCounts(counts);
+      }
+    };
+    fetchThreadCounts();
+  }, [activeChannel, messages.length]);
+
+  // Fetch user permissions for current server
+  useEffect(() => {
+    if (!activeServer || activeServer === 'home' || !user) { setUserPermissions({}); return; }
+    const fetchPermissions = async () => {
+      const { data: memberRoles } = await supabase.from('server_member_roles').select('role_id').eq('server_id', activeServer).eq('user_id', user.id);
+      if (!memberRoles || memberRoles.length === 0) { setUserPermissions({}); return; }
+      const roleIds = memberRoles.map(r => r.role_id);
+      const { data: roles } = await supabase.from('server_roles').select('permissions').in('id', roleIds);
+      if (roles) {
+        const merged: Record<string, boolean> = {};
+        roles.forEach(r => {
+          const perms = (r as any).permissions || {};
+          Object.entries(perms).forEach(([k, v]) => { if (v === true) merged[k] = true; });
+        });
+        setUserPermissions(merged);
+      }
+    };
+    fetchPermissions();
+  }, [activeServer, user?.id]);
+
+  const handleOpenThread = useCallback((messageId: string, author: string, content: string, threadId: string | null) => {
+    // Find existing thread for this message
+    const fetchThread = async () => {
+      const { data } = await supabase.from('threads').select('id').eq('message_id', messageId).maybeSingle();
+      setActiveThread({ messageId, author, content, threadId: data?.id || null });
+    };
+    fetchThread();
+  }, []);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Splash screen
