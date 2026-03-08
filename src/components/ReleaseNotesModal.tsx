@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Volume2, GripVertical, AtSign, Zap } from 'lucide-react';
+import { Sparkles, Volume2, Bot, Lock, Zap, Shield } from 'lucide-react';
 
-const CURRENT_VERSION = '0.1.5';
+const CURRENT_VERSION = '0.1.6';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {
