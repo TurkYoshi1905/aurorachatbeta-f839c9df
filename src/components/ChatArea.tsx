@@ -396,7 +396,14 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
           const msgReactions = reactions?.[msg.id] || [];
           const replyRef = msg.replyTo ? messages.find(m => m.id === msg.replyTo) : null;
           return (
-            <div key={msg.id} id={`msg-${msg.id}`} className={`flex gap-3 group hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors relative ${msg.status === 'sending' ? 'opacity-50' : ''} ${msg.status === 'failed' ? 'border border-destructive/40 bg-destructive/5' : ''}`}>
+            <div
+              key={msg.id}
+              id={`msg-${msg.id}`}
+              className={`flex gap-3 group hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors relative ${msg.status === 'sending' ? 'opacity-50' : ''} ${msg.status === 'failed' ? 'border border-destructive/40 bg-destructive/5' : ''}`}
+              onTouchStart={isMobileDevice ? () => handleTouchStart(msg) : undefined}
+              onTouchMove={isMobileDevice ? handleTouchMove : undefined}
+              onTouchEnd={isMobileDevice ? handleTouchEnd : undefined}
+            >
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 font-semibold overflow-hidden ${msg.isBot ? 'bg-primary/20 aurora-glow' : 'bg-secondary'}`}>
                 {msg.avatarUrl ? (<img src={msg.avatarUrl} alt="" className="w-full h-full object-cover" />) : (msg.avatar)}
               </div>
