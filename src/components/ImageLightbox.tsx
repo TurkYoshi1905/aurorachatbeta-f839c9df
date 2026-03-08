@@ -13,6 +13,8 @@ interface ImageLightboxProps {
 const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange }: ImageLightboxProps) => {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [fadeIn, setFadeIn] = useState(true);
+  const prevIndex = useRef(currentIndex);
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const posStart = useRef({ x: 0, y: 0 });
@@ -42,9 +44,15 @@ const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange
     }
   }, [hasNext, currentIndex, onIndexChange, scale, resetZoom]);
 
-  // Reset zoom when image changes or dialog closes
+  // Reset zoom and fade transition when image changes or dialog closes
   useEffect(() => {
     resetZoom();
+    if (prevIndex.current !== currentIndex) {
+      setFadeIn(false);
+      const t = setTimeout(() => setFadeIn(true), 20);
+      prevIndex.current = currentIndex;
+      return () => clearTimeout(t);
+    }
   }, [currentIndex, open, resetZoom]);
 
   // Keyboard navigation
@@ -242,7 +250,8 @@ const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange
             className="max-w-[90vw] max-h-[80vh] object-contain pointer-events-none"
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-              transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+              transition: isDragging ? 'none' : 'transform 0.2s ease-out, opacity 0.3s ease-in-out',
+              opacity: fadeIn ? 1 : 0,
             }}
             draggable={false}
           />
@@ -266,14 +275,14 @@ const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-white/80 hover:text-white bg-white/10 hover:bg-white/20 transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
-            <span className="hidden sm:inline">Orijinali Aç</span>
+            <span>Orijinali Aç</span>
           </button>
           <button
             onClick={handleDownload}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-white/80 hover:text-white bg-white/10 hover:bg-white/20 transition-colors"
           >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">İndir</span>
+            <span>İndir</span>
           </button>
         </div>
       </DialogContent>

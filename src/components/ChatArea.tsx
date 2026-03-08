@@ -18,6 +18,7 @@ import SlashCommandPopup from './SlashCommandPopup';
 import EmojiAutocompletePopup from './EmojiAutocompletePopup';
 import UserProfileCard from './UserProfileCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👀', '💯', '✅', '❌', '🤔', '👏', '💪', '🙏', '😎', '🥳', '💀', '😭', '🫡', '👎', '💜', '🧡'];
 
@@ -309,6 +310,27 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
   const cancelEdit = () => { setEditingId(null); setEditContent(''); };
   const confirmEdit = () => { if (!editingId || !editContent.trim()) return; onEditMessage?.(editingId, editContent.trim()); setEditingId(null); setEditContent(''); };
 
+  // Mobile long-press context menu
+  const [longPressMsg, setLongPressMsg] = useState<DbMessage | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchMoved = useRef(false);
+
+  const handleTouchStart = useCallback((msg: DbMessage) => {
+    touchMoved.current = false;
+    longPressTimer.current = setTimeout(() => {
+      if (!touchMoved.current) setLongPressMsg(msg);
+    }, 500);
+  }, []);
+
+  const handleTouchMove = useCallback(() => {
+    touchMoved.current = true;
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }, []);
+
   return (
     <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
       <div className="h-12 flex items-center px-4 border-b border-border shadow-sm gap-2">
@@ -374,7 +396,14 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
           const msgReactions = reactions?.[msg.id] || [];
           const replyRef = msg.replyTo ? messages.find(m => m.id === msg.replyTo) : null;
           return (
-            <div key={msg.id} id={`msg-${msg.id}`} className={`flex gap-3 group hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors relative ${msg.status === 'sending' ? 'opacity-50' : ''} ${msg.status === 'failed' ? 'border border-destructive/40 bg-destructive/5' : ''}`}>
+            <div
+              key={msg.id}
+              id={`msg-${msg.id}`}
+              className={`flex gap-3 group hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors relative ${msg.status === 'sending' ? 'opacity-50' : ''} ${msg.status === 'failed' ? 'border border-destructive/40 bg-destructive/5' : ''}`}
+              onTouchStart={isMobileDevice ? () => handleTouchStart(msg) : undefined}
+              onTouchMove={isMobileDevice ? handleTouchMove : undefined}
+              onTouchEnd={isMobileDevice ? handleTouchEnd : undefined}
+            >
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 font-semibold overflow-hidden ${msg.isBot ? 'bg-primary/20 aurora-glow' : 'bg-secondary'}`}>
                 {msg.avatarUrl ? (<img src={msg.avatarUrl} alt="" className="w-full h-full object-cover" />) : (msg.avatar)}
               </div>
@@ -439,7 +468,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                   </button>
                 )}
               </div>
-              {editingId !== msg.id && (
+              {editingId !== msg.id && !isMobileDevice && (
                 <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
                   {/* Reply button */}
                   <button onClick={() => { setReplyingTo(msg); inputRef.current?.focus(); }} className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title={t('chat.reply')}>
@@ -480,6 +509,53 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
         })}
         <div ref={bottomRef} />
       </div>
+
+      {/* Mobile Long-Press Context Menu */}
+      <Sheet open={!!longPressMsg} onOpenChange={(open) => { if (!open) setLongPressMsg(null); }}>
+        <SheetContent side="bottom" className="rounded-t-2xl px-2 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
+          <SheetHeader className="pb-2">
+            <SheetTitle className="text-sm text-muted-foreground">{t('chat.messageActions' as any) || 'Mesaj İşlemleri'}</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-1">
+            {/* Quick reactions */}
+            {onToggleReaction && longPressMsg && (
+              <div className="flex justify-center gap-2 py-2 border-b border-border mb-1">
+                {EMOJI_LIST.slice(0, 8).map((emoji) => (
+                  <button key={emoji} onClick={() => { onToggleReaction(longPressMsg.id, emoji); setLongPressMsg(null); }} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-secondary text-xl transition-colors">{emoji}</button>
+                ))}
+              </div>
+            )}
+            <button onClick={() => { if (longPressMsg) { setReplyingTo(longPressMsg); inputRef.current?.focus(); } setLongPressMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-secondary transition-colors">
+              <Reply className="w-5 h-5 text-muted-foreground" />
+              {t('chat.reply')}
+            </button>
+            {onOpenThread && longPressMsg && (
+              <button onClick={() => { onOpenThread(longPressMsg.id, longPressMsg.author, longPressMsg.content, null); setLongPressMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-secondary transition-colors">
+                <MessageSquare className="w-5 h-5 text-muted-foreground" />
+                {t('thread.startThread')}
+              </button>
+            )}
+            {(isOwner || userPermissions?.pin_messages) && onPinMessage && onUnpinMessage && longPressMsg && (
+              <button onClick={() => { longPressMsg.isPinned ? onUnpinMessage(longPressMsg.id) : onPinMessage(longPressMsg.id); setLongPressMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-secondary transition-colors">
+                <Pin className={`w-5 h-5 ${longPressMsg.isPinned ? 'text-primary' : 'text-muted-foreground'}`} />
+                {longPressMsg.isPinned ? t('chat.unpin') : t('chat.pin')}
+              </button>
+            )}
+            {longPressMsg?.userId === user?.id && onEditMessage && (
+              <button onClick={() => { if (longPressMsg) startEdit(longPressMsg); setLongPressMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-secondary transition-colors">
+                <Pencil className="w-5 h-5 text-muted-foreground" />
+                {t('chat.editMessage')}
+              </button>
+            )}
+            {longPressMsg && (longPressMsg.userId === user?.id || isOwner || userPermissions?.manage_messages) && onDeleteMessage && (
+              <button onClick={() => { onDeleteMessage(longPressMsg.id); setLongPressMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                <Trash2 className="w-5 h-5" />
+                {t('chat.deleteMessage')}
+              </button>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <TypingIndicator typingUsers={typingUsers || []} t={t} />
 
