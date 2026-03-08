@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          server_id: string
+          target_id: string | null
+          target_type: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          server_id: string
+          target_id?: string | null
+          target_type?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          server_id?: string
+          target_id?: string | null
+          target_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channels: {
         Row: {
           created_at: string
@@ -260,6 +301,45 @@ export type Database = {
           },
         ]
       }
+      server_member_roles: {
+        Row: {
+          assigned_at: string
+          id: string
+          role_id: string
+          server_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          id?: string
+          role_id: string
+          server_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          id?: string
+          role_id?: string
+          server_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "server_member_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "server_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "server_member_roles_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       server_members: {
         Row: {
           id: string
@@ -282,6 +362,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "server_members_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      server_roles: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+          server_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          server_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          server_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "server_roles_server_id_fkey"
             columns: ["server_id"]
             isOneToOne: false
             referencedRelation: "servers"

@@ -16,6 +16,44 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.1.1',
+    date: '8 Mart 2026',
+    summary: 'Gelişmiş rol sistemi, Discord tarzı davet UI, emoji/GIF desteği ve tam sayfa sunucu ayarları.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Discord stili gelişmiş davet linki oluşturma ve yönetme sistemi eklendi',
+          'Rol oluşturma, renk atama ve kullanıcıya rol verme özelliği aktif',
+          'Tenor GIF ve Emoji picker desteği ile sohbetler renklendirildi',
+          'Denetim Kaydı (Audit Log): Sunucu içi tüm aksiyonlar kayıt altına alınıyor',
+        ],
+      },
+      {
+        title: 'Düzeltilen Hatalar',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'DM senkronizasyon hataları ve 500 hataları tamamen giderildi',
+          'DM kanalları CHANNEL_ERROR durumunda otomatik yeniden bağlanıyor',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Sunucu ayarları daha geniş kullanım için tam sayfa yapısına geçirildi',
+          'Üye listesinde roller renkli kategoriler halinde gösteriliyor',
+          'Davet sistemi: süre sona erme ve maksimum kullanım sayısı ayarlanabiliyor',
+          'Tüm sunucu üyeleri davet oluşturabiliyor (sadece sahip değil)',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.0',
     date: '3 Mart 2026',
     summary: 'Çok dilli destek sistemi ve uygulama genelinde lokalizasyon.',

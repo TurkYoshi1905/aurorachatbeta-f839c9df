@@ -193,6 +193,8 @@ const ru = {
     description: 'Редактировать настройки сервера',
     general: 'Общее',
     membersTab: 'Участники',
+    rolesTab: 'Роли',
+    auditTab: 'Журнал аудита',
     serverNameLabel: 'Название сервера',
     save: 'Сохранить',
     saving: 'Сохранение...',

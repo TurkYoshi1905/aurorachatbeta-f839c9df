@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import CreateChannelDialog from '@/components/CreateChannelDialog';
 import InviteDialog from '@/components/InviteDialog';
-import ServerSettingsDialog from '@/components/ServerSettingsDialog';
 import { useTranslation } from '@/i18n';
 
 interface ChannelListProps {
@@ -27,7 +26,6 @@ const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
   const [channelDialogType, setChannelDialogType] = useState<'text' | 'voice'>('text');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const textChannels = channels.filter((c) => c.type === 'text');
   const voiceChannels = channels.filter((c) => c.type === 'voice');
 
@@ -49,7 +47,7 @@ const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel
           {isOwner && (
             <>
               <button onClick={() => setInviteDialogOpen(true)} className="text-muted-foreground hover:text-foreground transition-colors" title={t('server.createInvite')}><UserPlus className="w-4 h-4" /></button>
-              <button onClick={() => setSettingsOpen(true)} className="text-muted-foreground hover:text-foreground transition-colors" title={t('server.serverSettings')}><Settings className="w-4 h-4" /></button>
+              <button onClick={() => navigate(`/server/${serverId}/settings`)} className="text-muted-foreground hover:text-foreground transition-colors" title={t('server.serverSettings')}><Settings className="w-4 h-4" /></button>
             </>
           )}
         </div>
@@ -116,7 +114,6 @@ const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel
         <>
           <CreateChannelDialog open={channelDialogOpen} onOpenChange={setChannelDialogOpen} serverId={serverId} defaultType={channelDialogType} existingCount={channels.length} onChannelCreated={() => onChannelCreated?.()} />
           <InviteDialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen} serverId={serverId} serverName={serverName} />
-          <ServerSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} serverId={serverId} serverName={serverName} serverIcon={serverIcon} onServerDeleted={() => onServerDeleted?.()} onServerUpdated={() => onServerUpdated?.()} />
         </>
       )}
     </div>

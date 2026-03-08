@@ -51,6 +51,8 @@ export interface DbMember {
   avatarUrl?: string | null;
   status: 'online' | 'idle' | 'dnd' | 'offline';
   role?: string;
+  roleColor?: string;
+  rolePosition?: number;
 }
 
 export interface DbChannel {
@@ -195,16 +197,28 @@ const Index = () => {
     const userIds = memberRows.map((m) => m.user_id);
     if (userIds.length === 0) { setMembers([]); return; }
     const { data } = await supabase.from('profiles').select('*').in('user_id', userIds);
+    // Fetch roles for members
+    const { data: memberRoles } = await supabase.from('server_member_roles').select('user_id, role_id').eq('server_id', activeServer);
+    const { data: serverRoles } = await supabase.from('server_roles').select('id, name, color, position').eq('server_id', activeServer).order('position', { ascending: false });
     if (data) {
       setMembers((prevMembers) => {
         const prevStatusMap = new Map(prevMembers.map(m => [m.id, m.status]));
-        return data.map((p) => ({
-          id: p.user_id,
-          name: p.display_name,
-          avatar: p.display_name?.charAt(0)?.toUpperCase() || '?',
-          avatarUrl: p.avatar_url || null,
-          status: presenceStatusRef.current.get(p.user_id) || prevStatusMap.get(p.user_id) || 'offline' as const,
-        }));
+        return data.map((p) => {
+          // Find highest position role for this user
+          const userRoleIds = memberRoles?.filter(mr => mr.user_id === p.user_id).map(mr => mr.role_id) || [];
+          const userRoles = serverRoles?.filter(r => userRoleIds.includes(r.id)) || [];
+          const topRole = userRoles.length > 0 ? userRoles[0] : null; // already sorted by position desc
+          return {
+            id: p.user_id,
+            name: p.display_name,
+            avatar: p.display_name?.charAt(0)?.toUpperCase() || '?',
+            avatarUrl: p.avatar_url || null,
+            status: presenceStatusRef.current.get(p.user_id) || prevStatusMap.get(p.user_id) || 'offline' as const,
+            role: topRole?.name,
+            roleColor: topRole?.color,
+            rolePosition: topRole?.position,
+          };
+        });
       });
     }
   }, [activeServer]);

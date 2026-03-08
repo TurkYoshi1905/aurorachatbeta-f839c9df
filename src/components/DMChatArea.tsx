@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Send, PlusCircle, SmilePlus, Pencil, Trash2, Check, X, ImagePlus } from 'lucide-react';
+import { ArrowLeft, Send, PlusCircle, Pencil, Trash2, Check, X, ImagePlus } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -12,6 +12,8 @@ import { renderMessageContent } from './ChatArea';
 import MessageAttachments from './MessageAttachments';
 import FileUploadPreview from './FileUploadPreview';
 import { toast } from 'sonner';
+import EmojiPicker from './EmojiPicker';
+import GifPicker from './GifPicker';
 
 const MAX_FILES = 3;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -116,14 +118,22 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${dmUser.userId}` }, handleDelete)
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') console.log('DM incoming channel connected:', pairKey);
-        else if (status === 'CHANNEL_ERROR') console.error('DM incoming channel error:', err);
+        else if (status === 'CHANNEL_ERROR') {
+          console.error('DM incoming channel error, resubscribing in 2s:', err);
+          setTimeout(() => { supabase.removeChannel(ch1); }, 2000);
+        }
       });
 
     const ch2 = supabase.channel(`dm-outgoing-${pairKey}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleInsert)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleUpdate)
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${user.id}` }, handleDelete)
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error('DM outgoing channel error, resubscribing in 2s:', err);
+          setTimeout(() => { supabase.removeChannel(ch2); }, 2000);
+        }
+      });
 
     return () => {
       supabase.removeChannel(ch1);
@@ -172,10 +182,12 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [pendingFiles, t]);
 
-  const handleSend = useCallback(async () => {
-    if ((!input.trim() && pendingFiles.length === 0) || !user || !profile) return;
-    const content = input.trim();
+  const handleSend = useCallback(async (overrideContent?: string) => {
+    const contentToSend = overrideContent ?? input.trim();
+    if ((!contentToSend && pendingFiles.length === 0) || !user || !profile) return;
+    const content = contentToSend;
     const filesToUpload = [...pendingFiles];
+    if (!overrideContent) setInput('');
     setInput('');
     setPendingFiles([]);
     stopTypingEvent();
@@ -319,9 +331,10 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
           <button onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
           <input type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder={t('dm.messagePlaceholder', { user: dmUser.displayName })} className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground" />
           <div className="flex items-center gap-2 text-muted-foreground">
+            <GifPicker onGifSelect={(url) => handleSend(url)} />
             <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
-            <button className="hover:text-foreground transition-colors"><SmilePlus className="w-5 h-5" /></button>
-            {(input.trim() || pendingFiles.length > 0) && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
+            <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
+            {(input.trim() || pendingFiles.length > 0) && (<button onClick={() => handleSend()} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
           </div>
         </div>
       </div>

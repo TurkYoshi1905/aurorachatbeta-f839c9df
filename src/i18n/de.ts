@@ -193,6 +193,8 @@ const de = {
     description: 'Servereinstellungen bearbeiten',
     general: 'Allgemein',
     membersTab: 'Mitglieder',
+    rolesTab: 'Rollen',
+    auditTab: 'Prüfprotokoll',
     serverNameLabel: 'Servername',
     save: 'Speichern',
     saving: 'Wird gespeichert...',

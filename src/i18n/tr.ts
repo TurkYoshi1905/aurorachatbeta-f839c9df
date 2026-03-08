@@ -221,6 +221,8 @@ const tr = {
     description: 'Sunucu ayarlarını düzenle',
     general: 'Genel',
     membersTab: 'Üyeler',
+    rolesTab: 'Roller',
+    auditTab: 'Denetim Kaydı',
     serverNameLabel: 'Sunucu Adı',
     save: 'Kaydet',
     saving: 'Kaydediliyor...',
