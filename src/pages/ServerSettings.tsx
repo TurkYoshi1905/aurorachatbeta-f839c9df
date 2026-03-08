@@ -261,7 +261,7 @@ const ServerSettings = () => {
               </button>
             ))}
             <div className="border-t border-border my-2" />
-            <button onClick={() => navigate('/')} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50">
+            <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate('/'); }} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50">
               <X className="w-4 h-4" /> Geri
             </button>
           </div>
