@@ -370,6 +370,16 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                     })}
                   </div>
                 )}
+                {/* Thread count button */}
+                {threadCounts && threadCounts[msg.id] > 0 && onOpenThread && (
+                  <button
+                    onClick={() => onOpenThread(msg.id, msg.author, msg.content, null)}
+                    className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 mt-1 transition-colors"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span className="font-medium">{threadCounts[msg.id]} {t('thread.replies')}</span>
+                  </button>
+                )}
               </div>
               {editingId !== msg.id && (
                 <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
@@ -377,6 +387,12 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                   <button onClick={() => { setReplyingTo(msg); inputRef.current?.focus(); }} className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title={t('chat.reply')}>
                     <Reply className="w-3.5 h-3.5" />
                   </button>
+                  {/* Thread button */}
+                  {onOpenThread && (
+                    <button onClick={() => onOpenThread(msg.id, msg.author, msg.content, null)} className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title={t('thread.startThread')}>
+                      <MessageSquare className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   {onToggleReaction && (
                     <Popover>
                       <PopoverTrigger asChild><button className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title={t('chat.addReaction')}><SmilePlus className="w-3.5 h-3.5" /></button></PopoverTrigger>
@@ -387,8 +403,8 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                       </PopoverContent>
                     </Popover>
                   )}
-                  {/* Pin/Unpin button - owner only */}
-                  {isOwner && onPinMessage && onUnpinMessage && (
+                  {/* Pin/Unpin button - owner or permission */}
+                  {(isOwner || userPermissions?.pin_messages) && onPinMessage && onUnpinMessage && (
                     <button
                       onClick={() => msg.isPinned ? onUnpinMessage(msg.id) : onPinMessage(msg.id)}
                       className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
@@ -398,7 +414,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                     </button>
                   )}
                   {msg.userId === user?.id && onEditMessage && (<button onClick={() => startEdit(msg)} className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title={t('chat.editMessage')}><Pencil className="w-3.5 h-3.5" /></button>)}
-                  {(msg.userId === user?.id || isOwner) && onDeleteMessage && (<button onClick={() => onDeleteMessage(msg.id)} className="p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all" title={t('chat.deleteMessage')}><Trash2 className="w-3.5 h-3.5" /></button>)}
+                  {(msg.userId === user?.id || isOwner || userPermissions?.manage_messages) && onDeleteMessage && (<button onClick={() => onDeleteMessage(msg.id)} className="p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all" title={t('chat.deleteMessage')}><Trash2 className="w-3.5 h-3.5" /></button>)}
                 </div>
               )}
             </div>
