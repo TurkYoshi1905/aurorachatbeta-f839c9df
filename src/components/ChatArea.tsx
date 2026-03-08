@@ -37,6 +37,7 @@ interface ChatAreaProps {
   onTypingStart?: () => void;
   onTypingStop?: () => void;
   members?: DbMember[];
+  isLocked?: boolean;
 }
 
 const isGiphyUrl = (url: string) => /giphy\.com\/media\/|\.giphy\.com\//i.test(url);
