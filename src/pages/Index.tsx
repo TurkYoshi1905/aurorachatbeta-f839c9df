@@ -3,6 +3,7 @@ import ServerSidebar from '@/components/ServerSidebar';
 import ChannelList from '@/components/ChannelList';
 import ChatArea from '@/components/ChatArea';
 import { Home, MessageSquare, Users, Settings, Hash } from 'lucide-react';
+import ThreadPanel from '@/components/ThreadPanel';
 import MemberList from '@/components/MemberList';
 import DMDashboard from '@/components/DMDashboard';
 import DMChatArea from '@/components/DMChatArea';
