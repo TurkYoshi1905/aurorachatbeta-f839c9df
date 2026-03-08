@@ -3,11 +3,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from '@/i18n';
 import { format } from 'date-fns';
+import { MessageSquare } from 'lucide-react';
 
 interface UserProfileCardProps {
   userId: string;
   serverId?: string;
   children: React.ReactNode;
+  onSendMessage?: (userId: string) => void;
 }
 
 interface ProfileData {
@@ -15,6 +17,8 @@ interface ProfileData {
   username: string;
   avatar_url: string | null;
   created_at: string;
+  bio: string;
+  banner_color: string;
 }
 
 interface RoleData {
@@ -22,22 +26,27 @@ interface RoleData {
   color: string;
 }
 
-const UserProfileCard = ({ userId, serverId, children }: UserProfileCardProps) => {
+const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProfileCardProps) => {
   const { t } = useTranslation();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [roles, setRoles] = useState<RoleData[]>([]);
   const [joinedAt, setJoinedAt] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [note, setNote] = useState('');
 
   useEffect(() => {
     if (!open || !userId) return;
+    // Load local note
+    const savedNote = localStorage.getItem(`user_note_${userId}`);
+    if (savedNote) setNote(savedNote);
+
     const fetchData = async () => {
       const { data: prof } = await supabase
         .from('profiles')
-        .select('display_name, username, avatar_url, created_at')
+        .select('display_name, username, avatar_url, created_at, bio, banner_color')
         .eq('user_id', userId)
         .maybeSingle();
-      if (prof) setProfile(prof);
+      if (prof) setProfile(prof as ProfileData);
 
       if (serverId) {
         const { data: member } = await supabase
@@ -68,6 +77,11 @@ const UserProfileCard = ({ userId, serverId, children }: UserProfileCardProps) =
     fetchData();
   }, [open, userId, serverId]);
 
+  const handleNoteChange = (val: string) => {
+    setNote(val);
+    localStorage.setItem(`user_note_${userId}`, val);
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -75,7 +89,7 @@ const UserProfileCard = ({ userId, serverId, children }: UserProfileCardProps) =
       </PopoverTrigger>
       <PopoverContent side="right" align="start" className="w-72 p-0 bg-sidebar border-border overflow-hidden">
         {/* Banner */}
-        <div className="h-16 bg-gradient-to-r from-primary/60 to-accent/40" />
+        <div className="h-16" style={{ background: profile?.banner_color ? `linear-gradient(135deg, ${profile.banner_color}, ${profile.banner_color}88)` : 'linear-gradient(135deg, hsl(var(--primary) / 0.6), hsl(var(--accent) / 0.4))' }} />
         
         {/* Avatar */}
         <div className="px-4 -mt-8 relative z-10">
@@ -96,6 +110,14 @@ const UserProfileCard = ({ userId, serverId, children }: UserProfileCardProps) =
           </div>
 
           <div className="h-px bg-border" />
+
+          {/* Bio */}
+          {profile?.bio && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t('profileCard.aboutMe')}</p>
+              <p className="text-xs text-foreground">{profile.bio}</p>
+            </div>
+          )}
 
           {/* Roles */}
           {roles.length > 0 && (
@@ -133,6 +155,31 @@ const UserProfileCard = ({ userId, serverId, children }: UserProfileCardProps) =
               )}
             </div>
           </div>
+
+          <div className="h-px bg-border" />
+
+          {/* Note */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t('profileCard.note')}</p>
+            <input
+              type="text"
+              value={note}
+              onChange={e => handleNoteChange(e.target.value)}
+              placeholder={t('profileCard.notePlaceholder')}
+              className="w-full bg-secondary/50 rounded px-2 py-1.5 text-xs outline-none text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary/40"
+            />
+          </div>
+
+          {/* DM Button */}
+          {onSendMessage && (
+            <button
+              onClick={() => { onSendMessage(userId); setOpen(false); }}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              {t('profileCard.sendMessage')}
+            </button>
+          )}
         </div>
       </PopoverContent>
     </Popover>
