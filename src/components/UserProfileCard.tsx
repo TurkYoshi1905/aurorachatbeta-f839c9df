@@ -91,6 +91,28 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProf
     fetchData();
   }, [open, userId, serverId]);
 
+  // Realtime presence for this user
+  useEffect(() => {
+    if (!open || !userId) return;
+    const channel = supabase.channel(`profile-presence-${userId}`);
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      const entries = Object.values(state).flat() as any[];
+      const found = entries.find((e: any) => e.user_id === userId);
+      if (found) setUserStatus(found.status || 'online');
+    }).subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        // Check global presence channel for the user's status
+        const globalChannel = supabase.channel('global-presence');
+        const globalState = globalChannel.presenceState();
+        const allEntries = Object.values(globalState).flat() as any[];
+        const found = allEntries.find((e: any) => e.user_id === userId);
+        if (found) setUserStatus(found.status || 'online');
+      }
+    });
+    return () => { supabase.removeChannel(channel); };
+  }, [open, userId]);
+
   const handleNoteChange = (val: string) => {
     setNote(val);
     localStorage.setItem(`user_note_${userId}`, val);
