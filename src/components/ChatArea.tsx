@@ -510,6 +510,53 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
         <div ref={bottomRef} />
       </div>
 
+      {/* Mobile Long-Press Context Menu */}
+      <Sheet open={!!longPressMsg} onOpenChange={(open) => { if (!open) setLongPressMsg(null); }}>
+        <SheetContent side="bottom" className="rounded-t-2xl px-2 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
+          <SheetHeader className="pb-2">
+            <SheetTitle className="text-sm text-muted-foreground">{t('chat.messageActions' as any) || 'Mesaj İşlemleri'}</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-1">
+            {/* Quick reactions */}
+            {onToggleReaction && longPressMsg && (
+              <div className="flex justify-center gap-2 py-2 border-b border-border mb-1">
+                {EMOJI_LIST.slice(0, 8).map((emoji) => (
+                  <button key={emoji} onClick={() => { onToggleReaction(longPressMsg.id, emoji); setLongPressMsg(null); }} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-secondary text-xl transition-colors">{emoji}</button>
+                ))}
+              </div>
+            )}
+            <button onClick={() => { if (longPressMsg) { setReplyingTo(longPressMsg); inputRef.current?.focus(); } setLongPressMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-secondary transition-colors">
+              <Reply className="w-5 h-5 text-muted-foreground" />
+              {t('chat.reply')}
+            </button>
+            {onOpenThread && longPressMsg && (
+              <button onClick={() => { onOpenThread(longPressMsg.id, longPressMsg.author, longPressMsg.content, null); setLongPressMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-secondary transition-colors">
+                <MessageSquare className="w-5 h-5 text-muted-foreground" />
+                {t('thread.startThread')}
+              </button>
+            )}
+            {(isOwner || userPermissions?.pin_messages) && onPinMessage && onUnpinMessage && longPressMsg && (
+              <button onClick={() => { longPressMsg.isPinned ? onUnpinMessage(longPressMsg.id) : onPinMessage(longPressMsg.id); setLongPressMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-secondary transition-colors">
+                <Pin className={`w-5 h-5 ${longPressMsg.isPinned ? 'text-primary' : 'text-muted-foreground'}`} />
+                {longPressMsg.isPinned ? t('chat.unpin') : t('chat.pin')}
+              </button>
+            )}
+            {longPressMsg?.userId === user?.id && onEditMessage && (
+              <button onClick={() => { if (longPressMsg) startEdit(longPressMsg); setLongPressMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-secondary transition-colors">
+                <Pencil className="w-5 h-5 text-muted-foreground" />
+                {t('chat.editMessage')}
+              </button>
+            )}
+            {longPressMsg && (longPressMsg.userId === user?.id || isOwner || userPermissions?.manage_messages) && onDeleteMessage && (
+              <button onClick={() => { onDeleteMessage(longPressMsg.id); setLongPressMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                <Trash2 className="w-5 h-5" />
+                {t('chat.deleteMessage')}
+              </button>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
       <TypingIndicator typingUsers={typingUsers || []} t={t} />
 
       <FileUploadPreview files={pendingFiles} onRemove={handleRemoveFile} />

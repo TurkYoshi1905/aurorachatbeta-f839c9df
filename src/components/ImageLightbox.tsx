@@ -275,14 +275,14 @@ const ImageLightbox = ({ images, currentIndex, open, onOpenChange, onIndexChange
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-white/80 hover:text-white bg-white/10 hover:bg-white/20 transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
-            <span className="hidden sm:inline">Orijinali Aç</span>
+            <span>Orijinali Aç</span>
           </button>
           <button
             onClick={handleDownload}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-white/80 hover:text-white bg-white/10 hover:bg-white/20 transition-colors"
           >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">İndir</span>
+            <span>İndir</span>
           </button>
         </div>
       </DialogContent>

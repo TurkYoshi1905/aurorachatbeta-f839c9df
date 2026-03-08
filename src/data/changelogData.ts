@@ -16,6 +16,33 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.2.2',
+    date: '8 Mart 2026',
+    summary: 'Mobil mesaj uzun basma menüsü, pürüzsüz lightbox geçişleri ve profil kartı mobil düzeltmesi.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Mobil Mesaj Menüsü: Mesaja uzun basarak Discord tarzı aksiyon menüsü aç',
+          'Hızlı tepki ekleme, yanıtlama, düzenleme ve silme tek yerden',
+          'Lightbox resim geçişlerinde pürüzsüz fade animasyonu',
+          'Lightbox buton yazıları artık mobilde de her zaman görünür',
+        ],
+      },
+      {
+        title: 'Düzeltmeler',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Profil kartı mobilde ekranın dışına taşma sorunu düzeltildi (Sheet olarak açılıyor)',
+          'Mobilde mesaj aksiyon butonlarının görünmeme sorunu giderildi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.1',
     date: '8 Mart 2026',
     summary: 'Sunucu özel emoji sistemi, gelişmiş rol renk seçici ve detaylı yetkilendirme.',

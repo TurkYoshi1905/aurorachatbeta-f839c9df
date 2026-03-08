@@ -23,9 +23,9 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <MessageSquare className="w-5 h-5 text-primary" />, tag: 'EMOJİ', color: 'text-primary', text: 'Özel Emojiler: Sunucunuza 50 adede kadar özel emoji yükleyin ve sohbette :ad: şeklinde kullanın!' },
-    { icon: <Shield className="w-5 h-5 text-status-online" />, tag: 'YETKİ', color: 'text-status-online', text: 'Gelişmiş Rol Sistemi: HEX renk seçici, Yönetici yetkisi ve detaylı izin yönetimi.' },
-    { icon: <UserCircle className="w-5 h-5 text-accent" />, tag: 'OPTİMİZE', color: 'text-accent', text: 'Emoji görselleri otomatik optimize edilerek performans artırıldı.' },
+    { icon: <MessageSquare className="w-5 h-5 text-primary" />, tag: 'MOBİL', color: 'text-primary', text: 'Mobil Mesaj Menüsü: Mesaja uzun basarak yanıtla, düzenle, sil ve tepki ekle!' },
+    { icon: <Shield className="w-5 h-5 text-status-online" />, tag: 'LIGHTBOX', color: 'text-status-online', text: 'Pürüzsüz resim geçişleri ve her zaman görünür buton yazıları.' },
+    { icon: <UserCircle className="w-5 h-5 text-accent" />, tag: 'PROFİL', color: 'text-accent', text: 'Profil kartı mobilde artık alt panelden açılıyor, ekrana sığıyor!' },
   ];
 
   return (
