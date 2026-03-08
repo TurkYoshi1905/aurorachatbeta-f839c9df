@@ -231,6 +231,16 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
       setMentionQuery('');
     }
     
+    // Emoji autocomplete: detect :query pattern (at least 2 chars after :)
+    const emojiMatch = textBeforeCursor.match(/:([a-z0-9_]{2,})$/);
+    if (emojiMatch) {
+      setShowEmojiAutocomplete(true);
+      setEmojiAutocompleteQuery(emojiMatch[1]);
+    } else {
+      setShowEmojiAutocomplete(false);
+      setEmojiAutocompleteQuery('');
+    }
+    
     if (val.trim()) { const now = Date.now(); if (now - lastTypingSentRef.current > 2000) { lastTypingSentRef.current = now; onTypingStart?.(); } }
     else { onTypingStop?.(); }
   }, [onTypingStart, onTypingStop]);
