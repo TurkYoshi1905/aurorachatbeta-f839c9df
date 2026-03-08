@@ -138,7 +138,7 @@ const Index = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const voice = useVoiceChannel();
-  const [splashDone, setSplashDone] = useState(false);
+  const [splashDone, setSplashDone] = useState(() => sessionStorage.getItem('aurorachat_splash_done') === 'true');
   const [loadingSteps, setLoadingSteps] = useState([
     { label: 'Oturum kontrol ediliyor...', done: false },
     { label: 'Sunucular yükleniyor...', done: false },
