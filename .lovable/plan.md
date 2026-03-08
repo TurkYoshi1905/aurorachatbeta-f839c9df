@@ -1,37 +1,40 @@
 
 
-## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
+## Plan: v0.1.5 Hotfix — GIF Layout, Image Download, Voice Chat
 
-### 1. Black Screen Root Cause (CRITICAL)
+3 sorun, 3 düzeltme.
 
-**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
+---
 
-**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
+### 1. GIF Mobil Taşması
 
-### 2. Server Deletion — Cascade via Foreign Keys
+**Sorun:** `GifImage` bileşeninde `max-w-xs` (320px) mobilde ekranı taşırıyor.
 
-Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
+**Çözüm:** `ChatArea.tsx` satır 48'de `max-w-xs` yerine `max-w-[min(320px,100%)]` kullan. Böylece mobilde ekran genişliğini aşmaz.
 
-**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
-- `channels.server_id → servers.id ON DELETE CASCADE`
-- `messages.server_id → servers.id ON DELETE CASCADE`
-- `messages.channel_id → channels.id ON DELETE CASCADE`
-- `server_members.server_id → servers.id ON DELETE CASCADE`
-- `server_invites.server_id → servers.id ON DELETE CASCADE`
+---
 
-Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
+### 2. Resim İndirme Çalışmıyor
 
-### 3. DM Real-time — Typing Channel Broadcast Fix
+**Sorun:** `ImageLightbox.tsx` satır 160-167'de `handleDownload` sadece bir `<a>` etiketi oluşturup `click()` çağırıyor. Cross-origin resimler (Supabase storage) için bu yöntem indirme tetiklemez, sadece yeni sekmede açar.
 
-In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
+**Çözüm:** `fetch()` ile resmi blob olarak indir, sonra `URL.createObjectURL` ile indirme bağlantısı oluştur. Cross-origin hata olursa fallback olarak yeni sekmede aç.
 
-**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
+---
 
-### File Changes
+### 3. Sesli Sohbet Çalışmıyor
 
-| File | Change |
+**Sorun:** Edge function `livekit-token/index.ts` satır 68'de `supabase.auth.getClaims(token)` kullanıyor. Bu method Supabase JS client'ta mevcut değil — `getUser()` kullanılmalı.
+
+**Çözüm:** `getClaims` yerine `supabase.auth.getUser()` kullan ve `userId`'yi `data.user.id`'den al.
+
+---
+
+### Dosya Değişiklikleri
+
+| Dosya | Değişiklik |
 |---|---|
-| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
-| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
-| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
+| `src/components/ChatArea.tsx` | GIF `max-w-xs` → responsive max-width |
+| `src/components/ImageLightbox.tsx` | `handleDownload` → fetch+blob indirme |
+| `supabase/functions/livekit-token/index.ts` | `getClaims` → `getUser` |
 
