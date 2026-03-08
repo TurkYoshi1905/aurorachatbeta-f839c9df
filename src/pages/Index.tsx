@@ -1135,7 +1135,7 @@ const Index = () => {
         onUnpinMessage={handleUnpinMessage}
         serverId={activeServer}
       />
-      {showMembers && <MemberList members={members} />}
+      {showMembers && <MemberList members={members} serverId={activeServer} />}
     </div>
   );
 };
