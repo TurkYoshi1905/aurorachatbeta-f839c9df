@@ -1,5 +1,3 @@
-
-
 ## Plan: v0.1.7 — Mobil Mesaj Çubuğu Yenileme
 
 ### 1. ChatArea.tsx — Mobil Input Bar Yeniden Yapılandırma (Satır 326-362)
@@ -24,6 +22,7 @@
 - Container'a `pb-[env(safe-area-inset-bottom)]` ekle
 
 **Plus menü yapısı (mobil):**
+
 ```text
 Popover açılır:
   📷 Resim Ekle
@@ -53,10 +52,10 @@ Popover açılır:
 
 ### Dosya Değişiklikleri
 
-| Dosya | Değişiklik |
-|---|---|
-| `src/components/ChatArea.tsx` | Mobil input bar yeniden yapılandırma, plus menü, emoji input içi, safe area |
-| `src/components/UserInfoPanel.tsx` | Mobil daraltma, touch target genişletme |
-| `src/data/changelogData.ts` | v0.1.7 notları |
-| `src/components/ReleaseNotesModal.tsx` | Versiyon güncelle |
 
+| Dosya                                  | Değişiklik                                                                  |
+| -------------------------------------- | --------------------------------------------------------------------------- |
+| `src/components/ChatArea.tsx`          | Mobil input bar yeniden yapılandırma, plus menü, emoji input içi, safe area |
+| `src/components/UserInfoPanel.tsx`     | Mobil daraltma, touch target genişletme                                     |
+| `src/data/changelogData.ts`            | v0.1.7 notları                                                              |
+| `src/components/ReleaseNotesModal.tsx` | Versiyon güncelle                                                           |
