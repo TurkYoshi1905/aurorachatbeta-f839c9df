@@ -49,6 +49,36 @@ const tr = {
     usernameTaken: 'Bu kullanıcı adı zaten alınmış',
     verificationSent: 'Doğrulama bağlantısı e-posta adresinize gönderildi! Lütfen kontrol edin.',
     genericError: 'Bir hata oluştu',
+    // Birthday
+    stepBirthday: 'Doğum tarihin',
+    stepBirthdayDesc: 'Yaşını doğrulamamız gerekiyor',
+    day: 'Gün',
+    month: 'Ay',
+    year: 'Yıl',
+    birthdayRequired: 'Doğum tarihi gerekli',
+    ageRestriction: 'En az 13 yaşında olmalısınız',
+    ageRestrictionHint: 'Hizmetimizi kullanmak için en az 13 yaşında olmanız gerekir',
+    // Avatar
+    stepAvatar: 'Profil fotoğrafı',
+    stepAvatarDesc: 'Bir profil fotoğrafı ekle (isteğe bağlı)',
+    avatarHint: 'Fotoğraf yüklemek için tıklayın',
+    skipStep: 'Atla',
+    // Forgot password
+    forgotPassword: 'Şifremi Unuttum',
+    forgotPasswordTitle: 'Şifreni sıfırla',
+    forgotPasswordDesc: 'E-posta adresine bir sıfırlama bağlantısı göndereceğiz.',
+    sendResetLink: 'Sıfırlama Bağlantısı Gönder',
+    resetEmailSent: 'Sıfırlama bağlantısı gönderildi!',
+    resetEmailSentTitle: 'E-posta Gönderildi',
+    resetEmailSentDesc: 'E-posta kutunuzu kontrol edin ve sıfırlama bağlantısına tıklayın.',
+    backToLogin: 'Girişe Dön',
+    // Reset password
+    resetPasswordTitle: 'Yeni şifreni belirle',
+    newPassword: 'Yeni Şifre',
+    newPasswordDesc: 'Hesabın için yeni bir şifre belirle.',
+    resetPasswordButton: 'Şifreyi Güncelle',
+    passwordResetSuccess: 'Şifren başarıyla güncellendi!',
+    invalidResetLink: 'Geçersiz veya süresi dolmuş sıfırlama bağlantısı.',
   },
 
   // Settings
