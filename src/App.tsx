@@ -15,6 +15,8 @@ import InvitePage from "./pages/InvitePage";
 import Changelog from "./pages/Changelog";
 import ChangelogDetail from "./pages/ChangelogDetail";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
