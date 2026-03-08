@@ -201,10 +201,8 @@ const Index = () => {
             type: c.type as 'text' | 'voice',
             position: c.position,
             category_id: (c as any).category_id || null,
+            is_locked: (c as any).is_locked || false,
           })),
-        categories: (categoriesData || [])
-          .filter((cat: any) => cat.server_id === s.id)
-          .map((cat: any) => ({ id: cat.id, name: cat.name, position: cat.position, server_id: cat.server_id })),
       }));
       setServers(mapped);
       if (!activeServer && mapped.length > 0) {
