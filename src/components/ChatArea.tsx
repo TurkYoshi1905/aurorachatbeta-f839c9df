@@ -468,7 +468,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                   </button>
                 )}
               </div>
-              {editingId !== msg.id && (
+              {editingId !== msg.id && !isMobileDevice && (
                 <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
                   {/* Reply button */}
                   <button onClick={() => { setReplyingTo(msg); inputRef.current?.focus(); }} className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title={t('chat.reply')}>
