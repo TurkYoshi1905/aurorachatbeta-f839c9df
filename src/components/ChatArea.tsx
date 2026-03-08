@@ -258,12 +258,8 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
           <button onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
           <input type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder={t('chat.messagePlaceholder', { channel: channelName })} className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground" />
           <div className="flex items-center gap-2 text-muted-foreground">
-            {!isMobile && (
-              <>
-                <GifPicker onGifSelect={(url) => { onSendMessage(url); }} />
-                <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
-              </>
-            )}
+            <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
+            <GifPicker onGifSelect={(url) => { onSendMessage(url); }} />
             <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
             {(input.trim() || pendingFiles.length > 0) && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
           </div>
