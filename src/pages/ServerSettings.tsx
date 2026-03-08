@@ -51,6 +51,7 @@ const ServerSettings = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleColor, setNewRoleColor] = useState('#3498DB');
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
