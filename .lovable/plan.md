@@ -1,37 +1,62 @@
 
 
-## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
+## Plan: v0.1.7 — Mobil Mesaj Çubuğu Yenileme
 
-### 1. Black Screen Root Cause (CRITICAL)
+### 1. ChatArea.tsx — Mobil Input Bar Yeniden Yapılandırma (Satır 326-362)
 
-**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
+**Mevcut durum:** Tüm ikonlar (PlusCircle, ImagePlus, GifPicker, EmojiPicker, Send) her zaman görünür → mobilde taşıyor.
 
-**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
+**Yeni yapı (mobil):**
 
-### 2. Server Deletion — Cascade via Foreign Keys
+```text
+┌──────────────────────────────────────┐
+│ [+]  [Mesaj gönder...      😊]  [➤] │
+└──────────────────────────────────────┘
+```
 
-Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
+- `isMobile` prop'una göre koşullu render
+- **Sol:** Sadece `+` butonu (tıklanınca dosya seçici + ImagePlus açılır)
+- **Orta:** `flex-1` input, sağ ucunda Emoji ikonu (`absolute right-2` pozisyonla, input içi)
+- **Sağ:** Daima görünür Send butonu (ok simgesi)
+- GIF picker → mobilde `+` menüsü Popover içine taşınacak (ImagePlus + GifPicker birlikte)
+- Desktop'ta mevcut düzen korunacak
+- Input `min-h-[44px]`, `rounded-2xl` (Discord mobile tarzı)
+- Container'a `pb-[env(safe-area-inset-bottom)]` ekle
 
-**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
-- `channels.server_id → servers.id ON DELETE CASCADE`
-- `messages.server_id → servers.id ON DELETE CASCADE`
-- `messages.channel_id → channels.id ON DELETE CASCADE`
-- `server_members.server_id → servers.id ON DELETE CASCADE`
-- `server_invites.server_id → servers.id ON DELETE CASCADE`
+**Plus menü yapısı (mobil):**
+```text
+Popover açılır:
+  📷 Resim Ekle
+  🎬 GIF Gönder
+```
 
-Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
+### 2. ChatArea.tsx — Klavye Uyumu
 
-### 3. DM Real-time — Typing Channel Broadcast Fix
+- Ana container `px-4 pb-6` → mobilde `pb-[calc(env(safe-area-inset-bottom)+8px)]`
+- Slash/mention popup z-index: `z-50`
 
-In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
+### 3. ChatArea.tsx — Mobil Placeholder Kısaltma
 
-**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
+- `isMobile` ise placeholder: `"Mesaj gönder..."` yerine uzun kanal adı formatı
 
-### File Changes
+### 4. UserInfoPanel.tsx — Mobil Optimizasyon
 
-| File | Change |
+- Kullanıcı adı `max-w-[80px]` + `truncate`
+- ChevronDown butonlarına `min-w-[30px] min-h-[30px]` touch target
+- Panel yüksekliği korunacak, sadece iç elemanlar daraltılacak
+
+### 5. v0.1.7 Sürüm Notları
+
+- `changelogData.ts`: v0.1.7 girişi ekle
+- `ReleaseNotesModal.tsx`: `CURRENT_VERSION = '0.1.7'`
+- Notlar: Mobil input bar yenilendi, safe area desteği, klavye uyumu, kullanıcı paneli optimizasyonu
+
+### Dosya Değişiklikleri
+
+| Dosya | Değişiklik |
 |---|---|
-| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
-| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
-| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
+| `src/components/ChatArea.tsx` | Mobil input bar yeniden yapılandırma, plus menü, emoji input içi, safe area |
+| `src/components/UserInfoPanel.tsx` | Mobil daraltma, touch target genişletme |
+| `src/data/changelogData.ts` | v0.1.7 notları |
+| `src/components/ReleaseNotesModal.tsx` | Versiyon güncelle |
 
