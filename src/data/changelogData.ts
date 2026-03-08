@@ -16,6 +16,35 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.1.4',
+    date: '8 Mart 2026',
+    summary: 'WebRTC sesli sohbet, kanal kategorileri, @etiketleme ve akıllı yükleme ekranı.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'WebRTC tabanlı, düşük gecikmeli sesli sohbet kanalları eklendi (LiveKit)',
+          'Sunucu ayarlarında sürükle-bırak kanal yönetimi ve kategori sistemi aktif',
+          '@Etiketleme özelliği: mesajlarda sunucu üyelerini etiketleyebilirsiniz',
+          'Akıllı yükleme ekranı (Splash Screen) ile uygulama stabilitesi artırıldı',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Ses kanallarında konuşan kişinin avatarı yeşil halka ile gösteriliyor',
+          'Kanal kategorileri: metin ve ses kanallarını gruplandırabilirsiniz',
+          'Etiketlenen kullanıcılar bildirim alıyor',
+          'Yükleme ekranı tüm veriler hazır olana kadar ana ekrana geçişi engelliyor',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.3',
     date: '8 Mart 2026',
     summary: 'Discord estetiği, ses kontrolleri, güvenli hesap silme, tema seçici ve DM arayüz iyileştirmeleri.',

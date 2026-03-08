@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { X, Settings, Users, Shield, ScrollText, Trash2, Camera, UserMinus, Plus, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react';
+import { X, Settings, Users, Shield, ScrollText, Trash2, Camera, UserMinus, Plus, ArrowUp, ArrowDown, ChevronDown, Hash, Volume2 } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -37,13 +37,45 @@ const ServerSettings = () => {
   const [loadingMembers, setLoadingMembers] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [categories, setCategories] = useState<{ id: string; name: string; position: number }[]>([]);
+  const [channelsList, setChannelsList] = useState<{ id: string; name: string; type: string; position: number; category_id: string | null }[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
   const tabs = [
     { id: 'general', label: t('serverSettings.general'), icon: Settings },
+    { id: 'channels', label: 'Kanallar', icon: Hash },
     { id: 'roles', label: t('serverSettings.rolesTab') || 'Roller', icon: Shield },
     { id: 'members', label: t('serverSettings.membersTab'), icon: Users },
     { id: 'audit', label: t('serverSettings.auditTab') || 'Denetim Kaydı', icon: ScrollText },
     { id: 'danger', label: t('serverSettings.dangerZone'), icon: Trash2 },
   ];
+
+  const fetchChannelsAndCategories = useCallback(async () => {
+    if (!serverId) return;
+    const { data: cats } = await supabase.from('channel_categories').select('*').eq('server_id', serverId).order('position');
+    const { data: chs } = await supabase.from('channels').select('*').eq('server_id', serverId).order('position');
+    if (cats) setCategories(cats as any);
+    if (chs) setChannelsList((chs as any[]).map(c => ({ id: c.id, name: c.name, type: c.type, position: c.position, category_id: c.category_id || null })));
+  }, [serverId]);
+
+  useEffect(() => { if (activeTab === 'channels') fetchChannelsAndCategories(); }, [activeTab, fetchChannelsAndCategories]);
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim() || !serverId) return;
+    await supabase.from('channel_categories').insert({ server_id: serverId, name: newCategoryName.trim(), position: categories.length });
+    setNewCategoryName('');
+    fetchChannelsAndCategories();
+  };
+
+  const handleDeleteCategory = async (catId: string) => {
+    await supabase.from('channel_categories').delete().eq('id', catId);
+    fetchChannelsAndCategories();
+  };
+
+  const handleDeleteChannel = async (channelId: string) => {
+    await supabase.from('channels').delete().eq('id', channelId);
+    fetchChannelsAndCategories();
+  };
 
   useEffect(() => {
     if (!serverId) return;
@@ -403,6 +435,50 @@ const ServerSettings = () => {
                   ))
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Channels Tab */}
+          {activeTab === 'channels' && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Kanallar</h2>
+              {isOwner && (
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <p className="text-sm font-semibold text-foreground">Yeni Kategori Oluştur</p>
+                  <div className="flex gap-2">
+                    <Input value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="Kategori adı" className="bg-input border-border flex-1" />
+                    <Button onClick={handleCreateCategory} disabled={!newCategoryName.trim()} size="sm"><Plus className="w-4 h-4 mr-1" /> Ekle</Button>
+                  </div>
+                </div>
+              )}
+              {channelsList.filter(c => !c.category_id).length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Kategorisiz</p>
+                  {channelsList.filter(c => !c.category_id).map(ch => (
+                    <div key={ch.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card">
+                      {ch.type === 'voice' ? <Volume2 className="w-4 h-4 text-muted-foreground" /> : <Hash className="w-4 h-4 text-muted-foreground" />}
+                      <span className="flex-1 text-sm text-foreground">{ch.name}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase">{ch.type}</span>
+                      {isOwner && <button onClick={() => handleDeleteChannel(ch.id)} className="p-1 text-destructive hover:text-destructive/80"><Trash2 className="w-3.5 h-3.5" /></button>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {categories.map(cat => (
+                <div key={cat.id} className="space-y-1">
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{cat.name}</p>
+                    {isOwner && <button onClick={() => handleDeleteCategory(cat.id)} className="text-destructive hover:text-destructive/80"><Trash2 className="w-3 h-3" /></button>}
+                  </div>
+                  {channelsList.filter(c => c.category_id === cat.id).map(ch => (
+                    <div key={ch.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card ml-2">
+                      {ch.type === 'voice' ? <Volume2 className="w-4 h-4 text-muted-foreground" /> : <Hash className="w-4 h-4 text-muted-foreground" />}
+                      <span className="flex-1 text-sm text-foreground">{ch.name}</span>
+                      {isOwner && <button onClick={() => handleDeleteChannel(ch.id)} className="p-1 text-destructive hover:text-destructive/80"><Trash2 className="w-3.5 h-3.5" /></button>}
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
           )}
 

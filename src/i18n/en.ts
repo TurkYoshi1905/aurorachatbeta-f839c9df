@@ -260,6 +260,11 @@ const en = {
     settings: 'Settings',
     home: 'Home',
   },
+  voice: {
+    connected: 'Connected',
+    connecting: 'Connecting...',
+    disconnect: 'Disconnect',
+  },
   common: {
     user: 'User',
     loading: 'Loading...',

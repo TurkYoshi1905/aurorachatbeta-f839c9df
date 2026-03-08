@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { DbMessage, DbReaction } from '@/pages/Index';
+import { DbMessage, DbReaction, DbMember } from '@/pages/Index';
 import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ImageLightbox from './ImageLightbox';
@@ -12,6 +12,7 @@ import FileUploadPreview from './FileUploadPreview';
 import { toast } from 'sonner';
 import EmojiPicker from './EmojiPicker';
 import GifPicker from './GifPicker';
+import MentionPopup from './MentionPopup';
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👀', '💯', '✅', '❌', '🤔', '👏', '💪', '🙏', '😎', '🥳', '💀', '😭', '🫡', '👎', '💜', '🧡'];
 
@@ -35,6 +36,7 @@ interface ChatAreaProps {
   typingUsers?: { userId: string; displayName: string }[];
   onTypingStart?: () => void;
   onTypingStop?: () => void;
+  members?: DbMember[];
 }
 
 const isGiphyUrl = (url: string) => /giphy\.com\/media\/|\.giphy\.com\//i.test(url);
@@ -49,7 +51,7 @@ const GifImage = ({ url }: { url: string }) => {
   );
 };
 
-export const renderMessageContent = (content: string) => {
+export const renderMessageContent = (content: string, currentUserId?: string) => {
   // Check if entire content is a single Giphy URL
   const trimmed = content.trim();
   if (isGiphyUrl(trimmed) && /^https?:\/\/\S+$/.test(trimmed)) {
@@ -61,6 +63,10 @@ export const renderMessageContent = (content: string) => {
   const inviteCodes: string[] = [];
   let inviteMatch;
   while ((inviteMatch = inviteRegex.exec(content)) !== null) { inviteCodes.push(inviteMatch[1]); }
+  
+  // Process mentions: @username pattern
+  const mentionRegex = /@(\S+)/g;
+  
   const parts = content.split(urlRegex);
   const elements = parts.map((part, i) => {
     if (urlRegex.test(part)) {
@@ -69,6 +75,21 @@ export const renderMessageContent = (content: string) => {
         return <GifImage key={i} url={part} />;
       }
       return (<a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>);
+    }
+    // Process mentions within text parts
+    const mentionParts = part.split(mentionRegex);
+    if (mentionParts.length > 1) {
+      return (
+        <span key={i}>
+          {mentionParts.map((mp, j) => {
+            if (j % 2 === 1) {
+              // This is a mention
+              return <span key={j} className="bg-primary/20 text-primary rounded px-1 font-medium cursor-pointer hover:bg-primary/30">@{mp}</span>;
+            }
+            return <span key={j}>{mp}</span>;
+          })}
+        </span>
+      );
     }
     return <span key={i}>{part}</span>;
   });
@@ -107,16 +128,19 @@ const TypingIndicator = ({ typingUsers, t }: { typingUsers: { userId: string; di
   );
 };
 
-const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop }: ChatAreaProps) => {
+const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop, members = [] }: ChatAreaProps) => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [showMentionPopup, setShowMentionPopup] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const lastTypingSentRef = useRef<number>(0);
 
   useEffect(() => { requestAnimationFrame(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }); }, [messages]);
@@ -125,9 +149,36 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInput(val);
+    
+    // Check for @mention
+    const cursorPos = e.target.selectionStart || val.length;
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const mentionMatch = textBeforeCursor.match(/@(\S*)$/);
+    if (mentionMatch) {
+      setShowMentionPopup(true);
+      setMentionQuery(mentionMatch[1]);
+    } else {
+      setShowMentionPopup(false);
+      setMentionQuery('');
+    }
+    
     if (val.trim()) { const now = Date.now(); if (now - lastTypingSentRef.current > 2000) { lastTypingSentRef.current = now; onTypingStart?.(); } }
     else { onTypingStop?.(); }
   }, [onTypingStart, onTypingStop]);
+
+  const handleMentionSelect = useCallback((name: string) => {
+    const cursorPos = inputRef.current?.selectionStart || input.length;
+    const textBeforeCursor = input.slice(0, cursorPos);
+    const mentionMatch = textBeforeCursor.match(/@(\S*)$/);
+    if (mentionMatch) {
+      const beforeMention = textBeforeCursor.slice(0, mentionMatch.index);
+      const afterCursor = input.slice(cursorPos);
+      setInput(`${beforeMention}@${name} ${afterCursor}`);
+    }
+    setShowMentionPopup(false);
+    setMentionQuery('');
+    inputRef.current?.focus();
+  }, [input]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -252,11 +303,20 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
 
       <FileUploadPreview files={pendingFiles} onRemove={handleRemoveFile} />
 
-      <div className="px-4 pb-6">
+      <div className="px-4 pb-6 relative">
+        {showMentionPopup && members.length > 0 && (
+          <MentionPopup
+            query={mentionQuery}
+            members={members}
+            onSelect={handleMentionSelect}
+            onClose={() => setShowMentionPopup(false)}
+            position={{ bottom: 60, left: 16 }}
+          />
+        )}
         <div className="bg-input rounded-xl flex items-center px-4 gap-2 ring-1 ring-border focus-within:ring-primary/40 transition-all">
           <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
           <button onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
-          <input type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder={t('chat.messagePlaceholder', { channel: channelName })} className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground" />
+          <input ref={inputRef} type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => { if (e.key === 'Enter' && !showMentionPopup) handleSend(); }} placeholder={t('chat.messagePlaceholder', { channel: channelName })} className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground" />
           <div className="flex items-center gap-2 text-muted-foreground">
             <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
             <GifPicker onGifSelect={(url) => { onSendMessage(url); }} />

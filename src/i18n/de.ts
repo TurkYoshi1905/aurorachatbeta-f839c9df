@@ -256,6 +256,7 @@ const de = {
     settings: 'Einstellungen',
     home: 'Startseite',
   },
+  voice: { connected: 'Verbunden', connecting: 'Verbinden...', disconnect: 'Trennen' },
   common: { user: 'Benutzer', loading: 'Wird geladen...' },
 };
 

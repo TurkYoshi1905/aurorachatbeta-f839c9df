@@ -256,6 +256,7 @@ const az = {
     settings: 'Parametrlər',
     home: 'Ana Səhifə',
   },
+  voice: { connected: 'Qoşuldu', connecting: 'Qoşulur...', disconnect: 'Bağlantını Kəs' },
   common: { user: 'İstifadəçi', loading: 'Yüklənir...' },
 };
 

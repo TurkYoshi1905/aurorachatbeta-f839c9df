@@ -13,6 +13,10 @@ import { useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useTranslation } from '@/i18n';
 import { uploadFiles } from '@/components/DMChatArea';
+import SplashScreen from '@/components/SplashScreen';
+import ReleaseNotesModal from '@/components/ReleaseNotesModal';
+import { useVoiceChannel } from '@/hooks/useVoiceChannel';
+import { toast } from 'sonner';
 
 export interface DbMessage {
   id: string;
@@ -60,6 +64,7 @@ export interface DbChannel {
   name: string;
   type: 'text' | 'voice';
   position: number;
+  category_id?: string | null;
 }
 
 export interface DbServer {
@@ -68,6 +73,14 @@ export interface DbServer {
   icon: string;
   owner_id: string | null;
   channels: DbChannel[];
+  categories?: DbCategory[];
+}
+
+export interface DbCategory {
+  id: string;
+  name: string;
+  position: number;
+  server_id: string;
 }
 
 type MobileView = 'channels' | 'chat' | 'members';
@@ -124,6 +137,14 @@ const Index = () => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const voice = useVoiceChannel();
+  const [splashDone, setSplashDone] = useState(false);
+  const [loadingSteps, setLoadingSteps] = useState([
+    { label: 'Oturum kontrol ediliyor...', done: false },
+    { label: 'Sunucular yükleniyor...', done: false },
+    { label: 'Profil hazırlanıyor...', done: false },
+  ]);
+
   const [servers, setServers] = useState<DbServer[]>([]);
   const [activeServer, setActiveServer] = useState<string>('');
   const [activeChannel, setActiveChannel] = useState<string>('');
@@ -159,6 +180,11 @@ const Index = () => {
       .select('*')
       .order('position', { ascending: true });
 
+    const { data: categoriesData } = await supabase
+      .from('channel_categories')
+      .select('*')
+      .order('position', { ascending: true });
+
     if (serversData && channelsData) {
       const mapped: DbServer[] = serversData.map((s) => ({
         id: s.id,
@@ -172,7 +198,11 @@ const Index = () => {
             name: c.name,
             type: c.type as 'text' | 'voice',
             position: c.position,
+            category_id: (c as any).category_id || null,
           })),
+        categories: (categoriesData || [])
+          .filter((cat: any) => cat.server_id === s.id)
+          .map((cat: any) => ({ id: cat.id, name: cat.name, position: cat.position, server_id: cat.server_id })),
       }));
       setServers(mapped);
       if (!activeServer && mapped.length > 0) {
@@ -183,8 +213,20 @@ const Index = () => {
     }
   }, [activeServer]);
 
+  // Splash screen logic
   useEffect(() => {
-    fetchServers();
+    const initApp = async () => {
+      // Step 1: Session
+      setLoadingSteps(prev => prev.map((s, i) => i === 0 ? { ...s, done: true } : s));
+      
+      // Step 2: Servers
+      await fetchServers();
+      setLoadingSteps(prev => prev.map((s, i) => i <= 1 ? { ...s, done: true } : s));
+      
+      // Step 3: Profile
+      setLoadingSteps(prev => prev.map((s) => ({ ...s, done: true })));
+    };
+    initApp();
   }, []);
 
   const fetchMembers = useCallback(async () => {
@@ -675,6 +717,10 @@ const Index = () => {
       .from('channels')
       .select('*')
       .order('position', { ascending: true });
+    const { data: categoriesData } = await supabase
+      .from('channel_categories')
+      .select('*')
+      .order('position', { ascending: true });
     if (serversData && channelsData) {
       const mapped: DbServer[] = serversData.map((s) => ({
         id: s.id,
@@ -683,7 +729,10 @@ const Index = () => {
         owner_id: s.owner_id,
         channels: channelsData
           .filter((c) => c.server_id === s.id)
-          .map((c) => ({ id: c.id, name: c.name, type: c.type as 'text' | 'voice', position: c.position })),
+          .map((c) => ({ id: c.id, name: c.name, type: c.type as 'text' | 'voice', position: c.position, category_id: (c as any).category_id || null })),
+        categories: (categoriesData || [])
+          .filter((cat: any) => cat.server_id === s.id)
+          .map((cat: any) => ({ id: cat.id, name: cat.name, position: cat.position, server_id: cat.server_id })),
       }));
       setServers(mapped);
       const last = mapped[mapped.length - 1];
@@ -702,9 +751,16 @@ const Index = () => {
   }, [fetchServers]);
 
   const handleChannelChange = useCallback((id: string) => {
+    // Check if it's a voice channel
+    const currentServer = servers.find(s => s.id === activeServer);
+    const ch = currentServer?.channels.find(c => c.id === id);
+    if (ch?.type === 'voice') {
+      voice.connect(id, ch.name);
+      return;
+    }
     setActiveChannel(id);
     if (isMobile) setMobileView('chat');
-  }, [isMobile]);
+  }, [isMobile, servers, activeServer, voice]);
 
   const handleSendMessage = useCallback(
     async (content: string, files?: File[]) => {
@@ -800,6 +856,12 @@ const Index = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Splash screen
+  const allStepsDone = loadingSteps.every(s => s.done);
+  if (!splashDone) {
+    return <SplashScreen loadingSteps={loadingSteps} allDone={allStepsDone} onEnter={() => setSplashDone(true)} />;
+  }
+
   if (activeServer === 'home') {
     const dmContent = activeDMUser ? (
       <DMChatArea dmUser={activeDMUser} onBack={() => setActiveDMUser(null)} />
@@ -878,6 +940,7 @@ const Index = () => {
               serverId={server.id}
               serverIcon={server.icon}
               channels={server.channels}
+              categories={server.categories}
               activeChannel={activeChannel}
               onChannelChange={handleChannelChange}
               currentUserStatus={myStatus}
@@ -888,6 +951,7 @@ const Index = () => {
               onServerUpdated={fetchServers}
               onLeaveServer={handleLeaveServer}
               isMobile
+              voiceState={voice}
             />
           )}
           {mobileView === 'chat' && (
@@ -908,6 +972,7 @@ const Index = () => {
               typingUsers={typingUsers}
               onTypingStart={handleTypingStart}
               onTypingStop={handleTypingStop}
+              members={members}
             />
           )}
           {mobileView === 'members' && (
@@ -934,12 +999,14 @@ const Index = () => {
 
   return (
     <div className="h-screen flex overflow-hidden">
+      <ReleaseNotesModal />
       <ServerSidebar activeServer={activeServer} onServerChange={handleServerChange} servers={servers} onServerCreated={handleServerCreated} />
       <ChannelList
         serverName={server.name}
         serverId={server.id}
         serverIcon={server.icon}
         channels={server.channels}
+        categories={server.categories}
         activeChannel={activeChannel}
         onChannelChange={handleChannelChange}
         currentUserStatus={myStatus}
@@ -949,6 +1016,7 @@ const Index = () => {
         onServerDeleted={handleServerDeleted}
         onServerUpdated={fetchServers}
         onLeaveServer={handleLeaveServer}
+        voiceState={voice}
       />
       <ChatArea
         channelName={channel.name}
@@ -965,6 +1033,7 @@ const Index = () => {
         typingUsers={typingUsers}
         onTypingStart={handleTypingStart}
         onTypingStop={handleTypingStop}
+        members={members}
       />
       {showMembers && <MemberList members={members} />}
     </div>
