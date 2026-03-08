@@ -36,7 +36,19 @@ interface ChatAreaProps {
   onTypingStop?: () => void;
 }
 
+const isGiphyUrl = (url: string) => /giphy\.com\/media\/|\.giphy\.com\//i.test(url);
+
 export const renderMessageContent = (content: string) => {
+  // Check if entire content is a single Giphy URL
+  const trimmed = content.trim();
+  if (isGiphyUrl(trimmed) && /^https?:\/\/\S+$/.test(trimmed)) {
+    return (
+      <a href={trimmed} target="_blank" rel="noopener noreferrer">
+        <img src={trimmed} alt="GIF" className="max-w-xs rounded-lg mt-1 cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" />
+      </a>
+    );
+  }
+
   const inviteRegex = /https?:\/\/[^\s]+invite\/([a-zA-Z0-9]+)/g;
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   const inviteCodes: string[] = [];
@@ -44,7 +56,13 @@ export const renderMessageContent = (content: string) => {
   while ((inviteMatch = inviteRegex.exec(content)) !== null) { inviteCodes.push(inviteMatch[1]); }
   const parts = content.split(urlRegex);
   const elements = parts.map((part, i) => {
-    if (urlRegex.test(part)) { urlRegex.lastIndex = 0; return (<a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>); }
+    if (urlRegex.test(part)) {
+      urlRegex.lastIndex = 0;
+      if (isGiphyUrl(part)) {
+        return (<a key={i} href={part} target="_blank" rel="noopener noreferrer"><img src={part} alt="GIF" className="max-w-xs rounded-lg mt-1 inline-block cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" /></a>);
+      }
+      return (<a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>);
+    }
     return <span key={i}>{part}</span>;
   });
   const embeds = inviteCodes.map((code) => (<ServerInviteEmbed key={code} code={code} />));
@@ -53,7 +71,7 @@ export const renderMessageContent = (content: string) => {
   const urlScanRegex = /(https?:\/\/[^\s]+)/g;
   while ((urlMatch = urlScanRegex.exec(content)) !== null) { allUrls.push(urlMatch[1]); }
   const inviteUrlRegex = /https?:\/\/[^\s]+invite\/[a-zA-Z0-9]+/;
-  const nonInviteUrls = allUrls.filter((u) => !inviteUrlRegex.test(u));
+  const nonInviteUrls = allUrls.filter((u) => !inviteUrlRegex.test(u) && !isGiphyUrl(u));
   return (
     <>
       <p className="text-sm text-secondary-foreground leading-relaxed">{elements}</p>
