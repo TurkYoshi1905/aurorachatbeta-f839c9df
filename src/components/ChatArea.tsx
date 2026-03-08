@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { DbMessage, DbReaction } from '@/pages/Index';
+import { DbMessage, DbReaction, DbMember } from '@/pages/Index';
 import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ImageLightbox from './ImageLightbox';
@@ -12,6 +12,7 @@ import FileUploadPreview from './FileUploadPreview';
 import { toast } from 'sonner';
 import EmojiPicker from './EmojiPicker';
 import GifPicker from './GifPicker';
+import MentionPopup from './MentionPopup';
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👀', '💯', '✅', '❌', '🤔', '👏', '💪', '🙏', '😎', '🥳', '💀', '😭', '🫡', '👎', '💜', '🧡'];
 
@@ -35,6 +36,7 @@ interface ChatAreaProps {
   typingUsers?: { userId: string; displayName: string }[];
   onTypingStart?: () => void;
   onTypingStop?: () => void;
+  members?: DbMember[];
 }
 
 const isGiphyUrl = (url: string) => /giphy\.com\/media\/|\.giphy\.com\//i.test(url);
