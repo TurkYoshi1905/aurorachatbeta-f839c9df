@@ -17,6 +17,22 @@ interface AuditLog { id: string; action: string; user_id: string; target_type: s
 
 const PRESET_COLORS = ['#E74C3C', '#E91E63', '#9B59B6', '#8E44AD', '#3498DB', '#2196F3', '#1ABC9C', '#2ECC71', '#F1C40F', '#FF9800', '#E67E22', '#95A5A6', '#607D8B', '#99AAB5'];
 
+const PERMISSION_CATEGORIES = [
+  { label: 'Genel', permissions: [
+    { key: 'manage_channels', label: 'Kanal Yönetimi' },
+    { key: 'manage_roles', label: 'Rol Yönetimi' },
+  ]},
+  { label: 'Üye', permissions: [
+    { key: 'kick_members', label: 'Üye Atma' },
+    { key: 'ban_members', label: 'Üye Yasaklama' },
+  ]},
+  { label: 'Metin', permissions: [
+    { key: 'manage_messages', label: 'Mesaj Silme' },
+    { key: 'pin_messages', label: 'Mesaj Sabitleme' },
+    { key: 'mention_everyone', label: '@everyone Etiketleme' },
+  ]},
+];
+
 const ServerSettings = () => {
   const { serverId } = useParams<{ serverId: string }>();
   const navigate = useNavigate();
