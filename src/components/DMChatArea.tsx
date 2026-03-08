@@ -16,7 +16,7 @@ import EmojiPicker from './EmojiPicker';
 import GifPicker from './GifPicker';
 
 const MAX_FILES = 3;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 interface DMUser { userId: string; displayName: string; username: string; avatarUrl: string | null; }
 interface DMMessage { id: string; senderId: string; content: string; createdAt: string; updatedAt: string | null; senderName: string; senderAvatar: string | null; status?: 'sending' | 'failed'; attachments?: string[]; }

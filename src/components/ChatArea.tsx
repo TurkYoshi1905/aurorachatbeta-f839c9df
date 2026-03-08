@@ -15,13 +15,14 @@ import EmojiPicker from './EmojiPicker';
 import GifPicker from './GifPicker';
 import MentionPopup from './MentionPopup';
 import SlashCommandPopup from './SlashCommandPopup';
+import EmojiAutocompletePopup from './EmojiAutocompletePopup';
 import UserProfileCard from './UserProfileCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👀', '💯', '✅', '❌', '🤔', '👏', '💪', '🙏', '😎', '🥳', '💀', '😭', '🫡', '👎', '💜', '🧡'];
 
 const MAX_FILES = 3;
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 interface ServerEmoji { id: string; name: string; image_url: string; }
 
@@ -181,6 +182,8 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
   const [showMentionPopup, setShowMentionPopup] = useState(false);
   const [showSlashPopup, setShowSlashPopup] = useState(false);
   const [slashQuery, setSlashQuery] = useState('');
+  const [showEmojiAutocomplete, setShowEmojiAutocomplete] = useState(false);
+  const [emojiAutocompleteQuery, setEmojiAutocompleteQuery] = useState('');
   const [mentionQuery, setMentionQuery] = useState('');
   const [replyingTo, setReplyingTo] = useState<DbMessage | null>(null);
   const [showPinnedPanel, setShowPinnedPanel] = useState(false);
@@ -228,6 +231,16 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
       setMentionQuery('');
     }
     
+    // Emoji autocomplete: detect :query pattern (at least 2 chars after :)
+    const emojiMatch = textBeforeCursor.match(/:([a-z0-9_]{2,})$/);
+    if (emojiMatch) {
+      setShowEmojiAutocomplete(true);
+      setEmojiAutocompleteQuery(emojiMatch[1]);
+    } else {
+      setShowEmojiAutocomplete(false);
+      setEmojiAutocompleteQuery('');
+    }
+    
     if (val.trim()) { const now = Date.now(); if (now - lastTypingSentRef.current > 2000) { lastTypingSentRef.current = now; onTypingStart?.(); } }
     else { onTypingStop?.(); }
   }, [onTypingStart, onTypingStop]);
@@ -250,6 +263,20 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
     }
     setShowMentionPopup(false);
     setMentionQuery('');
+    inputRef.current?.focus();
+  }, [input]);
+
+  const handleEmojiAutocompleteSelect = useCallback((value: string, isCustom: boolean) => {
+    const cursorPos = inputRef.current?.selectionStart || input.length;
+    const textBeforeCursor = input.slice(0, cursorPos);
+    const emojiMatch = textBeforeCursor.match(/:([a-z0-9_]{2,})$/);
+    if (emojiMatch) {
+      const beforeEmoji = textBeforeCursor.slice(0, emojiMatch.index);
+      const afterCursor = input.slice(cursorPos);
+      setInput(`${beforeEmoji}${value} ${afterCursor}`);
+    }
+    setShowEmojiAutocomplete(false);
+    setEmojiAutocompleteQuery('');
     inputRef.current?.focus();
   }, [input]);
 
@@ -484,6 +511,15 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
             members={members}
             onSelect={handleMentionSelect}
             onClose={() => setShowMentionPopup(false)}
+            position={{ bottom: 60, left: 16 }}
+           />
+        )}
+        {showEmojiAutocomplete && (
+          <EmojiAutocompletePopup
+            query={emojiAutocompleteQuery}
+            serverEmojis={serverEmojis || []}
+            onSelect={handleEmojiAutocompleteSelect}
+            onClose={() => setShowEmojiAutocomplete(false)}
             position={{ bottom: 60, left: 16 }}
           />
         )}

@@ -19,9 +19,9 @@ const MessageAttachments = ({ attachments }: MessageAttachmentsProps) => {
   };
 
   const gridClass =
-    attachments.length === 1 ? 'grid-cols-1 max-w-sm' :
-    attachments.length === 2 ? 'grid-cols-2 max-w-md' :
-    'grid-cols-2 max-w-md';
+    attachments.length === 1 ? 'grid-cols-1 max-w-lg' :
+    attachments.length === 2 ? 'grid-cols-2 max-w-lg' :
+    'grid-cols-2 max-w-lg';
 
   return (
     <>
@@ -42,7 +42,7 @@ const MessageAttachments = ({ attachments }: MessageAttachmentsProps) => {
               <img
                 src={url}
                 alt=""
-                className="w-full h-auto max-h-72 object-cover transition-transform group-hover:scale-[1.02]"
+                className="w-full h-auto max-h-96 object-contain transition-transform group-hover:scale-[1.02]"
                 loading="lazy"
                 onError={() => setFailedImages((prev) => new Set(prev).add(i))}
               />

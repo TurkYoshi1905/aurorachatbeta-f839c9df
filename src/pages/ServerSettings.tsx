@@ -160,6 +160,26 @@ const ServerSettings = () => {
 
   useEffect(() => { if (activeTab === 'emojis') fetchEmojis(); }, [activeTab, fetchEmojis]);
 
+  const resizeImage = (file: File, w: number, h: number): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('Canvas not supported')); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob((b) => {
+          if (b) resolve(b);
+          else reject(new Error('Blob creation failed'));
+        }, 'image/png');
+      };
+      img.onerror = () => reject(new Error('Image load failed'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleEmojiUpload = async () => {
     if (!emojiFile || !emojiName.trim() || !serverId || !user) return;
     if (emojis.length >= MAX_EMOJIS) { toast.error(`Maksimum ${MAX_EMOJIS} emoji yükleyebilirsiniz`); return; }
@@ -167,11 +187,21 @@ const ServerSettings = () => {
     if (emojiFile.size > 256 * 1024) { toast.error('Emoji dosyası 256KB\'dan küçük olmalı'); return; }
 
     setEmojiUploading(true);
-    const emojiId = crypto.randomUUID();
-    const ext = emojiFile.name.split('.').pop() || 'png';
-    const path = `${user.id}/servers/${serverId}/emojis/${emojiId}.${ext}`;
     
-    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, emojiFile, { upsert: true });
+    // Resize to 64x64 before upload
+    let uploadBlob: Blob;
+    try {
+      uploadBlob = await resizeImage(emojiFile, 64, 64);
+    } catch {
+      toast.error('Görsel optimize edilemedi');
+      setEmojiUploading(false);
+      return;
+    }
+    
+    const emojiId = crypto.randomUUID();
+    const path = `${user.id}/servers/${serverId}/emojis/${emojiId}.png`;
+    
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, uploadBlob, { upsert: true, contentType: 'image/png' });
     if (uploadError) { toast.error('Yükleme başarısız'); setEmojiUploading(false); return; }
     
     const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
@@ -485,7 +515,7 @@ const ServerSettings = () => {
                       <Plus className="w-4 h-4 mr-1" /> {emojiUploading ? 'Yükleniyor...' : 'Ekle'}
                     </Button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">Maks. 256KB, otomatik olarak optimize edilir. Kullanım: <code className="bg-secondary px-1 rounded">:emoji_adi:</code></p>
+                  <p className="text-[11px] text-muted-foreground">Maks. 256KB, otomatik olarak 64x64px'e optimize edilir. Kullanım: <code className="bg-secondary px-1 rounded">:emoji_adi:</code></p>
                 </div>
               )}
 
