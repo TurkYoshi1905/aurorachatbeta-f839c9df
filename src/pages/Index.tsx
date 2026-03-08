@@ -930,6 +930,22 @@ const Index = () => {
     [user, activeServer, fetchServers]
   );
 
+  const handlePinMessage = useCallback(async (messageId: string) => {
+    const { error } = await supabase.from('messages').update({ is_pinned: true } as any).eq('id', messageId);
+    if (!error) {
+      setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isPinned: true } : m));
+      toast.success(t('chat.messagePinned'));
+    }
+  }, [t]);
+
+  const handleUnpinMessage = useCallback(async (messageId: string) => {
+    const { error } = await supabase.from('messages').update({ is_pinned: false } as any).eq('id', messageId);
+    if (!error) {
+      setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isPinned: false } : m));
+      toast.success(t('chat.messageUnpinned'));
+    }
+  }, [t]);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Splash screen
