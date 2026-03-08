@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, MessageCircle, Check, X, Users } from 'lucide-react';
+import { UserPlus, MessageCircle, Check, X, Users, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from '@/i18n';
 
@@ -62,15 +62,17 @@ const DMDashboard = ({ onOpenDM }: DMDashboardProps) => {
   const handleRemoveFriend = async (friendId: string) => { await supabase.from('friends').delete().eq('id', friendId); toast.success(t('friends.removed')); fetchFriends(); };
 
   const EmptyState = () => (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <Users className="w-16 h-16 text-muted-foreground/30 mb-4" />
-      <p className="text-lg font-semibold text-foreground mb-1">{t('friends.noFriendsTitle')}</p>
-      <p className="text-sm text-muted-foreground mb-4">{t('friends.noFriendsDesc')}</p>
+    <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 via-accent/10 to-primary/5 flex items-center justify-center mb-6">
+        <Sparkles className="w-10 h-10 text-primary/60" />
+      </div>
+      <p className="text-xl font-bold text-foreground mb-2">{t('friends.noFriendsTitle')}</p>
+      <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">{t('friends.noFriendsDesc')}</p>
     </div>
   );
 
   const FriendRow = ({ friend, showMessage = true }: { friend: FriendRequest; showMessage?: boolean }) => (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/30 rounded-xl transition-colors group">
+    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-secondary/40 rounded-xl transition-all group cursor-pointer">
       <Avatar className="h-10 w-10">
         {friend.profile.avatarUrl && <AvatarImage src={friend.profile.avatarUrl} />}
         <AvatarFallback className="bg-secondary text-foreground font-semibold">{friend.profile.displayName.charAt(0).toUpperCase()}</AvatarFallback>
@@ -79,9 +81,15 @@ const DMDashboard = ({ onOpenDM }: DMDashboardProps) => {
         <p className="text-sm font-semibold text-foreground truncate">{friend.profile.displayName}</p>
         <p className="text-xs text-muted-foreground truncate">@{friend.profile.username}</p>
       </div>
-      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        {showMessage && (<Button variant="ghost" size="icon" onClick={() => onOpenDM(friend.profile)} title={t('friends.sendMessage')}><MessageCircle className="w-4 h-4" /></Button>)}
-        <Button variant="ghost" size="icon" onClick={() => handleRemoveFriend(friend.id)} className="text-destructive hover:text-destructive" title={t('friends.removeFriend')}><X className="w-4 h-4" /></Button>
+      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        {showMessage && (
+          <Button variant="ghost" size="icon" onClick={() => onOpenDM(friend.profile)} className="h-8 w-8 rounded-full bg-secondary/60 hover:bg-secondary text-foreground" title={t('friends.sendMessage')}>
+            <MessageCircle className="w-4 h-4" />
+          </Button>
+        )}
+        <Button variant="ghost" size="icon" onClick={() => handleRemoveFriend(friend.id)} className="h-8 w-8 rounded-full hover:bg-destructive/20 text-muted-foreground hover:text-destructive" title={t('friends.removeFriend')}>
+          <X className="w-4 h-4" />
+        </Button>
       </div>
     </div>
   );
@@ -114,19 +122,24 @@ const DMDashboard = ({ onOpenDM }: DMDashboardProps) => {
           </TabsContent>
           <TabsContent value="pending" className="px-2 py-2">
             {pendingRequests.length === 0 && sentRequests.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground text-sm">{t('friends.noPending')}</div>
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-16 h-16 rounded-full bg-secondary/30 flex items-center justify-center mb-4">
+                  <Users className="w-8 h-8 text-muted-foreground/40" />
+                </div>
+                <p className="text-sm text-muted-foreground">{t('friends.noPending')}</p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {pendingRequests.length > 0 && (
                   <div>
                     <p className="text-xs font-semibold uppercase text-muted-foreground px-4 py-2">{t('friends.incomingRequests')} — {pendingRequests.length}</p>
                     {pendingRequests.map((req) => (
-                      <div key={req.id} className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/30 rounded-lg transition-colors">
+                      <div key={req.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-secondary/40 rounded-xl transition-all">
                         <Avatar className="h-10 w-10">{req.profile.avatarUrl && <AvatarImage src={req.profile.avatarUrl} />}<AvatarFallback className="bg-secondary text-foreground font-semibold">{req.profile.displayName.charAt(0).toUpperCase()}</AvatarFallback></Avatar>
                         <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-foreground truncate">{req.profile.displayName}</p><p className="text-xs text-muted-foreground">{t('friends.incomingRequest')}</p></div>
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => handleAccept(req.id)} className="text-green-500 hover:text-green-400 hover:bg-green-500/10"><Check className="w-5 h-5" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleReject(req.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10"><X className="w-5 h-5" /></Button>
+                        <div className="flex items-center gap-1.5">
+                          <Button variant="ghost" size="icon" onClick={() => handleAccept(req.id)} className="h-8 w-8 rounded-full bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-400"><Check className="w-5 h-5" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleReject(req.id)} className="h-8 w-8 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20"><X className="w-5 h-5" /></Button>
                         </div>
                       </div>
                     ))}
@@ -136,10 +149,10 @@ const DMDashboard = ({ onOpenDM }: DMDashboardProps) => {
                   <div>
                     <p className="text-xs font-semibold uppercase text-muted-foreground px-4 py-2">{t('friends.sentRequests')} — {sentRequests.length}</p>
                     {sentRequests.map((req) => (
-                      <div key={req.id} className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/30 rounded-lg transition-colors">
+                      <div key={req.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-secondary/40 rounded-xl transition-all">
                         <Avatar className="h-10 w-10">{req.profile.avatarUrl && <AvatarImage src={req.profile.avatarUrl} />}<AvatarFallback className="bg-secondary text-foreground font-semibold">{req.profile.displayName.charAt(0).toUpperCase()}</AvatarFallback></Avatar>
                         <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-foreground truncate">{req.profile.displayName}</p><p className="text-xs text-muted-foreground">{t('friends.sentRequest')}</p></div>
-                        <Button variant="ghost" size="icon" onClick={() => handleReject(req.id)} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleReject(req.id)} className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"><X className="w-4 h-4" /></Button>
                       </div>
                     ))}
                   </div>
