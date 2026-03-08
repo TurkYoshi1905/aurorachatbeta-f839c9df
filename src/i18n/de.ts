@@ -302,6 +302,7 @@ const de = {
   },
   voice: { connected: 'Verbunden', connecting: 'Verbinden...', disconnect: 'Trennen' },
   common: { user: 'Benutzer', loading: 'Wird geladen...' },
+  profileCard: { roles: 'Rollen', memberSince: 'Mitglied seit' },
 };
 
 export default de;

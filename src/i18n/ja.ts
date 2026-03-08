@@ -302,6 +302,7 @@ const ja = {
   },
   voice: { connected: '接続済み', connecting: '接続中...', disconnect: '切断' },
   common: { user: 'ユーザー', loading: '読み込み中...' },
+  profileCard: { roles: 'ロール', memberSince: '参加日' },
 };
 
 export default ja;

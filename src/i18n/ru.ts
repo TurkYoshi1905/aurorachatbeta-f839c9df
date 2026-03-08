@@ -302,6 +302,7 @@ const ru = {
   },
   voice: { connected: 'Подключено', connecting: 'Подключение...', disconnect: 'Отключить' },
   common: { user: 'Пользователь', loading: 'Загрузка...' },
+  profileCard: { roles: 'Роли', memberSince: 'Участник с' },
 };
 
 export default ru;

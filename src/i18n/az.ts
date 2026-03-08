@@ -302,6 +302,7 @@ const az = {
   },
   voice: { connected: 'Qoşuldu', connecting: 'Qoşulur...', disconnect: 'Bağlantını Kəs' },
   common: { user: 'İstifadəçi', loading: 'Yüklənir...' },
+  profileCard: { roles: 'Rollar', memberSince: 'Üzv olma tarixi' },
 };
 
 export default az;
