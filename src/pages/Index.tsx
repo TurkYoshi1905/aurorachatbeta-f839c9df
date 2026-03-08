@@ -60,6 +60,7 @@ export interface DbChannel {
   name: string;
   type: 'text' | 'voice';
   position: number;
+  category_id?: string | null;
 }
 
 export interface DbServer {
