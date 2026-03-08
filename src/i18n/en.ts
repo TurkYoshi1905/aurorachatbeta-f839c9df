@@ -197,6 +197,8 @@ const en = {
     description: 'Edit server settings',
     general: 'General',
     membersTab: 'Members',
+    rolesTab: 'Roles',
+    auditTab: 'Audit Log',
     serverNameLabel: 'Server Name',
     save: 'Save',
     saving: 'Saving...',
