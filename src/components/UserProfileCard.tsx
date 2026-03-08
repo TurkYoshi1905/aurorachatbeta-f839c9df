@@ -5,7 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from '@/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
-import { MessageSquare } from 'lucide-react';
+import { tr as trLocale, enUS, ru as ruLocale, ja as jaLocale, de as deLocale } from 'date-fns/locale';
+import { MessageSquare, Moon, Circle, MinusCircle, EyeOff } from 'lucide-react';
+import type { Language } from '@/i18n';
 
 interface UserProfileCardProps {
   userId: string;
