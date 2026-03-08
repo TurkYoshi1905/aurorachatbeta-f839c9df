@@ -16,6 +16,36 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.2.1',
+    date: '8 Mart 2026',
+    summary: 'Sunucu özel emoji sistemi, gelişmiş rol renk seçici ve detaylı yetkilendirme.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Özel Emoji Sistemi: Sunucunuza 50 adede kadar özel emoji yükleyin',
+          'Sohbette :emoji_adi: yazarak özel emojileri kullanın',
+          'Emoji Seçici\'de sunucu emojileri ayrı sekmede gösterilir',
+          'Emoji yönetimi: İsim düzenleme, tekli ve toplu silme',
+          'HEX Renk Seçici: Roller için sınırsız renk seçeneği',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Yönetici (Administrator) yetkisi: Aktif olunca tüm izinler otomatik açılır',
+          'Yeni yetki türleri: Sunucu yönetimi, dosya ekleme, emoji yönetimi, mesaj gönderme',
+          'Yetki açıklamaları ile daha anlaşılır izin paneli',
+          'Emoji görselleri otomatik boyutlandırılarak performans optimize edildi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.0',
     date: '8 Mart 2026',
     summary: 'Thread/Konu sistemi, Discord benzeri rol izinleri ve gelişmiş kullanıcı profil kartı.',
