@@ -15,6 +15,7 @@ import EmojiPicker from './EmojiPicker';
 import GifPicker from './GifPicker';
 import MentionPopup from './MentionPopup';
 import SlashCommandPopup from './SlashCommandPopup';
+import EmojiAutocompletePopup from './EmojiAutocompletePopup';
 import UserProfileCard from './UserProfileCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
