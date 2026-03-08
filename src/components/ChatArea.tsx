@@ -310,6 +310,27 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
   const cancelEdit = () => { setEditingId(null); setEditContent(''); };
   const confirmEdit = () => { if (!editingId || !editContent.trim()) return; onEditMessage?.(editingId, editContent.trim()); setEditingId(null); setEditContent(''); };
 
+  // Mobile long-press context menu
+  const [longPressMsg, setLongPressMsg] = useState<DbMessage | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchMoved = useRef(false);
+
+  const handleTouchStart = useCallback((msg: DbMessage) => {
+    touchMoved.current = false;
+    longPressTimer.current = setTimeout(() => {
+      if (!touchMoved.current) setLongPressMsg(msg);
+    }, 500);
+  }, []);
+
+  const handleTouchMove = useCallback(() => {
+    touchMoved.current = true;
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }, []);
+
   return (
     <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
       <div className="h-12 flex items-center px-4 border-b border-border shadow-sm gap-2">
