@@ -73,6 +73,14 @@ export interface DbServer {
   icon: string;
   owner_id: string | null;
   channels: DbChannel[];
+  categories?: DbCategory[];
+}
+
+export interface DbCategory {
+  id: string;
+  name: string;
+  position: number;
+  server_id: string;
 }
 
 type MobileView = 'channels' | 'chat' | 'members';
