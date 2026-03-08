@@ -1,5 +1,5 @@
 import { DbMember } from '@/pages/Index';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Moon } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import UserProfileCard from './UserProfileCard';
 
