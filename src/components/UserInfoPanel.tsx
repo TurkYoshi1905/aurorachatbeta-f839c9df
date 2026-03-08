@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Headphones, HeadphonesOff, Settings, Circle, Moon, MinusCircle, EyeOff, ChevronDown } from 'lucide-react';
+import { Mic, MicOff, Headphones, HeadphoneOff, Settings, Circle, Moon, MinusCircle, EyeOff, ChevronDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from '@/i18n';
