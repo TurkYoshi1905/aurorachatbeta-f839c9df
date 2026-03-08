@@ -137,6 +137,14 @@ const Index = () => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const voice = useVoiceChannel();
+  const [splashDone, setSplashDone] = useState(false);
+  const [loadingSteps, setLoadingSteps] = useState([
+    { label: 'Oturum kontrol ediliyor...', done: false },
+    { label: 'Sunucular yükleniyor...', done: false },
+    { label: 'Profil hazırlanıyor...', done: false },
+  ]);
+
   const [servers, setServers] = useState<DbServer[]>([]);
   const [activeServer, setActiveServer] = useState<string>('');
   const [activeChannel, setActiveChannel] = useState<string>('');
@@ -172,6 +180,11 @@ const Index = () => {
       .select('*')
       .order('position', { ascending: true });
 
+    const { data: categoriesData } = await supabase
+      .from('channel_categories')
+      .select('*')
+      .order('position', { ascending: true });
+
     if (serversData && channelsData) {
       const mapped: DbServer[] = serversData.map((s) => ({
         id: s.id,
@@ -185,7 +198,11 @@ const Index = () => {
             name: c.name,
             type: c.type as 'text' | 'voice',
             position: c.position,
+            category_id: (c as any).category_id || null,
           })),
+        categories: (categoriesData || [])
+          .filter((cat: any) => cat.server_id === s.id)
+          .map((cat: any) => ({ id: cat.id, name: cat.name, position: cat.position, server_id: cat.server_id })),
       }));
       setServers(mapped);
       if (!activeServer && mapped.length > 0) {
@@ -196,8 +213,20 @@ const Index = () => {
     }
   }, [activeServer]);
 
+  // Splash screen logic
   useEffect(() => {
-    fetchServers();
+    const initApp = async () => {
+      // Step 1: Session
+      setLoadingSteps(prev => prev.map((s, i) => i === 0 ? { ...s, done: true } : s));
+      
+      // Step 2: Servers
+      await fetchServers();
+      setLoadingSteps(prev => prev.map((s, i) => i <= 1 ? { ...s, done: true } : s));
+      
+      // Step 3: Profile
+      setLoadingSteps(prev => prev.map((s) => ({ ...s, done: true })));
+    };
+    initApp();
   }, []);
 
   const fetchMembers = useCallback(async () => {
