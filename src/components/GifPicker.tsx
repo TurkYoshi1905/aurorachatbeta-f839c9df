@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Search, Loader2 } from 'lucide-react';
-import gifIcon from '@/assets/gif-icon.png';
+
 
 const GIPHY_API_KEY = 'yYrhkp1WvT2DmLzN0oH3htGlGCAHACoy';
 
@@ -72,7 +72,7 @@ const GifPicker = ({ onGifSelect, children }: GifPickerProps) => {
       <PopoverTrigger asChild>
         {children || (
           <button className="hover:text-foreground transition-colors text-muted-foreground">
-            <img src={gifIcon} alt="GIF" className="w-5 h-5 dark:invert opacity-70 hover:opacity-100 transition-opacity" />
+            <span className="material-symbols-outlined text-xl opacity-70 hover:opacity-100 transition-opacity">gif</span>
           </button>
         )}
       </PopoverTrigger>
