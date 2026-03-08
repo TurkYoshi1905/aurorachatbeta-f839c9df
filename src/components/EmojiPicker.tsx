@@ -167,9 +167,10 @@ interface EmojiPickerProps {
   serverEmojis?: ServerEmoji[];
 }
 
-const EmojiPicker = ({ onEmojiSelect, children }: EmojiPickerProps) => {
+const EmojiPicker = ({ onEmojiSelect, children, serverEmojis = [] }: EmojiPickerProps) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState(serverEmojis.length > 0 ? -1 : 0);
   const [activeCategory, setActiveCategory] = useState(0);
 
   const filteredEmojis = useMemo(() => {

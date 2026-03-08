@@ -381,7 +381,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                   </div>
                 ) : (
                   <>
-                    {msg.content && renderMessageContent(msg.content)}
+                    {msg.content && renderMessageContent(msg.content, user?.id, serverEmojis)}
                     {msg.attachments && msg.attachments.length > 0 && (
                       <MessageAttachments attachments={msg.attachments} />
                     )}
