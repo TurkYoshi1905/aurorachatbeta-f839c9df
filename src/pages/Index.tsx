@@ -1066,6 +1066,9 @@ const Index = () => {
               onTypingStop={handleTypingStop}
               members={members}
               isLocked={channel.is_locked}
+              onPinMessage={handlePinMessage}
+              onUnpinMessage={handleUnpinMessage}
+              serverId={activeServer}
             />
           )}
           {mobileView === 'members' && (
