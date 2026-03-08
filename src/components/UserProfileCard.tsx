@@ -125,11 +125,20 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProf
       
       {/* Avatar */}
       <div className="px-4 -mt-8 relative z-10">
-        <div className="w-16 h-16 rounded-full border-4 border-sidebar bg-secondary flex items-center justify-center text-2xl font-bold overflow-hidden">
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+        <div className="relative w-16 h-16">
+          <div className="w-16 h-16 rounded-full border-4 border-sidebar bg-secondary flex items-center justify-center text-2xl font-bold overflow-hidden">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-foreground">{profile?.display_name?.charAt(0)?.toUpperCase() || '?'}</span>
+            )}
+          </div>
+          {userStatus === 'idle' ? (
+            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 flex items-center justify-center bg-sidebar rounded-full">
+              <Moon className="w-4 h-4 text-status-idle fill-status-idle" />
+            </div>
           ) : (
-            <span className="text-foreground">{profile?.display_name?.charAt(0)?.toUpperCase() || '?'}</span>
+            <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-[3px] border-sidebar ${userStatus === 'online' ? 'bg-status-online' : userStatus === 'dnd' ? 'bg-status-dnd' : 'bg-muted-foreground'}`} />
           )}
         </div>
       </div>
