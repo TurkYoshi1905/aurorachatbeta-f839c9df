@@ -115,7 +115,6 @@ const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel
         <>
           <CreateChannelDialog open={channelDialogOpen} onOpenChange={setChannelDialogOpen} serverId={serverId} defaultType={channelDialogType} existingCount={channels.length} onChannelCreated={() => onChannelCreated?.()} />
           <InviteDialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen} serverId={serverId} serverName={serverName} />
-          <ServerSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} serverId={serverId} serverName={serverName} serverIcon={serverIcon} onServerDeleted={() => onServerDeleted?.()} onServerUpdated={() => onServerUpdated?.()} />
         </>
       )}
     </div>
