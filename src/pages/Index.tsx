@@ -1072,7 +1072,7 @@ const Index = () => {
             />
           )}
           {mobileView === 'members' && (
-            <MemberList members={members} isMobile onBack={() => setMobileView('chat')} />
+            <MemberList members={members} isMobile onBack={() => setMobileView('chat')} serverId={activeServer} />
           )}
         </div>
         <MobileBottomNav
