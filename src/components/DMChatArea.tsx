@@ -329,8 +329,9 @@ const DMChatArea = ({ dmUser, onBack }: DMChatAreaProps) => {
           <button onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
           <input type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder={t('dm.messagePlaceholder', { user: dmUser.displayName })} className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground" />
           <div className="flex items-center gap-2 text-muted-foreground">
+            <GifPicker onGifSelect={(url) => { setInput(''); handleSend(); if (url) { const orig = input; setInput(url); setTimeout(() => { handleSend(); setInput(orig); }, 0); } }} />
             <button onClick={() => fileInputRef.current?.click()} className="hover:text-foreground transition-colors"><ImagePlus className="w-5 h-5" /></button>
-            <button className="hover:text-foreground transition-colors"><SmilePlus className="w-5 h-5" /></button>
+            <EmojiPicker onEmojiSelect={(emoji) => setInput(prev => prev + emoji)} />
             {(input.trim() || pendingFiles.length > 0) && (<button onClick={handleSend} className="text-primary hover:text-primary/80 transition-colors"><Send className="w-5 h-5" /></button>)}
           </div>
         </div>
