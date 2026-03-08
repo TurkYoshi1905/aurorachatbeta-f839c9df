@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Search, Loader2 } from 'lucide-react';
-import gifIcon from '@/assets/gif-icon.png';
+
 
 const GIPHY_API_KEY = 'yYrhkp1WvT2DmLzN0oH3htGlGCAHACoy';
 
