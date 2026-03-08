@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Reply, Pin, UserCircle } from 'lucide-react';
+import { Sparkles, MessageSquare, Shield, UserCircle } from 'lucide-react';
 
-const CURRENT_VERSION = '0.1.9';
+const CURRENT_VERSION = '0.2.0';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {
@@ -23,9 +23,9 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <Reply className="w-5 h-5 text-primary" />, tag: 'YANIT', color: 'text-primary', text: 'Mesaj Yanıtlama: Herhangi bir mesajı yanıtla, referans olarak göster ve orijinal mesaja tıkla.' },
-    { icon: <Pin className="w-5 h-5 text-status-online" />, tag: 'SABİTLE', color: 'text-status-online', text: 'Mesaj Sabitleme: Önemli mesajları sabitle, sabitlenmiş mesajları panelden görüntüle.' },
-    { icon: <UserCircle className="w-5 h-5 text-accent" />, tag: 'PROFİL', color: 'text-accent', text: 'Kullanıcı Profil Kartı: Kullanıcı adına tıklayarak detaylı profil bilgilerini gör.' },
+    { icon: <MessageSquare className="w-5 h-5 text-primary" />, tag: 'KONU', color: 'text-primary', text: 'Thread Sistemi: Mesajlardan konu başlat, sağ panelde yanıt ver ve takip et.' },
+    { icon: <Shield className="w-5 h-5 text-status-online" />, tag: 'İZİN', color: 'text-status-online', text: 'Rol İzinleri: Discord benzeri toggle switch\'ler ile detaylı yetki yönetimi.' },
+    { icon: <UserCircle className="w-5 h-5 text-accent" />, tag: 'PROFİL', color: 'text-accent', text: 'Gelişmiş Profil Kartı: Banner rengi, bio, özel not ve DM butonu.' },
   ];
 
   return (
