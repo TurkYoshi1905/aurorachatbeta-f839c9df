@@ -512,6 +512,15 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
             onSelect={handleMentionSelect}
             onClose={() => setShowMentionPopup(false)}
             position={{ bottom: 60, left: 16 }}
+           />
+        )}
+        {showEmojiAutocomplete && (
+          <EmojiAutocompletePopup
+            query={emojiAutocompleteQuery}
+            serverEmojis={serverEmojis || []}
+            onSelect={handleEmojiAutocompleteSelect}
+            onClose={() => setShowEmojiAutocomplete(false)}
+            position={{ bottom: 60, left: 16 }}
           />
         )}
         {isLocked && !isOwner ? (
