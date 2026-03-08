@@ -996,12 +996,14 @@ const Index = () => {
 
   return (
     <div className="h-screen flex overflow-hidden">
+      <ReleaseNotesModal />
       <ServerSidebar activeServer={activeServer} onServerChange={handleServerChange} servers={servers} onServerCreated={handleServerCreated} />
       <ChannelList
         serverName={server.name}
         serverId={server.id}
         serverIcon={server.icon}
         channels={server.channels}
+        categories={server.categories}
         activeChannel={activeChannel}
         onChannelChange={handleChannelChange}
         currentUserStatus={myStatus}
@@ -1011,6 +1013,7 @@ const Index = () => {
         onServerDeleted={handleServerDeleted}
         onServerUpdated={fetchServers}
         onLeaveServer={handleLeaveServer}
+        voiceState={voice}
       />
       <ChatArea
         channelName={channel.name}
@@ -1027,6 +1030,7 @@ const Index = () => {
         typingUsers={typingUsers}
         onTypingStart={handleTypingStart}
         onTypingStop={handleTypingStop}
+        members={members}
       />
       {showMembers && <MemberList members={members} />}
     </div>
