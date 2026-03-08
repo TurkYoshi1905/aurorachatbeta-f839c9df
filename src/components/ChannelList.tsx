@@ -49,7 +49,7 @@ const ChannelList = ({ serverName, serverId, serverIcon, channels, activeChannel
           {isOwner && (
             <>
               <button onClick={() => setInviteDialogOpen(true)} className="text-muted-foreground hover:text-foreground transition-colors" title={t('server.createInvite')}><UserPlus className="w-4 h-4" /></button>
-              <button onClick={() => setSettingsOpen(true)} className="text-muted-foreground hover:text-foreground transition-colors" title={t('server.serverSettings')}><Settings className="w-4 h-4" /></button>
+              <button onClick={() => navigate(`/server/${serverId}/settings`)} className="text-muted-foreground hover:text-foreground transition-colors" title={t('server.serverSettings')}><Settings className="w-4 h-4" /></button>
             </>
           )}
         </div>
