@@ -1,37 +1,87 @@
 
 
-## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
+## Plan: v0.1.3 — Discord Estetiği, Ses Kontrolleri, Hesap Silme ve UI İyileştirmeleri
 
-### 1. Black Screen Root Cause (CRITICAL)
+Bu büyük güncelleme 5 ana başlık altında toplam ~8 dosyayı etkiler.
 
-**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
+---
 
-**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
+### 1. DM Sayfası & User Info Paneli
 
-### 2. Server Deletion — Cascade via Foreign Keys
+**`src/components/DMDashboard.tsx`**
+- Boş durum illüstrasyonunu daha estetik hale getir (SVG illustration veya daha büyük/renkli ikon + gradient text)
+- Hover efektlerini ve X butonunu daha belirgin yap
 
-Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
+**`src/pages/Index.tsx`** (home layout kısmı, satır ~835)
+- DM sayfasında (home) ChannelList'teki alt User Info panelini (avatar + durum + mic/headphones/settings) entegre et
+- Yeni bir `UserInfoPanel` bileşeni oluştur ve hem ChannelList hem DM layoutunda kullan
 
-**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
-- `channels.server_id → servers.id ON DELETE CASCADE`
-- `messages.server_id → servers.id ON DELETE CASCADE`
-- `messages.channel_id → channels.id ON DELETE CASCADE`
-- `server_members.server_id → servers.id ON DELETE CASCADE`
-- `server_invites.server_id → servers.id ON DELETE CASCADE`
+**`src/components/UserInfoPanel.tsx`** (yeni dosya)
+- ChannelList satır 83-112'deki paneli ayrı bileşen olarak çıkar
+- Props: profile, currentUserStatus, onStatusChange, onNavigateSettings
+- Hem ChannelList hem DM home layoutunda kullanılacak
 
-Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
+### 2. Ses Kontrolü ve Cihaz Ayarları
 
-### 3. DM Real-time — Typing Channel Broadcast Fix
+**`src/components/UserInfoPanel.tsx`**
+- Mic ve Headphones ikonlarına toggle state ekle (micMuted, deafened)
+- Kapatıldığında `MicOff` / `HeadphonesOff` (lucide) kullan (kırmızı çizgili ikonlar)
+- Her ikonun yanına küçük `ChevronDown` ekle → tıklandığında Popover açılsın
+- Popover içinde `navigator.mediaDevices.enumerateDevices()` ile:
+  - Giriş cihazları (audioinput) listesi
+  - Çıkış cihazları (audiooutput) listesi
+- Seçili cihazı state'te tut (henüz gerçek ses bağlantısı yok, sadece UI)
 
-In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
+### 3. Mesaj Çubuğu & GIF İyileştirmeleri
 
-**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
+**`src/components/ChatArea.tsx`** (satır 255-270)
+- Mesaj çubuğundaki ikon sırasını Discord'a uygun düzenle: `[+] input [Gift] [GIF] [Emoji] [Send]`
+- GIF ikonu: mevcut `GifPicker` zaten Popover ile click-to-open çalışıyor ✓
+- GIF'i `Gift` ikonu yerine ayrı bir "GIF" text ikonu ile göster (Discord'daki gibi)
+- Mobilde de GIF ve Gift göster (şu an `!isMobile` kontrolü var, kaldır)
 
-### File Changes
+**`src/components/DMChatArea.tsx`** (satır 195-210)
+- Aynı ikon düzenini DM mesaj çubuğuna da uygula
 
-| File | Change |
+### 4. Güvenli Hesap Silme (Database + Edge Function)
+
+**Veritabanı Migrasyonu:**
+- Edge function oluştur: `supabase/functions/delete-account/index.ts`
+  1. Auth token'dan user_id al
+  2. `profiles` tablosunda display_name → `Deleted User [kısa ID]`, avatar_url → null, username → `deleted_[uuid]`
+  3. `messages` tablosunda author_name → `Deleted User` güncelle (mesajlar silinmez)
+  4. `direct_messages` tablosundaki mesajlar korunsun
+  5. `server_members`, `friends`, `server_member_roles` kayıtlarını sil
+  6. `auth.admin.deleteUser(user_id)` ile auth kaydını sil
+  7. Profile kaydını sil
+
+**`src/pages/Settings.tsx`** (satır 215-219)
+- "Hesabı Sil" butonunu aktif et (şu an disabled)
+- Onay dialogu ekle (AlertDialog): "Bu işlem geri alınamaz" uyarısı
+- Edge function'a istek at, başarılı olursa signOut + navigate('/login')
+
+### 5. Ayarlar İyileştirmeleri
+
+**`src/pages/Settings.tsx`**
+- Pencil ikonlarını daha modern buton stili ile değiştir (rounded-lg bg-secondary/50 padding)
+- "Görünüm ve Dil" sekmesine tema seçici ekle: Koyu / Açık / Sistem (şimdilik sadece UI, localStorage'a kaydet — gerçek tema değişimi next-themes ile)
+
+**`src/data/changelogData.ts`**
+- v0.1.3 changelog ekle: tüm yenilikleri madde madde listele
+
+---
+
+### Dosya Özeti
+
+| Dosya | İşlem |
 |---|---|
-| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
-| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
-| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
+| `src/components/UserInfoPanel.tsx` | Yeni — ChannelList'ten çıkarılan alt panel |
+| `src/components/ChannelList.tsx` | UserInfoPanel kullan, paneli kaldır |
+| `src/components/DMDashboard.tsx` | Boş durum iyileştirme, hover efektleri |
+| `src/pages/Index.tsx` | DM layoutuna UserInfoPanel ekle |
+| `src/components/ChatArea.tsx` | Mesaj çubuğu ikon düzeni, mobilde GIF göster |
+| `src/components/DMChatArea.tsx` | Mesaj çubuğu ikon düzeni |
+| `supabase/functions/delete-account/index.ts` | Hesap silme edge function |
+| `src/pages/Settings.tsx` | Hesap silme aktif, tema seçici, edit buton stili |
+| `src/data/changelogData.ts` | v0.1.3 changelog |
 
