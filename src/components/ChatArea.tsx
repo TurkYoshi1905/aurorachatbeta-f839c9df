@@ -38,15 +38,21 @@ interface ChatAreaProps {
 
 const isGiphyUrl = (url: string) => /giphy\.com\/media\/|\.giphy\.com\//i.test(url);
 
+const GifImage = ({ url }: { url: string }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <img src={url} alt="GIF" className="max-w-xs rounded-lg mt-1 cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" onClick={() => setOpen(true)} />
+      <ImageLightbox images={[url]} currentIndex={0} open={open} onOpenChange={setOpen} onIndexChange={() => {}} />
+    </>
+  );
+};
+
 export const renderMessageContent = (content: string) => {
   // Check if entire content is a single Giphy URL
   const trimmed = content.trim();
   if (isGiphyUrl(trimmed) && /^https?:\/\/\S+$/.test(trimmed)) {
-    return (
-      <a href={trimmed} target="_blank" rel="noopener noreferrer">
-        <img src={trimmed} alt="GIF" className="max-w-xs rounded-lg mt-1 cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" />
-      </a>
-    );
+    return <GifImage url={trimmed} />;
   }
 
   const inviteRegex = /https?:\/\/[^\s]+invite\/([a-zA-Z0-9]+)/g;
