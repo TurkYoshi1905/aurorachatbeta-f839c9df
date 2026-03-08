@@ -1,14 +1,15 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Gift, Search, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+
+const GIPHY_API_KEY = 'yYrhkp1WvT2DmLzN0oH3htGlGCAHACoy';
 
 interface GifPickerProps {
   onGifSelect: (gifUrl: string) => void;
   children?: React.ReactNode;
 }
 
-interface TenorGif {
+interface GiphyGif {
   id: string;
   title: string;
   preview: string;
@@ -18,43 +19,55 @@ interface TenorGif {
 const GifPicker = ({ onGifSelect, children }: GifPickerProps) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [gifs, setGifs] = useState<TenorGif[]>([]);
+  const [gifs, setGifs] = useState<GiphyGif[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
 
-  const searchGifs = useCallback(async (query: string) => {
-    if (!query.trim()) return;
+  const mapResults = (data: any[]): GiphyGif[] =>
+    data.map((g) => ({
+      id: g.id,
+      title: g.title || '',
+      preview: g.images?.fixed_height_small?.url || g.images?.fixed_height?.url || '',
+      url: g.images?.original?.url || '',
+    }));
+
+  const fetchTrending = useCallback(async () => {
     setLoading(true);
-    setSearched(true);
     try {
-      const { data, error } = await supabase.functions.invoke('tenor-search', {
-        body: { query: query.trim(), limit: 20 },
-      });
-      if (!error && data?.results) {
-        setGifs(data.results);
-      } else {
-        setGifs([]);
-      }
+      const res = await fetch(`https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=20&rating=g`);
+      const json = await res.json();
+      setGifs(mapResults(json.data || []));
     } catch {
       setGifs([]);
     }
     setLoading(false);
   }, []);
 
-  const handleSelect = (gif: TenorGif) => {
+  const searchGifs = useCallback(async (query: string) => {
+    if (!query.trim()) { fetchTrending(); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query.trim())}&limit=20&rating=g`);
+      const json = await res.json();
+      setGifs(mapResults(json.data || []));
+    } catch {
+      setGifs([]);
+    }
+    setLoading(false);
+  }, [fetchTrending]);
+
+  useEffect(() => {
+    if (open) fetchTrending();
+  }, [open, fetchTrending]);
+
+  const handleSelect = (gif: GiphyGif) => {
     onGifSelect(gif.url);
     setOpen(false);
     setSearch('');
     setGifs([]);
-    setSearched(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') searchGifs(search);
   };
 
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setSearch(''); setGifs([]); setSearched(false); } }}>
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setSearch(''); setGifs([]); } }}>
       <PopoverTrigger asChild>
         {children || (
           <button className="hover:text-foreground transition-colors text-muted-foreground">
@@ -68,8 +81,7 @@ const GifPicker = ({ onGifSelect, children }: GifPickerProps) => {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onChange={(e) => { setSearch(e.target.value); searchGifs(e.target.value); }}
             placeholder="GIF ara..."
             className="flex-1 bg-transparent text-sm outline-none text-foreground placeholder:text-muted-foreground"
             autoFocus
@@ -81,12 +93,7 @@ const GifPicker = ({ onGifSelect, children }: GifPickerProps) => {
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           )}
-          {!loading && !searched && (
-            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-              GIF aramak için yazın ve Enter'a basın
-            </div>
-          )}
-          {!loading && searched && gifs.length === 0 && (
+          {!loading && gifs.length === 0 && (
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
               GIF bulunamadı
             </div>
@@ -106,7 +113,7 @@ const GifPicker = ({ onGifSelect, children }: GifPickerProps) => {
           )}
         </div>
         <div className="px-3 py-1.5 border-t border-border">
-          <p className="text-[10px] text-muted-foreground text-center">Powered by Tenor</p>
+          <p className="text-[10px] text-muted-foreground text-center">Powered by GIPHY</p>
         </div>
       </PopoverContent>
     </Popover>
