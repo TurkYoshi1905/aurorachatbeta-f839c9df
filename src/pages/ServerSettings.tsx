@@ -14,7 +14,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface Member { id: string; user_id: string; display_name: string; avatar_url: string | null; roles: { id: string; name: string; color: string }[]; }
-interface Role { id: string; name: string; color: string; position: number; }
+interface Role { id: string; name: string; color: string; position: number; permissions: Record<string, boolean>; }
 interface AuditLog { id: string; action: string; user_id: string; target_type: string | null; details: any; created_at: string; user_name?: string; }
 
 const PRESET_COLORS = ['#E74C3C', '#E91E63', '#9B59B6', '#8E44AD', '#3498DB', '#2196F3', '#1ABC9C', '#2ECC71', '#F1C40F', '#FF9800', '#E67E22', '#95A5A6', '#607D8B', '#99AAB5'];
