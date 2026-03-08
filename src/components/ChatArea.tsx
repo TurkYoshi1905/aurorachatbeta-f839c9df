@@ -128,16 +128,19 @@ const TypingIndicator = ({ typingUsers, t }: { typingUsers: { userId: string; di
   );
 };
 
-const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop }: ChatAreaProps) => {
+const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop, members = [] }: ChatAreaProps) => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [showMentionPopup, setShowMentionPopup] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const lastTypingSentRef = useRef<number>(0);
 
   useEffect(() => { requestAnimationFrame(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }); }, [messages]);
@@ -146,9 +149,36 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInput(val);
+    
+    // Check for @mention
+    const cursorPos = e.target.selectionStart || val.length;
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const mentionMatch = textBeforeCursor.match(/@(\S*)$/);
+    if (mentionMatch) {
+      setShowMentionPopup(true);
+      setMentionQuery(mentionMatch[1]);
+    } else {
+      setShowMentionPopup(false);
+      setMentionQuery('');
+    }
+    
     if (val.trim()) { const now = Date.now(); if (now - lastTypingSentRef.current > 2000) { lastTypingSentRef.current = now; onTypingStart?.(); } }
     else { onTypingStop?.(); }
   }, [onTypingStart, onTypingStop]);
+
+  const handleMentionSelect = useCallback((name: string) => {
+    const cursorPos = inputRef.current?.selectionStart || input.length;
+    const textBeforeCursor = input.slice(0, cursorPos);
+    const mentionMatch = textBeforeCursor.match(/@(\S*)$/);
+    if (mentionMatch) {
+      const beforeMention = textBeforeCursor.slice(0, mentionMatch.index);
+      const afterCursor = input.slice(cursorPos);
+      setInput(`${beforeMention}@${name} ${afterCursor}`);
+    }
+    setShowMentionPopup(false);
+    setMentionQuery('');
+    inputRef.current?.focus();
+  }, [input]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
