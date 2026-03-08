@@ -256,6 +256,7 @@ const ru = {
     settings: 'Настройки',
     home: 'Главная',
   },
+  voice: { connected: 'Подключено', connecting: 'Подключение...', disconnect: 'Отключить' },
   common: { user: 'Пользователь', loading: 'Загрузка...' },
 };
 

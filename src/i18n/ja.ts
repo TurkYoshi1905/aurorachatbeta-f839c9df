@@ -256,6 +256,7 @@ const ja = {
     settings: '設定',
     home: 'ホーム',
   },
+  voice: { connected: '接続済み', connecting: '接続中...', disconnect: '切断' },
   common: { user: 'ユーザー', loading: '読み込み中...' },
 };
 
