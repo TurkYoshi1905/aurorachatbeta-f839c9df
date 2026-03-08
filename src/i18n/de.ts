@@ -150,6 +150,7 @@ const de = {
     noPinnedMessages: 'Noch keine angehefteten Nachrichten.',
     messagePinned: 'Nachricht angeheftet!',
     messageUnpinned: 'Anheftung aufgehoben.',
+    messageActions: 'Nachrichtenaktionen',
   },
   dm: {
     conversationStart: 'Beginn deiner Unterhaltung mit @{username}.',

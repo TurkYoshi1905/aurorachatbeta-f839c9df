@@ -514,7 +514,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
       <Sheet open={!!longPressMsg} onOpenChange={(open) => { if (!open) setLongPressMsg(null); }}>
         <SheetContent side="bottom" className="rounded-t-2xl px-2 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
           <SheetHeader className="pb-2">
-            <SheetTitle className="text-sm text-muted-foreground">{t('chat.messageActions' as any) || 'Mesaj İşlemleri'}</SheetTitle>
+            <SheetTitle className="text-sm text-muted-foreground">{t('chat.messageActions')}</SheetTitle>
           </SheetHeader>
           <div className="space-y-1">
             {/* Quick reactions */}

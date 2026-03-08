@@ -150,6 +150,7 @@ const az = {
     noPinnedMessages: 'Hələ sabitlənmiş mesaj yoxdur.',
     messagePinned: 'Mesaj sabitləndi!',
     messageUnpinned: 'Mesaj sabitləmə qaldırıldı.',
+    messageActions: 'Mesaj Əməliyyatları',
   },
   dm: {
     conversationStart: '@{username} ilə söhbətin başlanğıcı.',

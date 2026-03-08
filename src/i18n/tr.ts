@@ -164,6 +164,7 @@ const tr = {
     noPinnedMessages: 'Henüz sabitlenmiş mesaj yok.',
     messagePinned: 'Mesaj sabitlendi!',
     messageUnpinned: 'Mesaj sabitleme kaldırıldı.',
+    messageActions: 'Mesaj İşlemleri',
   },
 
   // DM

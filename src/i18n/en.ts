@@ -150,6 +150,7 @@ const en = {
     noPinnedMessages: 'No pinned messages yet.',
     messagePinned: 'Message pinned!',
     messageUnpinned: 'Message unpinned.',
+    messageActions: 'Message Actions',
   },
   dm: {
     conversationStart: 'This is the beginning of your conversation with @{username}.',

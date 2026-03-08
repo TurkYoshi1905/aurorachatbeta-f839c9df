@@ -150,6 +150,7 @@ const ja = {
     noPinnedMessages: 'ピン留めされたメッセージはありません。',
     messagePinned: 'メッセージをピン留めしました！',
     messageUnpinned: 'ピン留めを解除しました。',
+    messageActions: 'メッセージアクション',
   },
   dm: {
     conversationStart: '@{username}との会話の始まりです。',

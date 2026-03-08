@@ -150,6 +150,7 @@ const ru = {
     noPinnedMessages: 'Закреплённых сообщений пока нет.',
     messagePinned: 'Сообщение закреплено!',
     messageUnpinned: 'Сообщение откреплено.',
+    messageActions: 'Действия с сообщением',
   },
   dm: {
     conversationStart: 'Начало вашей переписки с @{username}.',

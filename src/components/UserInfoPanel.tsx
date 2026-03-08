@@ -78,7 +78,13 @@ const UserInfoPanel = ({ currentUserStatus = 'offline', onStatusChange }: UserIn
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-sm font-medium text-primary-foreground overflow-hidden">
               {profile?.avatar_url ? (<img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />) : (profile?.display_name?.charAt(0)?.toUpperCase() || '?')}
             </div>
-            <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-server-bg ${statusColor[currentUserStatus]}`} />
+            {currentUserStatus === 'idle' ? (
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 flex items-center justify-center">
+                <Moon className="w-3.5 h-3.5 text-status-idle fill-status-idle" />
+              </div>
+            ) : (
+              <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-server-bg ${statusColor[currentUserStatus]}`} />
+            )}
           </button>
         </PopoverTrigger>
         <PopoverContent side="top" align="start" className="w-56 p-1.5 bg-popover border-border">

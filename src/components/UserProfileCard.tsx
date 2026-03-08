@@ -182,13 +182,13 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProf
             {profile?.created_at && (
               <div className="flex items-center gap-2">
                 <span>🗓️</span>
-                <span>{format(new Date(profile.created_at), 'dd MMM yyyy')}</span>
+                <span>{format(new Date(profile.created_at), 'dd MMMM yyyy', { locale: dateLocaleMap[language] || enUS })}</span>
               </div>
             )}
             {joinedAt && (
               <div className="flex items-center gap-2">
                 <span>📥</span>
-                <span>{format(new Date(joinedAt), 'dd MMM yyyy')}</span>
+                <span>{format(new Date(joinedAt), 'dd MMMM yyyy', { locale: dateLocaleMap[language] || enUS })}</span>
               </div>
             )}
           </div>
