@@ -306,8 +306,29 @@ const Index = () => {
             timestamp: formatTimestamp(m.created_at),
             edited: !!(m as any).updated_at,
             attachments: (m as any).attachments || undefined,
+            replyTo: (m as any).reply_to || undefined,
+            isPinned: (m as any).is_pinned || false,
           }))
         );
+
+        // Fetch reply references
+        const replyIds = data.filter(m => (m as any).reply_to).map(m => (m as any).reply_to);
+        if (replyIds.length > 0) {
+          const { data: replyMsgs } = await supabase
+            .from('messages')
+            .select('id, author_name, content')
+            .in('id', replyIds);
+          if (replyMsgs) {
+            const replyMap = new Map(replyMsgs.map(r => [r.id, { author: r.author_name, content: r.content }]));
+            setMessages(prev => prev.map(msg => {
+              if (msg.replyTo && replyMap.has(msg.replyTo)) {
+                const ref = replyMap.get(msg.replyTo)!;
+                return { ...msg, replyAuthor: ref.author, replyContent: ref.content };
+              }
+              return msg;
+            }));
+          }
+        }
       }
     };
     fetchMessages();
