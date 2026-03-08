@@ -972,6 +972,7 @@ const Index = () => {
               typingUsers={typingUsers}
               onTypingStart={handleTypingStart}
               onTypingStop={handleTypingStop}
+              members={members}
             />
           )}
           {mobileView === 'members' && (
