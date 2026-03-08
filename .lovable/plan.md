@@ -1,37 +1,53 @@
 
 
-## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
+## Plan: v0.2.2 — Mobil Mesaj Menüsü, Pürüzsüz Lightbox & Profil Kartı Düzeltmesi
 
-### 1. Black Screen Root Cause (CRITICAL)
+### 1. Mobil Mesaj Uzun Basma Menüsü (Discord tarzı)
 
-**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
+**Problem:** Mobilde mesaj aksiyon butonları (`group-hover:opacity-100`) görünmüyor çünkü hover mobilde çalışmaz.
 
-**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
+**Çözüm:** `ChatArea.tsx`'te mobilde mesaja uzun basınca (long-press) açılan bir context menu/bottom sheet ekle:
+- `longPressMessageId` state + `onTouchStart`/`onTouchEnd` ile 500ms uzun basma algılama
+- Uzun basınca ekranın altından açılan menü (Dialog/Sheet): Yanıtla, Konu Başlat, Tepki Ekle, Sabitle, Düzenle, Sil
+- Her menü öğesinde ikon + yazı
+- Mevcut hover menüsü masaüstünde korunur, mobilde gizlenir
+- Menü dışına tıklayınca kapanır
 
-### 2. Server Deletion — Cascade via Foreign Keys
+### 2. ImageLightbox İyileştirmeleri
 
-Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
+**Pürüzsüz geçiş:** Resimler arası geçişte CSS `transition` ekle — fade-in/out animasyonu:
+- Resim değiştiğinde `opacity: 0 → 1` animasyonu (300ms)
+- `animating` state ile geçiş sırasında önceki resmi kısa süre göster
 
-**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
-- `channels.server_id → servers.id ON DELETE CASCADE`
-- `messages.server_id → servers.id ON DELETE CASCADE`
-- `messages.channel_id → channels.id ON DELETE CASCADE`
-- `server_members.server_id → servers.id ON DELETE CASCADE`
-- `server_invites.server_id → servers.id ON DELETE CASCADE`
+**Buton yazıları:** Bottom bar'daki butonlarda `hidden sm:inline` kaldır — her zaman yazı göster:
+- "Orijinali Aç" → her zaman görünür
+- "İndir" → her zaman görünür
+- Top bar'daki zoom butonlarına da tooltip/yazı ekle
 
-Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
+### 3. Profil Kartı Mobil Düzeltmesi
 
-### 3. DM Real-time — Typing Channel Broadcast Fix
+**Problem:** `PopoverContent` mobilde ekranın dışına taşıyor (2. resimde görüldüğü gibi).
 
-In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
+**Çözüm:** Mobilde Popover yerine tam ekran Dialog/Sheet kullan:
+- `useIsMobile()` hook ile cihaz tespiti
+- Mobilde: `Sheet` (bottom sheet) olarak aç — `side="bottom"`, `max-h-[85vh]`, scroll destekli
+- Masaüstünde: Mevcut Popover korunsun
+- Aynı içerik her iki görünümde de render edilecek (ortak bileşen)
 
-**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
+### 4. v0.2.2 Sürüm Notları
 
-### File Changes
+- `ReleaseNotesModal.tsx`: `CURRENT_VERSION = '0.2.2'`
+- `changelogData.ts`: Yeni sürüm notu ekle
+- i18n dosyaları: Yeni çeviri anahtarları (longPress menü etiketleri)
 
-| File | Change |
+### Dosya Değişiklikleri
+
+| Dosya | Değişiklik |
 |---|---|
-| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
-| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
-| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
+| `src/components/ChatArea.tsx` | Long-press handler, mobil context menu (Sheet), hover menüyü mobilde gizle |
+| `src/components/ImageLightbox.tsx` | Fade geçiş animasyonu, buton yazılarını her zaman göster |
+| `src/components/UserProfileCard.tsx` | Mobilde Sheet, masaüstünde Popover |
+| `src/components/ReleaseNotesModal.tsx` | v0.2.2 |
+| `src/data/changelogData.ts` | v0.2.2 sürüm notları |
+| `src/i18n/*.ts` | Yeni çeviri anahtarları |
 
