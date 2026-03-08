@@ -17,6 +17,7 @@ import SplashScreen from '@/components/SplashScreen';
 import ReleaseNotesModal from '@/components/ReleaseNotesModal';
 import { useVoiceChannel } from '@/hooks/useVoiceChannel';
 import { toast } from 'sonner';
+import { executeBotCommand } from '@/utils/botCommands';
 
 export interface DbMessage {
   id: string;
