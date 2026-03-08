@@ -16,6 +16,44 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.1.7',
+    date: '8 Mart 2026',
+    summary: 'Mobil mesaj çubuğu yenilendi, safe area desteği ve kullanıcı paneli optimizasyonu.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Mobil mesaj yazma alanı tamamen yenilendi (Discord Mobile tarzı)',
+          'Emoji ikonu artık input alanının içinde, sağ tarafta sabitlendi',
+          'Mobil "+" menüsü: Resim Ekle ve GIF Gönder seçenekleri tek butondan erişilebilir',
+          'Gönder butonu mobilde her zaman görünür (yuvarlak ok simgesi)',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Mobil Safe Area desteği: Home Indicator\'a çarpmayan alt bar',
+          'Kullanıcı bilgi paneli mobil ekranlar için optimize edildi',
+          'Ses ayarları dropdown ok simgelerinin dokunma alanı genişletildi',
+        ],
+      },
+      {
+        title: 'Düzeltmeler',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Mobilde ikon taşma sorunu tamamen giderildi',
+          'Emoji ikonu artık mesaj kutusu dışına taşmıyor',
+          'Klavye açıldığında mesaj çubuğunun konumu korunuyor',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.6',
     date: '8 Mart 2026',
     summary: 'AuroraChat Bot, slash komutları, kanal kilitleme ve sesli sohbet stabilizasyonu.',

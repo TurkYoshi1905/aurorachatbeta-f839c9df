@@ -126,7 +126,7 @@ const UserInfoPanel = ({ currentUserStatus = 'offline', onStatusChange }: UserIn
           </button>
           <Popover open={speakerDevicesOpen} onOpenChange={setSpeakerDevicesOpen}>
             <PopoverTrigger asChild>
-              <button className="p-0.5 rounded-r hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors">
+              <button className="p-1 min-w-[30px] min-h-[30px] flex items-center justify-center rounded-r hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors">
                 <ChevronDown className="w-3 h-3" />
               </button>
             </PopoverTrigger>
