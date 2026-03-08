@@ -2,6 +2,23 @@ import { useState, useEffect, useRef } from 'react';
 
 interface ServerEmoji { id: string; name: string; image_url: string; }
 
+// Fuzzy match scoring: returns score > 0 if all query chars appear in order, 0 otherwise
+const fuzzyMatch = (text: string, query: string): number => {
+  if (!query) return 0;
+  let qi = 0, score = 0, consecutive = 0;
+  for (let i = 0; i < text.length && qi < query.length; i++) {
+    if (text[i] === query[qi]) {
+      qi++;
+      score += 1 + consecutive;
+      consecutive++;
+      if (i === qi - 1) score += 2; // prefix bonus
+    } else {
+      consecutive = 0;
+    }
+  }
+  return qi === query.length ? score : 0;
+};
+
 // Built-in emoji subset for autocomplete
 const BUILTIN_EMOJI_MAP: Record<string, string[]> = {
   '😀': ['grin','smile','happy'],
@@ -51,19 +68,30 @@ const EmojiAutocompletePopup = ({ query, serverEmojis, onSelect, onClose, positi
 
   const q = query.toLowerCase();
 
-  // Server emojis matching
-  const matchedServer = serverEmojis.filter(e => e.name.includes(q)).slice(0, 6);
+  // Server emojis with fuzzy scoring
+  const matchedServer = serverEmojis
+    .map(e => ({ ...e, score: fuzzyMatch(e.name.toLowerCase(), q) }))
+    .filter(e => e.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
 
-  // Built-in emojis matching
-  const matchedBuiltin: { emoji: string; name: string }[] = [];
+  // Built-in emojis with fuzzy scoring
+  const matchedBuiltin: { emoji: string; name: string; score: number }[] = [];
   for (const [emoji, keywords] of Object.entries(BUILTIN_EMOJI_MAP)) {
-    if (matchedBuiltin.length >= 6) break;
-    if (keywords.some(k => k.includes(q))) {
-      matchedBuiltin.push({ emoji, name: keywords[0] });
+    let bestScore = 0;
+    let bestName = keywords[0];
+    for (const k of keywords) {
+      const s = fuzzyMatch(k, q);
+      if (s > bestScore) { bestScore = s; bestName = k; }
+    }
+    if (bestScore > 0) {
+      matchedBuiltin.push({ emoji, name: bestName, score: bestScore });
     }
   }
+  matchedBuiltin.sort((a, b) => b.score - a.score);
+  const displayBuiltin = matchedBuiltin.slice(0, 6);
 
-  const totalItems = matchedServer.length + matchedBuiltin.length;
+  const totalItems = matchedServer.length + displayBuiltin.length;
 
   useEffect(() => { setSelectedIndex(0); }, [query]);
 
@@ -81,8 +109,8 @@ const EmojiAutocompletePopup = ({ query, serverEmojis, onSelect, onClose, positi
           onSelect(`:${matchedServer[selectedIndex].name}:`, true);
         } else {
           const builtinIdx = selectedIndex - matchedServer.length;
-          if (matchedBuiltin[builtinIdx]) {
-            onSelect(matchedBuiltin[builtinIdx].emoji, false);
+          if (displayBuiltin[builtinIdx]) {
+            onSelect(displayBuiltin[builtinIdx].emoji, false);
           }
         }
       } else if (e.key === 'Escape') {
@@ -91,7 +119,7 @@ const EmojiAutocompletePopup = ({ query, serverEmojis, onSelect, onClose, positi
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [matchedServer, matchedBuiltin, selectedIndex, onSelect, onClose, totalItems]);
+  }, [matchedServer, displayBuiltin, selectedIndex, onSelect, onClose, totalItems]);
 
   if (totalItems === 0) return null;
 
@@ -123,10 +151,10 @@ const EmojiAutocompletePopup = ({ query, serverEmojis, onSelect, onClose, positi
           })}
         </>
       )}
-      {matchedBuiltin.length > 0 && (
+      {displayBuiltin.length > 0 && (
         <>
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2 py-1 mt-1">Emojiler</p>
-          {matchedBuiltin.map((e) => {
+          {displayBuiltin.map((e) => {
             const currentIdx = idx++;
             return (
               <button
