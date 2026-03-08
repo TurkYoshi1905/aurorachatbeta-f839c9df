@@ -1,37 +1,73 @@
 
 
-## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
+## Plan: v0.2.1-patch — Emoji Resize Edge Function, Emoji Autocomplete & Yüksek Kalite Görseller
 
-### 1. Black Screen Root Cause (CRITICAL)
+### 1. Emoji Resize Edge Function
 
-**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
+Yeni `supabase/functions/resize-emoji/index.ts`:
+- POST request ile base64 veya binary image alır
+- Canvas API (veya sharp benzeri bir Deno kütüphanesi yerine, `ImageMagick` Deno WASM modülü) ile 64x64px'e resize eder
+- Resize edilmiş görseli döner
 
-**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
+**Akış:**
+- `ServerSettings.tsx`'te `handleEmojiUpload` fonksiyonunda: dosyayı önce edge function'a gönder → resize edilmiş blob'u al → Storage'a yükle
+- `supabase/config.toml`'a `[functions.resize-emoji]` ekle
 
-### 2. Server Deletion — Cascade via Foreign Keys
+**Not:** Deno edge functions'ta en pratik yaklaşım: görseli FormData ile gönder, `jsr:@syumai/image` veya basit canvas approach ile resize et. Alternatif olarak client-side `<canvas>` ile resize yapılabilir (edge function gerektirmez, daha hızlı). Client-side yaklaşımı tercih edeceğim — daha az karmaşık ve sıfır latency.
 
-Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
+**Revize: Client-side canvas resize** — `ServerSettings.tsx`'te yükleme öncesi `resizeImage(file, 64, 64)` helper fonksiyonu:
+```typescript
+const resizeImage = (file: File, w: number, h: number): Promise<Blob> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(b => resolve(b!), 'image/png');
+    };
+    img.src = URL.createObjectURL(file);
+  });
+};
+```
+Ek olarak edge function da oluşturulacak (sunucu tarafı yedek) ama birincil yöntem client-side olacak.
 
-**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
-- `channels.server_id → servers.id ON DELETE CASCADE`
-- `messages.server_id → servers.id ON DELETE CASCADE`
-- `messages.channel_id → channels.id ON DELETE CASCADE`
-- `server_members.server_id → servers.id ON DELETE CASCADE`
-- `server_invites.server_id → servers.id ON DELETE CASCADE`
+### 2. Emoji Autocomplete Popup
 
-Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
+Yeni bileşen: `src/components/EmojiAutocompletePopup.tsx`
+- MentionPopup'a benzer yapı (aynı pattern)
+- Input'ta `:` yazıldığında tetiklenir (en az 2 karakter sonra, ör. `:sm`)
+- `serverEmojis` + built-in emoji listesinden arama yapar
+- Klavye navigasyonu: ArrowUp/Down, Enter/Tab ile seç, Escape ile kapat
+- Seçim yapılınca: sunucu emojisi ise `:emoji_name:` ekler, built-in ise emoji karakterini ekler
 
-### 3. DM Real-time — Typing Channel Broadcast Fix
+**ChatArea.tsx değişiklikleri:**
+- `handleInputChange`'e `:query` pattern tespiti ekle (mevcut `@mention` pattern'ine benzer)
+- `showEmojiPopup` + `emojiQuery` state'leri
+- Input alanının üstünde popup render et
 
-In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
+**DMChatArea.tsx**: Aynı autocomplete desteği (isteğe bağlı, sunucu emojisi yok ama built-in emojiler çalışır)
 
-**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
+### 3. Yüksek Kalite Görsel Yükleme
 
-### File Changes
+**Mevcut durum:** `MAX_FILE_SIZE = 5MB`, `object-cover` kullanılıyor, görseller sıkıştırma olmadan yükleniyor.
 
-| File | Change |
+**Değişiklikler:**
+- `MAX_FILE_SIZE`'ı `10 * 1024 * 1024` (10MB) yap — daha yüksek kaliteli görseller için
+- `MessageAttachments.tsx`: `object-cover` → `object-contain` (kırpma yerine tam görüntüleme)
+- `max-h-72` → `max-h-96` (daha büyük görüntüleme alanı)
+- Grid layout'u tek resim için `max-w-lg` yap (daha geniş)
+- `FileUploadPreview.tsx`: Önizleme boyutunu `w-20 h-20` → `w-24 h-24` yap
+
+### Dosya Değişiklikleri
+
+| Dosya | Değişiklik |
 |---|---|
-| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
-| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
-| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
+| `src/components/EmojiAutocompletePopup.tsx` | **YENİ** — Emoji autocomplete popup |
+| `src/components/ChatArea.tsx` | `:emoji` autocomplete entegrasyonu, emoji popup state |
+| `src/pages/ServerSettings.tsx` | `resizeImage` helper, yükleme öncesi 64x64 resize |
+| `src/components/MessageAttachments.tsx` | Daha büyük/kaliteli görsel gösterimi |
+| `src/components/FileUploadPreview.tsx` | Daha büyük önizleme |
+| `src/components/DMChatArea.tsx` | MAX_FILE_SIZE güncelleme |
+| `src/components/EmojiPicker.tsx` | EMOJI_KEYWORDS export (autocomplete'in kullanması için) |
 
