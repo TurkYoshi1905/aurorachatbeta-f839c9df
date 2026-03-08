@@ -13,6 +13,10 @@ import { useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useTranslation } from '@/i18n';
 import { uploadFiles } from '@/components/DMChatArea';
+import SplashScreen from '@/components/SplashScreen';
+import ReleaseNotesModal from '@/components/ReleaseNotesModal';
+import { useVoiceChannel } from '@/hooks/useVoiceChannel';
+import { toast } from 'sonner';
 
 export interface DbMessage {
   id: string;
