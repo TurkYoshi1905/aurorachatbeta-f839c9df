@@ -1183,8 +1183,23 @@ const Index = () => {
         onPinMessage={handlePinMessage}
         onUnpinMessage={handleUnpinMessage}
         serverId={activeServer}
+        threadCounts={threadCounts}
+        onOpenThread={handleOpenThread}
+        userPermissions={userPermissions}
       />
-      {showMembers && <MemberList members={members} serverId={activeServer} />}
+      {activeThread ? (
+        <ThreadPanel
+          threadId={activeThread.threadId}
+          messageId={activeThread.messageId}
+          channelId={activeChannel}
+          serverId={activeServer}
+          messageAuthor={activeThread.author}
+          messageContent={activeThread.content}
+          onClose={() => setActiveThread(null)}
+        />
+      ) : (
+        showMembers && <MemberList members={members} serverId={activeServer} />
+      )}
     </div>
   );
 };
