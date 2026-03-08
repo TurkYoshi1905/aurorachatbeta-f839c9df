@@ -1,37 +1,74 @@
 
 
-## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
+## Plan: v0.2.1 — Sunucu Emoji Sistemi & Gelişmiş Rol Yetkileri
 
-### 1. Black Screen Root Cause (CRITICAL)
+### 1. Veritabanı Değişiklikleri
 
-**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
+**Yeni `server_emojis` tablosu:**
+```sql
+CREATE TABLE public.server_emojis (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  server_id uuid NOT NULL,
+  name text NOT NULL,
+  image_url text NOT NULL,
+  uploaded_by uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(server_id, name)
+);
+-- RLS: sunucu üyeleri okuyabilir, sunucu sahipleri CRUD yapabilir
+```
 
-**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
+**`server_roles.permissions` genişletme** — mevcut JSON yapısına yeni anahtarlar eklenir (kod tarafında):
+- `administrator`, `manage_server`, `attach_files`, `manage_emojis`
 
-### 2. Server Deletion — Cascade via Foreign Keys
+Mevcut roller zaten `permissions jsonb DEFAULT '{}'` kullanıyor, yeni anahtarlar eklenmesi geriye uyumlu.
 
-Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
+**Storage**: `avatars` bucket'ı kullanılacak, path: `{userId}/servers/{serverId}/emojis/{emojiId}.{ext}`
 
-**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
-- `channels.server_id → servers.id ON DELETE CASCADE`
-- `messages.server_id → servers.id ON DELETE CASCADE`
-- `messages.channel_id → channels.id ON DELETE CASCADE`
-- `server_members.server_id → servers.id ON DELETE CASCADE`
-- `server_invites.server_id → servers.id ON DELETE CASCADE`
+### 2. Sunucu Emoji Sistemi
 
-Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
+**ServerSettings.tsx — Yeni "Emojiler" sekmesi:**
+- Emoji listesi (ad, görsel, silme butonu)
+- Yükleme formu: dosya seçici + isim input'u
+- 50 emoji sınırı göstergesi (ör. "12/50")
+- Toplu silme: checkbox ile seçim + "Seçilenleri Sil" butonu
+- İsim düzenleme: inline edit
 
-### 3. DM Real-time — Typing Channel Broadcast Fix
+**ChatArea.tsx — Emoji render:**
+- `renderMessageContent` fonksiyonunu genişlet: `:emoji_adi:` pattern'ini regex ile yakala
+- Sunucunun özel emoji listesini prop olarak al
+- Eşleşen emoji adlarını `<img>` tag'ı ile render et (32x32)
 
-In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
+**EmojiPicker.tsx — Özel emoji sekmesi:**
+- Mevcut picker'a "Sunucu" kategorisi ekle
+- Sunucu emojilerini grid olarak göster, tıklayınca `:ad:` olarak input'a ekle
 
-**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
+### 3. Gelişmiş Rol & Yetki Sistemi
 
-### File Changes
+**ServerSettings.tsx — Rol oluşturma UI güncelleme:**
+- PRESET_COLORS yerine/yanına HEX input alanı ekle (manuel giriş)
+- Color picker: Palette + HEX text input birlikte çalışsın
+- Mevcut preset renkler korunsun, altına `#` ile HEX girişi eklensin
 
-| File | Change |
+**Yetki listesi genişletme** — `PERMISSION_CATEGORIES` güncelle:
+```
+Genel: administrator, manage_server, manage_channels, manage_roles, manage_emojis
+Üye: kick_members, ban_members
+Metin: manage_messages, pin_messages, mention_everyone, attach_files, send_messages
+```
+- `administrator` toggle'ı aktif olunca tüm diğer toggle'lar otomatik aktif görünsün
+- Discord tarzı: administrator açıkken diğerleri disabled + checked
+
+### 4. Dosya Değişiklikleri
+
+| Dosya | Değişiklik |
 |---|---|
-| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
-| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
-| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
+| **SQL Migration** | `server_emojis` tablosu + RLS |
+| `src/pages/ServerSettings.tsx` | "Emojiler" sekmesi, HEX color picker, genişletilmiş permission listesi |
+| `src/components/ChatArea.tsx` | `:emoji:` render desteği, serverEmojis prop |
+| `src/components/EmojiPicker.tsx` | Sunucu emoji kategorisi |
+| `src/pages/Index.tsx` | Sunucu emojilerini fetch et, ChatArea'ya aktar |
+| `src/data/changelogData.ts` | v0.2.1 sürüm notları |
+| `src/components/ReleaseNotesModal.tsx` | Versiyon güncelle |
+| `src/i18n/*.ts` | Yeni çeviri anahtarları (6 dil) |
 
