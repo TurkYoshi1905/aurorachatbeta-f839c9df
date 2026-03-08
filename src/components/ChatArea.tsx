@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { DbMessage, DbReaction, DbMember } from '@/pages/Index';
-import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft, Trash2, Pencil, Check, X, Lock, SendHorizontal } from 'lucide-react';
+import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft, Trash2, Pencil, Check, X, Lock, SendHorizontal, Reply, CornerDownRight } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import ImageLightbox from './ImageLightbox';
@@ -15,6 +15,8 @@ import EmojiPicker from './EmojiPicker';
 import GifPicker from './GifPicker';
 import MentionPopup from './MentionPopup';
 import SlashCommandPopup from './SlashCommandPopup';
+import UserProfileCard from './UserProfileCard';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👀', '💯', '✅', '❌', '🤔', '👏', '💪', '🙏', '😎', '🥳', '💀', '😭', '🫡', '👎', '💜', '🧡'];
 
@@ -24,7 +26,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 interface ChatAreaProps {
   channelName: string;
   messages: DbMessage[];
-  onSendMessage: (content: string, files?: File[]) => void;
+  onSendMessage: (content: string, files?: File[], replyTo?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   onEditMessage?: (messageId: string, newContent: string) => void;
   onRetryMessage?: (messageId: string, content: string) => void;
@@ -40,6 +42,9 @@ interface ChatAreaProps {
   onTypingStop?: () => void;
   members?: DbMember[];
   isLocked?: boolean;
+  onPinMessage?: (messageId: string) => void;
+  onUnpinMessage?: (messageId: string) => void;
+  serverId?: string;
 }
 
 const isGiphyUrl = (url: string) => /giphy\.com\/media\/|\.giphy\.com\//i.test(url);
@@ -86,7 +91,6 @@ export const renderMessageContent = (content: string, currentUserId?: string) =>
         <span key={i}>
           {mentionParts.map((mp, j) => {
             if (j % 2 === 1) {
-              // This is a mention
               return <span key={j} className="bg-primary/20 text-primary rounded px-1 font-medium cursor-pointer hover:bg-primary/30">@{mp}</span>;
             }
             return <span key={j}>{mp}</span>;
@@ -131,7 +135,7 @@ const TypingIndicator = ({ typingUsers, t }: { typingUsers: { userId: string; di
   );
 };
 
-const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop, members = [], isLocked }: ChatAreaProps) => {
+const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEditMessage, onRetryMessage, onToggleMembers, showMembers, isOwner, isMobile, onBack, reactions, onToggleReaction, typingUsers, onTypingStart, onTypingStop, members = [], isLocked, onPinMessage, onUnpinMessage, serverId }: ChatAreaProps) => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const isMobileDevice = useIsMobile();
@@ -144,20 +148,33 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
   const [showSlashPopup, setShowSlashPopup] = useState(false);
   const [slashQuery, setSlashQuery] = useState('');
   const [mentionQuery, setMentionQuery] = useState('');
+  const [replyingTo, setReplyingTo] = useState<DbMessage | null>(null);
+  const [showPinnedPanel, setShowPinnedPanel] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastTypingSentRef = useRef<number>(0);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  const pinnedMessages = messages.filter(m => m.isPinned);
 
   useEffect(() => { requestAnimationFrame(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }); }, [messages]);
   useEffect(() => { if (editingId) editInputRef.current?.focus(); }, [editingId]);
+
+  const scrollToMessage = useCallback((messageId: string) => {
+    const el = document.getElementById(`msg-${messageId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('bg-primary/10');
+      setTimeout(() => el.classList.remove('bg-primary/10'), 2000);
+    }
+  }, []);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInput(val);
     
-    // Check for slash commands
     if (val.startsWith('/')) {
       setShowSlashPopup(true);
       setSlashQuery(val.slice(1).split(' ')[0]);
@@ -166,7 +183,6 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
       setSlashQuery('');
     }
     
-    // Check for @mention
     const cursorPos = e.target.selectionStart || val.length;
     const textBeforeCursor = val.slice(0, cursorPos);
     const mentionMatch = textBeforeCursor.match(/@(\S*)$/);
@@ -221,9 +237,10 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
 
   const handleSend = () => {
     if (!input.trim() && pendingFiles.length === 0) return;
-    onSendMessage(input.trim(), pendingFiles.length > 0 ? pendingFiles : undefined);
+    onSendMessage(input.trim(), pendingFiles.length > 0 ? pendingFiles : undefined, replyingTo?.id);
     setInput('');
     setPendingFiles([]);
+    setReplyingTo(null);
     onTypingStop?.();
   };
 
@@ -238,7 +255,43 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
         <Hash className="w-5 h-5 text-muted-foreground" />
         <span className="font-semibold text-foreground">{channelName}</span>
         <div className="ml-auto flex items-center gap-3 text-muted-foreground">
-          {!isMobile && (<><button className="hover:text-foreground transition-colors"><Pin className="w-4 h-4" /></button><button className="hover:text-foreground transition-colors"><Bell className="w-4 h-4" /></button></>)}
+          {!isMobile && (
+            <>
+              <Popover open={showPinnedPanel} onOpenChange={setShowPinnedPanel}>
+                <PopoverTrigger asChild>
+                  <button className={`hover:text-foreground transition-colors relative ${showPinnedPanel ? 'text-foreground' : ''}`}>
+                    <Pin className="w-4 h-4" />
+                    {pinnedMessages.length > 0 && (
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary text-primary-foreground text-[8px] flex items-center justify-center font-bold">{pinnedMessages.length}</span>
+                    )}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="end" className="w-80 p-0 max-h-96">
+                  <div className="p-3 border-b border-border">
+                    <h3 className="font-semibold text-sm text-foreground">{t('chat.pinnedMessages')}</h3>
+                  </div>
+                  <ScrollArea className="max-h-80">
+                    {pinnedMessages.length === 0 ? (
+                      <p className="p-4 text-sm text-muted-foreground text-center">{t('chat.noPinnedMessages')}</p>
+                    ) : (
+                      <div className="p-2 space-y-2">
+                        {pinnedMessages.map(msg => (
+                          <div key={msg.id} className="p-2 rounded-md bg-secondary/50 hover:bg-secondary/80 cursor-pointer transition-colors" onClick={() => { scrollToMessage(msg.id); setShowPinnedPanel(false); }}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-medium text-foreground">{msg.author}</span>
+                              <span className="text-[10px] text-muted-foreground">{msg.timestamp}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{msg.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+              <button className="hover:text-foreground transition-colors"><Bell className="w-4 h-4" /></button>
+            </>
+          )}
           <button onClick={onToggleMembers} className={`hover:text-foreground transition-colors ${showMembers ? 'text-foreground' : ''}`}><Users className="w-4 h-4" /></button>
           {!isMobile && (
             <div className="relative">
@@ -249,7 +302,7 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin px-4 py-4 space-y-4" style={{ minHeight: 0 }}>
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin px-4 py-4 space-y-4" style={{ minHeight: 0 }}>
         <div className="mb-6">
           <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-3xl mb-3"><Hash className="w-8 h-8 text-foreground" /></div>
           <h2 className="text-2xl font-bold text-foreground">{t('chat.welcomeChannel', { channel: channelName })}</h2>
@@ -258,18 +311,33 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
 
         {messages.map((msg) => {
           const msgReactions = reactions?.[msg.id] || [];
+          const replyRef = msg.replyTo ? messages.find(m => m.id === msg.replyTo) : null;
           return (
-            <div key={msg.id} className={`flex gap-3 group hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors relative ${msg.status === 'sending' ? 'opacity-50' : ''} ${msg.status === 'failed' ? 'border border-destructive/40 bg-destructive/5' : ''}`}>
+            <div key={msg.id} id={`msg-${msg.id}`} className={`flex gap-3 group hover:bg-secondary/30 -mx-2 px-2 py-1 rounded-md transition-colors relative ${msg.status === 'sending' ? 'opacity-50' : ''} ${msg.status === 'failed' ? 'border border-destructive/40 bg-destructive/5' : ''}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 font-semibold overflow-hidden ${msg.isBot ? 'bg-primary/20 aurora-glow' : 'bg-secondary'}`}>
                 {msg.avatarUrl ? (<img src={msg.avatarUrl} alt="" className="w-full h-full object-cover" />) : (msg.avatar)}
               </div>
               <div className="min-w-0 flex-1">
+                {/* Reply reference */}
+                {(replyRef || msg.replyAuthor) && (
+                  <button
+                    onClick={() => replyRef && scrollToMessage(replyRef.id)}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-0.5 transition-colors"
+                  >
+                    <CornerDownRight className="w-3 h-3" />
+                    <span className="font-medium text-primary">@{replyRef?.author || msg.replyAuthor}</span>
+                    <span className="truncate max-w-[200px]">{replyRef?.content || msg.replyContent || ''}</span>
+                  </button>
+                )}
                 <div className="flex items-baseline gap-2">
-                  <span className={`font-medium text-sm ${msg.isBot ? 'text-primary' : 'text-foreground'}`}>{msg.author}</span>
+                  <UserProfileCard userId={msg.userId} serverId={serverId}>
+                    <button className={`font-medium text-sm hover:underline ${msg.isBot ? 'text-primary' : 'text-foreground'}`}>{msg.author}</button>
+                  </UserProfileCard>
                   {msg.isBot && (<span className="text-[9px] bg-primary text-primary-foreground px-1 py-0.5 rounded font-bold uppercase">Bot</span>)}
                   <span className="text-[11px] text-muted-foreground">{msg.timestamp}</span>
                   {msg.edited && (<span className="text-[10px] text-muted-foreground italic">{t('chat.edited')}</span>)}
                   {msg.status === 'sending' && (<span className="text-[10px] text-muted-foreground italic">{t('chat.sending')}</span>)}
+                  {msg.isPinned && (<Pin className="w-3 h-3 text-primary" />)}
                 </div>
                 {editingId === msg.id ? (
                   <div className="flex items-center gap-2 mt-1">
@@ -302,6 +370,10 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
               </div>
               {editingId !== msg.id && (
                 <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
+                  {/* Reply button */}
+                  <button onClick={() => { setReplyingTo(msg); inputRef.current?.focus(); }} className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title={t('chat.reply')}>
+                    <Reply className="w-3.5 h-3.5" />
+                  </button>
                   {onToggleReaction && (
                     <Popover>
                       <PopoverTrigger asChild><button className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title={t('chat.addReaction')}><SmilePlus className="w-3.5 h-3.5" /></button></PopoverTrigger>
@@ -311,6 +383,16 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
                         </div>
                       </PopoverContent>
                     </Popover>
+                  )}
+                  {/* Pin/Unpin button - owner only */}
+                  {isOwner && onPinMessage && onUnpinMessage && (
+                    <button
+                      onClick={() => msg.isPinned ? onUnpinMessage(msg.id) : onPinMessage(msg.id)}
+                      className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
+                      title={msg.isPinned ? t('chat.unpin') : t('chat.pin')}
+                    >
+                      <Pin className={`w-3.5 h-3.5 ${msg.isPinned ? 'text-primary' : ''}`} />
+                    </button>
                   )}
                   {msg.userId === user?.id && onEditMessage && (<button onClick={() => startEdit(msg)} className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title={t('chat.editMessage')}><Pencil className="w-3.5 h-3.5" /></button>)}
                   {(msg.userId === user?.id || isOwner) && onDeleteMessage && (<button onClick={() => onDeleteMessage(msg.id)} className="p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all" title={t('chat.deleteMessage')}><Trash2 className="w-3.5 h-3.5" /></button>)}
@@ -325,6 +407,17 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
       <TypingIndicator typingUsers={typingUsers || []} t={t} />
 
       <FileUploadPreview files={pendingFiles} onRemove={handleRemoveFile} />
+
+      {/* Reply preview */}
+      {replyingTo && (
+        <div className="px-4 py-2 bg-secondary/50 border-t border-border flex items-center gap-2">
+          <CornerDownRight className="w-4 h-4 text-primary shrink-0" />
+          <span className="text-xs text-muted-foreground">{t('chat.replyingTo')}</span>
+          <span className="text-xs font-medium text-foreground truncate">{replyingTo.author}</span>
+          <span className="text-xs text-muted-foreground truncate flex-1">{replyingTo.content}</span>
+          <button onClick={() => setReplyingTo(null)} className="text-muted-foreground hover:text-foreground shrink-0"><X className="w-4 h-4" /></button>
+        </div>
+      )}
 
       <div className={`px-4 relative ${isMobileDevice ? 'pb-[calc(env(safe-area-inset-bottom,0px)+12px)]' : 'pb-6'}`}>
         {showSlashPopup && (
@@ -352,7 +445,6 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
         ) : isMobileDevice ? (
           /* ===== MOBILE INPUT BAR ===== */
           <div className="flex items-center gap-2">
-            {/* Plus menu: file + image + gif */}
             <Popover open={plusMenuOpen} onOpenChange={setPlusMenuOpen}>
               <PopoverTrigger asChild>
                 <button className="text-muted-foreground hover:text-foreground transition-colors shrink-0 p-1">
@@ -374,7 +466,6 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
             </Popover>
             <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
 
-            {/* Input with emoji inside */}
             <div className="flex-1 relative">
               <input
                 ref={inputRef}
@@ -390,7 +481,6 @@ const ChatArea = ({ channelName, messages, onSendMessage, onDeleteMessage, onEdi
               </div>
             </div>
 
-            {/* Send button - always visible on mobile */}
             <button
               onClick={handleSend}
               disabled={!input.trim() && pendingFiles.length === 0}

@@ -1,91 +1,37 @@
 
 
-## Plan: v0.1.9 — Reply + Pin + Kullanıcı Profil Kartı
+## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
 
----
+### 1. Black Screen Root Cause (CRITICAL)
 
-### 1. Veritabanı: `messages` tablosuna `reply_to` ve `is_pinned` sütunları ekle
+**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
 
-**Migration SQL:**
-```sql
-ALTER TABLE public.messages ADD COLUMN reply_to uuid REFERENCES public.messages(id) ON DELETE SET NULL;
-ALTER TABLE public.messages ADD COLUMN is_pinned boolean NOT NULL DEFAULT false;
-```
+**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
 
-- `reply_to`: yanıtlanan mesajın ID'si (null = yanıt değil)
-- `is_pinned`: sabitlenen mesajları işaretler
-- Pin/unpin için sunucu sahiplerine UPDATE izni zaten var (mevcut RLS yeterli, sadece `is_pinned` güncellenir)
+### 2. Server Deletion — Cascade via Foreign Keys
 
-### 2. Mesaj Yanıtlama (Reply)
+Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
 
-**ChatArea.tsx:**
-- Yeni state: `replyingTo: DbMessage | null`
-- Mesaj hover aksiyonlarına "Yanıtla" butonu ekle (Reply ikonu)
-- Input alanının üstüne yanıt önizlemesi göster: `"@Kullanıcı: mesaj içeriği..."` + iptal butonu
-- `onSendMessage` callback'ine `replyTo?: string` parametresi ekle
-- Mesaj gönderilirken `reply_to` sütununa yanıtlanan mesaj ID'si yazılsın
+**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
+- `channels.server_id → servers.id ON DELETE CASCADE`
+- `messages.server_id → servers.id ON DELETE CASCADE`
+- `messages.channel_id → channels.id ON DELETE CASCADE`
+- `server_members.server_id → servers.id ON DELETE CASCADE`
+- `server_invites.server_id → servers.id ON DELETE CASCADE`
 
-**Index.tsx:**
-- `handleSendMessage` fonksiyonuna `replyTo` parametresi ekle
-- Insert sırasında `reply_to` alanını gönder
-- Mesaj fetch'inde reply_to'yu da çek
+Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
 
-**ChatArea.tsx mesaj render:**
-- `msg.replyTo` varsa mesajın üstünde küçük bir referans göster: `"↩ @Kullanıcı mesaj..."` (tıklanınca orijinal mesaja scroll)
+### 3. DM Real-time — Typing Channel Broadcast Fix
 
-**DbMessage interface güncellemesi:**
-```typescript
-replyTo?: string;
-replyAuthor?: string;
-replyContent?: string;
-```
+In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
 
-### 3. Mesaj Sabitleme (Pin)
+**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
 
-**ChatArea.tsx:**
-- Mesaj hover aksiyonlarına "Sabitle/Kaldır" butonu ekle (sadece `isOwner` ise görünür)
-- Üst barda Pin ikonuna tıklanınca sabitlenmiş mesajları gösteren bir Popover/Sheet aç
-- `onPinMessage(messageId: string)` ve `onUnpinMessage(messageId: string)` callback'leri
+### File Changes
 
-**Index.tsx:**
-- `handlePinMessage`: `supabase.from('messages').update({ is_pinned: true }).eq('id', messageId)`
-- `handleUnpinMessage`: `is_pinned: false`
-- Sabitlenmiş mesajları filtrelemek için `messages.filter(m => m.isPinned)`
-
-**DbMessage interface:**
-```typescript
-isPinned?: boolean;
-```
-
-### 4. Kullanıcı Profil Kartı
-
-**Yeni bileşen: `src/components/UserProfileCard.tsx`**
-- Bir kullanıcıya tıklandığında açılan Popover/Dialog
-- İçerik: Avatar (büyük), görünen ad, kullanıcı adı, rol rozeti, katılım tarihi, durum
-- Veriler `profiles` tablosundan ve `server_members` (joined_at) + `server_member_roles`/`server_roles` tablolarından çekilir
-
-**Entegrasyon noktaları:**
-- `ChatArea.tsx`: Mesaj yazarının adına tıklayınca profil kartı aç
-- `MemberList.tsx`: Üye listesinde bir üyeye tıklayınca profil kartı aç
-
-### 5. Sürüm Notları
-
-**changelogData.ts** ve **ReleaseNotesModal.tsx**: v0.1.9 güncelle
-
-**i18n**: 6 dile yeni anahtarlar (reply, pin, unpin, profileCard vb.)
-
----
-
-### Dosya Değişiklikleri
-
-| Dosya | Değişiklik |
+| File | Change |
 |---|---|
-| **SQL Migration** | `reply_to` uuid + `is_pinned` boolean sütunları |
-| `src/pages/Index.tsx` | DbMessage güncelle, reply_to/is_pinned fetch & send, pin/unpin handlers |
-| `src/components/ChatArea.tsx` | Reply UI (önizleme + referans), Pin butonu, Pinned mesajlar paneli |
-| `src/components/UserProfileCard.tsx` | **YENİ** — Profil kartı popover bileşeni |
-| `src/components/MemberList.tsx` | Üye tıklama → profil kartı |
-| `src/data/changelogData.ts` | v0.1.9 notları |
-| `src/components/ReleaseNotesModal.tsx` | Versiyon güncelle |
-| `src/i18n/*.ts` | Yeni çeviri anahtarları (6 dil) |
+| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
+| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
+| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
 

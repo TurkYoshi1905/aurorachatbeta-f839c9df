@@ -142,6 +142,14 @@ const ja = {
     maxFiles: '最大3枚まで選択できます',
     fileTooLarge: 'ファイルサイズは5MB以下にしてください',
     uploading: 'アップロード中...',
+    reply: '返信',
+    replyingTo: '返信先',
+    pin: 'メッセージをピン留め',
+    unpin: 'ピン留めを解除',
+    pinnedMessages: 'ピン留めされたメッセージ',
+    noPinnedMessages: 'ピン留めされたメッセージはありません。',
+    messagePinned: 'メッセージをピン留めしました！',
+    messageUnpinned: 'ピン留めを解除しました。',
   },
   dm: {
     conversationStart: '@{username}との会話の始まりです。',
@@ -294,6 +302,7 @@ const ja = {
   },
   voice: { connected: '接続済み', connecting: '接続中...', disconnect: '切断' },
   common: { user: 'ユーザー', loading: '読み込み中...' },
+  profileCard: { roles: 'ロール', memberSince: '参加日' },
 };
 
 export default ja;

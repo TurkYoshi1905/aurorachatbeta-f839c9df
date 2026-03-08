@@ -16,6 +16,35 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.1.9',
+    date: '8 Mart 2026',
+    summary: 'Mesaj yanıtlama, mesaj sabitleme ve kullanıcı profil kartı.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Mesaj Yanıtlama (Reply): Herhangi bir mesajı yanıtla, referans olarak üstte göster',
+          'Yanıtlanan mesaja tıklayarak orijinal mesaja anında kaydır',
+          'Mesaj Sabitleme (Pin): Sunucu sahipleri önemli mesajları sabitleyebilir',
+          'Sabitlenmiş mesajlar paneli: Pin ikonuna tıklayarak tüm sabitlenmiş mesajları listele',
+          'Kullanıcı Profil Kartı: Mesaj yazarına veya üye listesine tıklayarak detaylı profil görüntüle',
+          'Profil kartında roller, katılım tarihi ve avatar gösterimi',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'Tüm çeviri dosyaları (6 dil) yeni özellikler için güncellendi',
+          'Mesaj hover aksiyonlarına Yanıtla ve Sabitle butonları eklendi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.8',
     date: '8 Mart 2026',
     summary: 'Çok adımlı kayıt, şifre sıfırlama, emoji arama düzeltmesi, 2FA ve gizlilik güncellemesi.',

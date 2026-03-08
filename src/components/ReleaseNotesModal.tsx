@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Zap, Shield, Lock, UserPlus } from 'lucide-react';
+import { Sparkles, Reply, Pin, UserCircle } from 'lucide-react';
 
-const CURRENT_VERSION = '0.1.8';
+const CURRENT_VERSION = '0.1.9';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {
@@ -23,10 +23,9 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <UserPlus className="w-5 h-5 text-primary" />, tag: 'KAYIT', color: 'text-primary', text: 'Çok adımlı kayıt paneli: Doğum tarihi doğrulama (+13 yaş) ve profil fotoğrafı yükleme eklendi.' },
-    { icon: <Lock className="w-5 h-5 text-status-online" />, tag: 'GÜVENLİK', color: 'text-status-online', text: 'Şifremi Unuttum özelliği ve İki Faktörlü Doğrulama (2FA/TOTP) aktif.' },
-    { icon: <Sparkles className="w-5 h-5 text-accent" />, tag: 'FIX', color: 'text-accent', text: 'Emoji arama sistemi keyword tabanlı filtreleme ile yeniden yazıldı.' },
-    { icon: <Shield className="w-5 h-5 text-status-idle" />, tag: 'GİZLİLİK', color: 'text-status-idle', text: 'Gizlilik politikası yaş sınırı, bildirim izinleri ve 2FA maddeleri ile güncellendi.' },
+    { icon: <Reply className="w-5 h-5 text-primary" />, tag: 'YANIT', color: 'text-primary', text: 'Mesaj Yanıtlama: Herhangi bir mesajı yanıtla, referans olarak göster ve orijinal mesaja tıkla.' },
+    { icon: <Pin className="w-5 h-5 text-status-online" />, tag: 'SABİTLE', color: 'text-status-online', text: 'Mesaj Sabitleme: Önemli mesajları sabitle, sabitlenmiş mesajları panelden görüntüle.' },
+    { icon: <UserCircle className="w-5 h-5 text-accent" />, tag: 'PROFİL', color: 'text-accent', text: 'Kullanıcı Profil Kartı: Kullanıcı adına tıklayarak detaylı profil bilgilerini gör.' },
   ];
 
   return (

@@ -142,6 +142,14 @@ const de = {
     maxFiles: 'Maximal 3 Fotos auswählbar',
     fileTooLarge: 'Dateigröße muss kleiner als 5MB sein',
     uploading: 'Wird hochgeladen...',
+    reply: 'Antworten',
+    replyingTo: 'Antwort an',
+    pin: 'Nachricht anheften',
+    unpin: 'Anheftung aufheben',
+    pinnedMessages: 'Angeheftete Nachrichten',
+    noPinnedMessages: 'Noch keine angehefteten Nachrichten.',
+    messagePinned: 'Nachricht angeheftet!',
+    messageUnpinned: 'Anheftung aufgehoben.',
   },
   dm: {
     conversationStart: 'Beginn deiner Unterhaltung mit @{username}.',
@@ -294,6 +302,7 @@ const de = {
   },
   voice: { connected: 'Verbunden', connecting: 'Verbinden...', disconnect: 'Trennen' },
   common: { user: 'Benutzer', loading: 'Wird geladen...' },
+  profileCard: { roles: 'Rollen', memberSince: 'Mitglied seit' },
 };
 
 export default de;

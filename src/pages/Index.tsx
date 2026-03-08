@@ -31,6 +31,10 @@ export interface DbMessage {
   edited?: boolean;
   status?: 'sending' | 'failed';
   attachments?: string[];
+  replyTo?: string;
+  replyAuthor?: string;
+  replyContent?: string;
+  isPinned?: boolean;
 }
 
 export interface DbReaction {
@@ -302,8 +306,29 @@ const Index = () => {
             timestamp: formatTimestamp(m.created_at),
             edited: !!(m as any).updated_at,
             attachments: (m as any).attachments || undefined,
+            replyTo: (m as any).reply_to || undefined,
+            isPinned: (m as any).is_pinned || false,
           }))
         );
+
+        // Fetch reply references
+        const replyIds = data.filter(m => (m as any).reply_to).map(m => (m as any).reply_to);
+        if (replyIds.length > 0) {
+          const { data: replyMsgs } = await supabase
+            .from('messages')
+            .select('id, author_name, content')
+            .in('id', replyIds);
+          if (replyMsgs) {
+            const replyMap = new Map(replyMsgs.map(r => [r.id, { author: r.author_name, content: r.content }]));
+            setMessages(prev => prev.map(msg => {
+              if (msg.replyTo && replyMap.has(msg.replyTo)) {
+                const ref = replyMap.get(msg.replyTo)!;
+                return { ...msg, replyAuthor: ref.author, replyContent: ref.content };
+              }
+              return msg;
+            }));
+          }
+        }
       }
     };
     fetchMessages();
@@ -383,7 +408,7 @@ const Index = () => {
             setMessages((prev) =>
               prev.map((msg) =>
                 msg.id === m.id
-                  ? { ...msg, content: m.content, edited: !!m.updated_at }
+                  ? { ...msg, content: m.content, edited: !!m.updated_at, isPinned: !!(m as any).is_pinned }
                   : msg
               )
             );
@@ -777,7 +802,7 @@ const Index = () => {
   }, [isMobile, servers, activeServer, voice]);
 
   const handleSendMessage = useCallback(
-    async (content: string, files?: File[]) => {
+    async (content: string, files?: File[], replyTo?: string) => {
       if (!user || !profile) return;
 
       // Bot command interception
@@ -841,6 +866,7 @@ const Index = () => {
         author_name: profile.display_name,
         content: content || '',
       };
+      if (replyTo) insertData.reply_to = replyTo;
       if (attachmentUrls && attachmentUrls.length > 0) insertData.attachments = attachmentUrls;
 
       const { data, error } = await supabase.from('messages').insert(insertData).select().single();
@@ -903,6 +929,22 @@ const Index = () => {
     },
     [user, activeServer, fetchServers]
   );
+
+  const handlePinMessage = useCallback(async (messageId: string) => {
+    const { error } = await supabase.from('messages').update({ is_pinned: true } as any).eq('id', messageId);
+    if (!error) {
+      setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isPinned: true } : m));
+      toast.success(t('chat.messagePinned'));
+    }
+  }, [t]);
+
+  const handleUnpinMessage = useCallback(async (messageId: string) => {
+    const { error } = await supabase.from('messages').update({ is_pinned: false } as any).eq('id', messageId);
+    if (!error) {
+      setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isPinned: false } : m));
+      toast.success(t('chat.messageUnpinned'));
+    }
+  }, [t]);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -1024,10 +1066,13 @@ const Index = () => {
               onTypingStop={handleTypingStop}
               members={members}
               isLocked={channel.is_locked}
+              onPinMessage={handlePinMessage}
+              onUnpinMessage={handleUnpinMessage}
+              serverId={activeServer}
             />
           )}
           {mobileView === 'members' && (
-            <MemberList members={members} isMobile onBack={() => setMobileView('chat')} />
+            <MemberList members={members} isMobile onBack={() => setMobileView('chat')} serverId={activeServer} />
           )}
         </div>
         <MobileBottomNav
@@ -1086,8 +1131,11 @@ const Index = () => {
         onTypingStop={handleTypingStop}
         members={members}
         isLocked={channel.is_locked}
+        onPinMessage={handlePinMessage}
+        onUnpinMessage={handleUnpinMessage}
+        serverId={activeServer}
       />
-      {showMembers && <MemberList members={members} />}
+      {showMembers && <MemberList members={members} serverId={activeServer} />}
     </div>
   );
 };
