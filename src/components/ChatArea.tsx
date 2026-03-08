@@ -18,6 +18,7 @@ import SlashCommandPopup from './SlashCommandPopup';
 import EmojiAutocompletePopup from './EmojiAutocompletePopup';
 import UserProfileCard from './UserProfileCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👀', '💯', '✅', '❌', '🤔', '👏', '💪', '🙏', '😎', '🥳', '💀', '😭', '🫡', '👎', '💜', '🧡'];
 
