@@ -291,6 +291,13 @@ const tr = {
     home: 'Ana Sayfa',
   },
 
+  // Voice
+  voice: {
+    connected: 'Bağlanıldı',
+    connecting: 'Bağlanılıyor...',
+    disconnect: 'Bağlantıyı Kes',
+  },
+
   // Common
   common: {
     user: 'Kullanıcı',
