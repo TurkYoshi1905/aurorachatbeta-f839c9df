@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Search, Bell, Crown, Smartphone } from 'lucide-react';
+import { Sparkles, Smartphone } from 'lucide-react';
 
 const CURRENT_VERSION = '0.2.7';
 const STORAGE_KEY = 'aurorachat_seen_version';
