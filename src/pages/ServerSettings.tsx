@@ -685,13 +685,6 @@ const ServerSettings = () => {
                       className="bg-input border-border w-28 font-mono text-sm h-8"
                       maxLength={7}
                     />
-                    <Input
-                      value={hexInput}
-                      onChange={e => handleHexInputChange(e.target.value)}
-                      placeholder="#3498DB"
-                      className="bg-input border-border w-28 font-mono text-sm h-8"
-                      maxLength={7}
-                    />
                     <input
                       type="color"
                       value={newRoleColor}
@@ -725,9 +718,6 @@ const ServerSettings = () => {
                       className="w-8 h-8 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
                     />
                     <span className="text-xs text-muted-foreground">{editingRole.color}</span>
-                  </div>
-                </div>
-              )}
                   </div>
                 </div>
               )}
