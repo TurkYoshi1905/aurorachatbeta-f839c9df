@@ -833,30 +833,95 @@ const ServerSettings = () => {
             </div>
           )}
 
+          {/* Bans Tab */}
+          {activeTab === 'bans' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Yasaklar</h2>
+                <span className="text-sm text-muted-foreground">{bans.length} yasaklı</span>
+              </div>
+              <div className="space-y-2">
+                {bans.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Yasaklı kullanıcı yok</p>
+                ) : (
+                  bans.map(ban => (
+                    <div key={ban.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-card">
+                      {ban.user_avatar ? (
+                        <img src={ban.user_avatar} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-medium shrink-0">{ban.user_name?.charAt(0)?.toUpperCase()}</div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{ban.user_name}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {ban.reason ? `Sebep: ${ban.reason}` : 'Sebep belirtilmemiş'} • Yasaklayan: {ban.banned_by_name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">{formatDate(ban.created_at)}</p>
+                      </div>
+                      {isOwner && (
+                        <Button variant="outline" size="sm" onClick={() => handleUnban(ban.id, ban.user_id)}>
+                          Yasağı Kaldır
+                        </Button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Audit Logs */}
           {activeTab === 'audit' && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">{t('serverSettings.auditTab') || 'Denetim Kaydı'}</h2>
-              <div className="space-y-2">
-                {auditLogs.length === 0 ? (
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">{t('serverSettings.auditTab') || 'Denetim Kaydı'}</h2>
+                <span className="text-sm text-muted-foreground">{filteredAuditLogs.length} kayıt</span>
+              </div>
+
+              {/* Filter */}
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <select
+                  value={auditFilter}
+                  onChange={e => setAuditFilter(e.target.value)}
+                  className="text-xs bg-secondary border border-border rounded px-2 py-1.5 text-foreground"
+                >
+                  <option value="all">Tümü</option>
+                  {Object.entries(actionLabels).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-4">
+                {filteredAuditLogs.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Henüz kayıt yok</p>
                 ) : (
-                  auditLogs.map(log => (
-                    <div key={log.id} className="flex items-start gap-3 px-3 py-2.5 rounded-lg border border-border bg-card">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground">
-                          <span className="font-medium">{log.user_name}</span>
-                          {' '}<span className="text-muted-foreground">{actionLabels[log.action] || log.action}</span>
-                        </p>
-                        {log.details && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {log.details.name && `Ad: ${log.details.name}`}
-                            {log.details.color && ` • Renk: ${log.details.color}`}
-                          </p>
-                        )}
-                      </div>
-                      <span className="text-[11px] text-muted-foreground shrink-0">{formatDate(log.created_at)}</span>
+                  groupLogsByDate(filteredAuditLogs).map(group => (
+                    <div key={group.label} className="space-y-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">{group.label}</p>
+                      {group.logs.map(log => (
+                        <div key={log.id} className="flex items-start gap-3 px-3 py-2.5 rounded-lg border border-border bg-card">
+                          {log.user_avatar ? (
+                            <img src={log.user_avatar} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 mt-0.5" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-medium shrink-0 mt-0.5">{log.user_name?.charAt(0)?.toUpperCase()}</div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground">
+                              <span className="font-medium">{log.user_name}</span>
+                              {' '}<span className="text-muted-foreground">{actionLabels[log.action] || log.action}</span>
+                            </p>
+                            {log.details && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {log.details.name && `Ad: ${log.details.name}`}
+                                {log.details.color && ` • Renk: ${log.details.color}`}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-muted-foreground shrink-0">{formatDate(log.created_at)}</span>
+                        </div>
+                      ))}
                     </div>
                   ))
                 )}
