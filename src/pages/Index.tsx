@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { executeBotCommand } from '@/utils/botCommands';
 import MessageSearchPanel from '@/components/MessageSearchPanel';
 import NotificationPanel from '@/components/NotificationPanel';
+import NotificationPermissionBanner from '@/components/NotificationPermissionBanner';
 
 export interface DbMessage {
   id: string;
@@ -184,12 +185,7 @@ const Index = () => {
     userRef.current = user?.id;
   }, [activeChannel, activeServer, user?.id]);
 
-  // Request notification permission on load
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
+  // Notification permission is now handled by NotificationPermissionBanner
 
   // Background idle detection
   const previousStatusRef = useRef<DbMember['status'] | null>(null);
@@ -1129,6 +1125,7 @@ const Index = () => {
   if (isMobile) {
     return (
       <div className="h-screen flex flex-col overflow-hidden pb-14" style={{ height: '100dvh' }}>
+        <NotificationPermissionBanner />
         <div className="flex-1 min-h-0 overflow-hidden">
           {mobileView === 'channels' && (
             <ChannelList
@@ -1220,6 +1217,7 @@ const Index = () => {
   return (
     <div className="h-screen flex overflow-hidden">
       <ReleaseNotesModal />
+      <NotificationPermissionBanner />
       <ServerSidebar activeServer={activeServer} onServerChange={handleServerChange} servers={servers} onServerCreated={handleServerCreated} />
       <ChannelList
         serverName={server.name}

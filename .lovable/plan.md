@@ -1,29 +1,37 @@
 
 
-## Plan: Bildirim İzni İsteme — Kullanıcıya Açıklayıcı UI ile İzin Talebi
+## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
 
-### Problem
-Mevcut kod (`Index.tsx` satır 188-192) sayfa yüklendiğinde sessizce `Notification.requestPermission()` çağırıyor. Tarayıcılar bunu genellikle engelliyor çünkü kullanıcı etkileşimi olmadan çağrılıyor. Ayrıca kullanıcıya neden izin istediğini açıklamıyor.
+### 1. Black Screen Root Cause (CRITICAL)
 
-### Çözüm
-Bir in-app banner/dialog göster: "Etiketlendiğinde veya mesaj aldığında bildirim almak ister misin?" — kullanıcı "Evet" derse `Notification.requestPermission()` çağır, "Hayır" derse `localStorage`'a kaydet ve bir daha gösterme.
+**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
 
-### Değişiklikler
+**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
 
-**1. Yeni Bileşen: `src/components/NotificationPermissionBanner.tsx`**
-- `Notification.permission === 'default'` ve `localStorage.getItem('notification_permission_dismissed') !== 'true'` ise göster
-- Sayfanın altında veya üstünde küçük bir banner: Bell ikonu + "Bildirimleri aç" açıklaması + "İzin Ver" / "Hayır" butonları
-- "İzin Ver" → `Notification.requestPermission()` çağır, sonuca göre toast göster
-- "Hayır" → `localStorage.setItem('notification_permission_dismissed', 'true')`, banner'ı kapat
-- İzin zaten `granted` veya `denied` ise hiç gösterme
+### 2. Server Deletion — Cascade via Foreign Keys
 
-**2. `src/pages/Index.tsx`**
-- Mevcut sessiz `requestPermission` useEffect'ini kaldır (satır 187-192)
-- `NotificationPermissionBanner` bileşenini render et
-- Mention bildirim kodundaki (satır 415-420) `permission === 'default'` kontrolünü koru (fallback)
+Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
 
-| Dosya | Değişiklik |
+**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
+- `channels.server_id → servers.id ON DELETE CASCADE`
+- `messages.server_id → servers.id ON DELETE CASCADE`
+- `messages.channel_id → channels.id ON DELETE CASCADE`
+- `server_members.server_id → servers.id ON DELETE CASCADE`
+- `server_invites.server_id → servers.id ON DELETE CASCADE`
+
+Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
+
+### 3. DM Real-time — Typing Channel Broadcast Fix
+
+In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
+
+**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
+
+### File Changes
+
+| File | Change |
 |---|---|
-| `src/components/NotificationPermissionBanner.tsx` | **Yeni** — Açıklayıcı bildirim izni banner'ı |
-| `src/pages/Index.tsx` | Sessiz requestPermission kaldır, banner bileşenini ekle |
+| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
+| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
+| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
 
