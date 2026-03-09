@@ -78,6 +78,9 @@ const ServerSettings = () => {
   const [categories, setCategories] = useState<{ id: string; name: string; position: number }[]>([]);
   const [channelsList, setChannelsList] = useState<{ id: string; name: string; type: string; position: number; category_id: string | null }[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [bans, setBans] = useState<BanEntry[]>([]);
+  const [auditFilter, setAuditFilter] = useState<string>('all');
+  const [serverStats, setServerStats] = useState<{ members: number; channels: number; roles: number; created_at: string } | null>(null);
 
   const tabs = [
     { id: 'general', label: t('serverSettings.general'), icon: Settings },
@@ -85,6 +88,7 @@ const ServerSettings = () => {
     { id: 'emojis', label: 'Emojiler', icon: SmilePlus },
     { id: 'roles', label: t('serverSettings.rolesTab') || 'Roller', icon: Shield },
     { id: 'members', label: t('serverSettings.membersTab'), icon: Users },
+    { id: 'bans', label: 'Yasaklar', icon: Ban },
     { id: 'audit', label: t('serverSettings.auditTab') || 'Denetim Kaydı', icon: ScrollText },
     { id: 'danger', label: t('serverSettings.dangerZone'), icon: Trash2 },
   ];
