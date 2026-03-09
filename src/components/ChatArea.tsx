@@ -416,7 +416,7 @@ const ChatArea = ({ channelName, channelId, messages, onSendMessage, onDeleteMes
                   </button>
                 )}
                 <div className="flex items-baseline gap-2">
-                  <UserProfileCard userId={msg.userId} serverId={serverId}>
+                  <UserProfileCard userId={msg.userId} serverId={serverId} status={members.find(m => m.id === msg.userId)?.status}>
                     <button className={`font-medium text-sm hover:underline ${msg.isBot ? 'text-primary' : 'text-foreground'}`}>{msg.author}</button>
                   </UserProfileCard>
                   {msg.isBot && (<span className="text-[9px] bg-primary text-primary-foreground px-1 py-0.5 rounded font-bold uppercase">Bot</span>)}
