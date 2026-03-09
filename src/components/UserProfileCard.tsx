@@ -24,6 +24,7 @@ interface ProfileData {
   created_at: string;
   bio: string;
   banner_color: string;
+  has_premium_badge: boolean;
 }
 
 interface RoleData {
