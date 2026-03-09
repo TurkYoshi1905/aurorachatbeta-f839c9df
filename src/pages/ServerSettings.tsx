@@ -14,8 +14,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 interface Member { id: string; user_id: string; display_name: string; avatar_url: string | null; roles: { id: string; name: string; color: string }[]; }
 interface Role { id: string; name: string; color: string; position: number; permissions: Record<string, boolean>; }
-interface AuditLog { id: string; action: string; user_id: string; target_type: string | null; details: any; created_at: string; user_name?: string; }
+interface AuditLog { id: string; action: string; user_id: string; target_type: string | null; details: any; created_at: string; user_name?: string; user_avatar?: string | null; }
 interface ServerEmoji { id: string; name: string; image_url: string; uploaded_by: string; created_at: string; }
+interface BanEntry { id: string; user_id: string; banned_by: string; reason: string | null; created_at: string; user_name?: string; user_avatar?: string | null; banned_by_name?: string; }
 
 const PRESET_COLORS = ['#E74C3C', '#E91E63', '#9B59B6', '#8E44AD', '#3498DB', '#2196F3', '#1ABC9C', '#2ECC71', '#F1C40F', '#FF9800', '#E67E22', '#95A5A6', '#607D8B', '#99AAB5'];
 const MAX_EMOJIS = 50;
