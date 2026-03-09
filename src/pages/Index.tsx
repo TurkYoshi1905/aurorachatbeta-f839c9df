@@ -184,12 +184,7 @@ const Index = () => {
     userRef.current = user?.id;
   }, [activeChannel, activeServer, user?.id]);
 
-  // Request notification permission on load
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
+  // Notification permission is now handled by NotificationPermissionBanner
 
   // Background idle detection
   const previousStatusRef = useRef<DbMember['status'] | null>(null);
