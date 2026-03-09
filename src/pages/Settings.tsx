@@ -197,8 +197,8 @@ const Settings = () => {
   const { profile, signOut, user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState(() => isMobile ? '__menu__' : 'account');
   const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState(() => window.innerWidth < 768 ? '__menu__' : 'account');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
