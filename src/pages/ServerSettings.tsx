@@ -48,7 +48,7 @@ const ServerSettings = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState(() => isMobile ? '__menu__' : 'general');
   const [serverName, setServerName] = useState('');
   const [serverIcon, setServerIcon] = useState('');
   const [ownerId, setOwnerId] = useState<string | null>(null);
