@@ -1,37 +1,90 @@
 
 
-## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
+## Plan: Profil Kartı Durum Düzeltmesi, Denetim Kaydı İyileştirmesi, Renk Seçici, Yeni Sunucu Özellikleri & Şifre Değiştirme
 
-### 1. Black Screen Root Cause (CRITICAL)
+### 1. Profil Kartı Gerçek Zamanlı Durum Düzeltmesi
 
-**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
+**Problem:** `UserProfileCard.tsx` kendi ayrı bir presence kanalına (`profile-presence-${userId}`) abone oluyor ama kimse bu kanala track yapmıyor. Asıl presence verisi `presence-room` kanalında (Index.tsx'te).
 
-**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
+**Çözüm:** `UserProfileCard.tsx`'teki presence effect'ini `presence-room` kanalına abone olacak şekilde değiştir:
+```typescript
+const channel = supabase.channel('presence-room');
+channel.on('presence', { event: 'sync' }, () => {
+  const state = channel.presenceState();
+  for (const [uid, presences] of Object.entries(state)) {
+    if (uid === userId) {
+      const latest = (presences as any[])[presences.length - 1];
+      setUserStatus(latest?.status || 'online');
+      return;
+    }
+  }
+  setUserStatus('offline');
+});
+```
+Kanal zaten `presence-room` olarak mevcut olduğundan, Supabase SDK bunu mevcut abonelikle birleştirecek.
 
-### 2. Server Deletion — Cascade via Foreign Keys
+**Dosya:** `src/components/UserProfileCard.tsx`
 
-Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
+---
 
-**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
-- `channels.server_id → servers.id ON DELETE CASCADE`
-- `messages.server_id → servers.id ON DELETE CASCADE`
-- `messages.channel_id → channels.id ON DELETE CASCADE`
-- `server_members.server_id → servers.id ON DELETE CASCADE`
-- `server_invites.server_id → servers.id ON DELETE CASCADE`
+### 2. Denetim Kaydı İyileştirmesi
 
-Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
+**Mevcut:** Sadece basit bir liste, sınırlı aksiyon türleri.
 
-### 3. DM Real-time — Typing Channel Broadcast Fix
+**İyileştirmeler:**
+- Aksiyon türlerine göre filtreleme dropdown'u ekle
+- Daha fazla aksiyon türü etiketi ekle: `server_updated`, `channel_created`, `channel_deleted`, `emoji_added`, `emoji_deleted`, `member_banned`, `member_unbanned`
+- Her log için avatar göster (profil'den)
+- Tarih gruplaması (Bugün, Dün, Daha Eski)
+- Toplam log sayısı göstergesi
 
-In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
+**Dosya:** `src/pages/ServerSettings.tsx` (audit tab bölümü)
 
-**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
+---
 
-### File Changes
+### 3. Roller — Renk Seçici (Color Picker)
 
-| File | Change |
+**Mevcut:** Sadece preset renkler + hex input. Gerçek bir renk seçici yok.
+
+**Çözüm:** Native HTML `<input type="color">` kullanarak tam renk seçici ekle. Preset renklerin yanına bir renk seçici butonu ekle:
+```html
+<input type="color" value={newRoleColor} onChange={...} />
+```
+- Mevcut rollerin rengini de düzenlenebilir yap (editingRole modunda)
+- Rol oluştururken ve düzenlerken native color picker kullanılabilir olsun
+
+**Dosya:** `src/pages/ServerSettings.tsx`
+
+---
+
+### 4. Sunucu Ayarlarına Yeni Discord Benzeri Özellikler
+
+**2-3 yeni özellik:**
+
+1. **Sunucu Yasakları (Bans) Sekmesi** — `server_bans` tablosu zaten mevcut. Yasaklı kullanıcıları listele, yasak kaldırma butonu ekle.
+2. **Sunucu Genel Bakış** — Sunucu istatistikleri: toplam üye sayısı, kanal sayısı, rol sayısı, oluşturulma tarihi. Genel sekmesine ek bilgi olarak ekle.
+
+**Dosya:** `src/pages/ServerSettings.tsx` (yeni `bans` sekmesi + genel sekmesine istatistik)
+
+---
+
+### 5. Kullanıcı Ayarları — Şifre Değiştirme
+
+**Çözüm:** Ayarlar sayfasının "Hesap" sekmesine şifre değiştirme bölümü ekle:
+- Yeni şifre + tekrar girişi
+- `supabase.auth.updateUser({ password: newPassword })` kullanarak şifre güncelle
+- Minimum 6 karakter doğrulama
+- Başarılı olunca toast göster
+
+**Dosya:** `src/pages/Settings.tsx`
+
+---
+
+### Dosya Değişiklikleri Özeti
+
+| Dosya | Değişiklik |
 |---|---|
-| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
-| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
-| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
+| `src/components/UserProfileCard.tsx` | Presence kanalını `presence-room`'a bağla |
+| `src/pages/ServerSettings.tsx` | Denetim kaydı iyileştirmesi, renk seçici, yasaklar sekmesi, sunucu istatistikleri |
+| `src/pages/Settings.tsx` | Şifre değiştirme bölümü ekle |
 
