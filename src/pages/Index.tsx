@@ -19,6 +19,8 @@ import ReleaseNotesModal from '@/components/ReleaseNotesModal';
 import { useVoiceChannel } from '@/hooks/useVoiceChannel';
 import { toast } from 'sonner';
 import { executeBotCommand } from '@/utils/botCommands';
+import MessageSearchPanel from '@/components/MessageSearchPanel';
+import NotificationPanel from '@/components/NotificationPanel';
 
 export interface DbMessage {
   id: string;
@@ -166,6 +168,8 @@ const Index = () => {
   const [threadCounts, setThreadCounts] = useState<Record<string, number>>({});
   const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>({});
   const [serverEmojis, setServerEmojis] = useState<{ id: string; name: string; image_url: string }[]>([]);
+  const [showSearchPanel, setShowSearchPanel] = useState(false);
+  const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [activeDMUser, setActiveDMUser] = useState<{ userId: string; displayName: string; username: string; avatarUrl: string | null } | null>(null);
@@ -396,11 +400,24 @@ const Index = () => {
             // Check for @mention notification
             if (m.content && userRef.current && profile?.username) {
               const mentionPattern = `@${profile.username}`;
-              if (m.content.includes(mentionPattern) && document.hidden) {
-                if (Notification.permission === 'granted') {
-                  new Notification(`${m.author_name} seni etiketledi`, { body: m.content, icon: '/favicon.ico' });
-                } else if (Notification.permission === 'default') {
-                  Notification.requestPermission();
+              if (m.content.includes(mentionPattern)) {
+                // Insert notification record
+                supabase.from('notifications').insert({
+                  user_id: userRef.current,
+                  type: 'mention',
+                  title: `${m.author_name} seni etiketledi`,
+                  body: m.content,
+                  server_id: m.server_id,
+                  channel_id: m.channel_id,
+                  message_id: m.id,
+                } as any).then(() => {});
+
+                if (document.hidden) {
+                  if (Notification.permission === 'granted') {
+                    new Notification(`${m.author_name} seni etiketledi`, { body: m.content, icon: '/favicon.ico' });
+                  } else if (Notification.permission === 'default') {
+                    Notification.requestPermission();
+                  }
                 }
               }
             }
@@ -1136,6 +1153,7 @@ const Index = () => {
           {mobileView === 'chat' && (
             <ChatArea
               channelName={channel.name}
+              channelId={activeChannel}
               messages={messages}
               onSendMessage={handleSendMessage}
               onDeleteMessage={handleDeleteMessage}
@@ -1222,12 +1240,13 @@ const Index = () => {
       />
       <ChatArea
         channelName={channel.name}
+        channelId={activeChannel}
         messages={messages}
         onSendMessage={handleSendMessage}
         onDeleteMessage={handleDeleteMessage}
         onEditMessage={handleEditMessage}
         onRetryMessage={handleRetryMessage}
-        onToggleMembers={() => setShowMembers((p) => !p)}
+        onToggleMembers={() => { setShowMembers((p) => !p); setShowSearchPanel(false); setShowNotificationPanel(false); }}
         showMembers={showMembers}
         isOwner={isOwner}
         reactions={reactions}
@@ -1244,6 +1263,8 @@ const Index = () => {
         onOpenThread={handleOpenThread}
         userPermissions={userPermissions}
         serverEmojis={serverEmojis}
+        onToggleSearch={() => { setShowSearchPanel(p => !p); setShowNotificationPanel(false); setShowMembers(false); }}
+        onToggleNotifications={() => { setShowNotificationPanel(p => !p); setShowSearchPanel(false); setShowMembers(false); }}
       />
       {activeThread ? (
         <ThreadPanel
@@ -1254,6 +1275,41 @@ const Index = () => {
           messageAuthor={activeThread.author}
           messageContent={activeThread.content}
           onClose={() => setActiveThread(null)}
+        />
+      ) : showSearchPanel ? (
+        <MessageSearchPanel
+          serverId={activeServer}
+          channelId={activeChannel}
+          channelName={channel.name}
+          members={members.map(m => ({ id: m.id, name: m.name }))}
+          onClose={() => setShowSearchPanel(false)}
+          onJumpToMessage={(msgId) => {
+            const el = document.getElementById(`msg-${msgId}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.classList.add('bg-primary/10');
+              setTimeout(() => el.classList.remove('bg-primary/10'), 2000);
+            }
+          }}
+        />
+      ) : showNotificationPanel ? (
+        <NotificationPanel
+          onClose={() => setShowNotificationPanel(false)}
+          onNavigate={(sId, cId, mId) => {
+            if (sId !== activeServer) setActiveServer(sId);
+            setActiveChannel(cId);
+            setShowNotificationPanel(false);
+            if (mId) {
+              setTimeout(() => {
+                const el = document.getElementById(`msg-${mId}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  el.classList.add('bg-primary/10');
+                  setTimeout(() => el.classList.remove('bg-primary/10'), 2000);
+                }
+              }, 500);
+            }
+          }}
         />
       ) : (
         showMembers && <MemberList members={members} serverId={activeServer} />
