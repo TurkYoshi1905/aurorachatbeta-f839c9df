@@ -393,15 +393,20 @@ const Index = () => {
               });
               return;
             }
-            // Check for @mention or @everyone notification
+            // Check for @mention, @everyone, or @here notification
             if (m.content && userRef.current) {
               const isEveryone = m.content.includes('@everyone');
+              const isHere = m.content.includes('@here');
               const isMentioned = profile?.username && m.content.includes(`@${profile.username}`);
 
-              if (isEveryone || isMentioned) {
-                // Check suppress_everyone setting
+              if (isEveryone || isHere || isMentioned) {
+                // For @here, check if current user is online (not offline)
+                // We consider the current user as "online" since they have the app open
+                const isOnlineForHere = true; // user has the app open = online
+
+                // Check suppress_everyone setting (applies to both @everyone and @here)
                 let suppress = false;
-                if (isEveryone && !isMentioned) {
+                if ((isEveryone || isHere) && !isMentioned) {
                   const { data: notifSettings } = await supabase
                     .from('notification_settings')
                     .select('suppress_everyone')
@@ -412,9 +417,16 @@ const Index = () => {
                   if (notifSettings?.suppress_everyone) suppress = true;
                 }
 
+                // For @here, only notify if user is online (always true if app is open)
+                if (isHere && !isEveryone && !isMentioned && !isOnlineForHere) {
+                  suppress = true;
+                }
+
                 if (!suppress) {
                   const title = isEveryone && !isMentioned
                     ? `${m.author_name} herkesi etiketledi`
+                    : isHere && !isMentioned
+                    ? `${m.author_name} çevrimiçi herkesi etiketledi`
                     : `${m.author_name} seni etiketledi`;
 
                   supabase.from('notifications').insert({

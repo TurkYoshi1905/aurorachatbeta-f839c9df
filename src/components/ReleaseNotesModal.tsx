@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Sparkles, Smartphone } from 'lucide-react';
 
-const CURRENT_VERSION = '0.2.9';
+const CURRENT_VERSION = '0.3.0';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {
@@ -23,7 +23,8 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'YENİ', color: 'text-primary', text: '@everyone etiketi artık Discord gibi çalışıyor! Tüm sunucu üyelerine bildirim gönderir.' },
+    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'YENİ', color: 'text-primary', text: '@here etiketi eklendi! Sadece çevrimiçi kullanıcılara bildirim gönderir.' },
+    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'YENİ', color: 'text-primary', text: 'Açık tema artık tam işlevsel! Ayarlardan Koyu/Açık/Sistem arasında geçiş yapabilirsiniz.' },
   ];
 
   return (
