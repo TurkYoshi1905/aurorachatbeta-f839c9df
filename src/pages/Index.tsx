@@ -1198,6 +1198,44 @@ const Index = () => {
             </SheetContent>
           </Sheet>
         )}
+        <Sheet open={showSearchPanel} onOpenChange={setShowSearchPanel}>
+          <SheetContent side="bottom" className="p-0 h-[85dvh] rounded-t-xl">
+            <MessageSearchPanel
+              serverId={activeServer}
+              channelId={activeChannel}
+              channelName={channel.name}
+              members={members.map(m => ({ id: m.id, name: m.name }))}
+              onClose={() => setShowSearchPanel(false)}
+              onJumpToMessage={(msgId) => {
+                setShowSearchPanel(false);
+                setTimeout(() => {
+                  const el = document.getElementById(`msg-${msgId}`);
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  el?.classList.add('bg-primary/10');
+                  setTimeout(() => el?.classList.remove('bg-primary/10'), 2000);
+                }, 100);
+              }}
+            />
+          </SheetContent>
+        </Sheet>
+        <Sheet open={showNotificationPanel} onOpenChange={setShowNotificationPanel}>
+          <SheetContent side="bottom" className="p-0 h-[85dvh] rounded-t-xl">
+            <NotificationPanel
+              onClose={() => setShowNotificationPanel(false)}
+              onNavigate={(sId, cId, mId) => {
+                if (sId !== activeServer) setActiveServer(sId);
+                setActiveChannel(cId);
+                setShowNotificationPanel(false);
+                if (mId) {
+                  setTimeout(() => {
+                    const el = document.getElementById(`msg-${mId}`);
+                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }, 300);
+                }
+              }}
+            />
+          </SheetContent>
+        </Sheet>
         <MobileBottomNav
           activeView={mobileView}
           onHome={() => handleServerChange('home')}
