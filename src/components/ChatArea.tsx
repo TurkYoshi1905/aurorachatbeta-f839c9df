@@ -29,6 +29,7 @@ interface ServerEmoji { id: string; name: string; image_url: string; }
 
 interface ChatAreaProps {
   channelName: string;
+  channelId?: string;
   messages: DbMessage[];
   onSendMessage: (content: string, files?: File[], replyTo?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
@@ -53,6 +54,8 @@ interface ChatAreaProps {
   onOpenThread?: (messageId: string, author: string, content: string, threadId: string | null) => void;
   userPermissions?: Record<string, boolean>;
   serverEmojis?: ServerEmoji[];
+  onToggleSearch?: () => void;
+  onToggleNotifications?: () => void;
 }
 
 const isGiphyUrl = (url: string) => /giphy\.com\/media\/|\.giphy\.com\//i.test(url);
