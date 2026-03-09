@@ -16,6 +16,35 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.3.1',
+    date: '9 Mart 2026',
+    summary: 'Özel emoji render düzeltmesi ve DM arayüzü iyileştirmesi.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Sunucu özel emojileri artık mention ve tüm iç içe elementlerde doğru render ediliyor',
+          'DM mesaj baloncukları: Kendi mesajların sağa hizalı ve primary renkli',
+          'DM header\'da online durumu göstergesi ve @username bilgisi',
+          'DM\'de sesli/görüntülü arama butonları (yakında aktif)',
+          'Ardışık mesajlar gruplandı, avatar tekrarı kaldırıldı',
+        ],
+      },
+      {
+        title: 'Geliştirmeler',
+        icon: Wrench,
+        color: 'text-accent-foreground',
+        items: [
+          'DM mobil arayüzü: Safe area padding, 16px input font, optimize buton boyutları',
+          'DM gönder butonu yuvarlak primary stili ile yenilendi',
+          'Mesaj düzenleme/silme butonları mobilde her zaman görünür',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.3.0',
     date: '9 Mart 2026',
     summary: '@here etiketi ve açık tema desteği eklendi.',

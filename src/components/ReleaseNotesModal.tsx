@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Sparkles, Smartphone } from 'lucide-react';
 
-const CURRENT_VERSION = '0.3.0';
+const CURRENT_VERSION = '0.3.1';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {
@@ -23,8 +23,8 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'YENİ', color: 'text-primary', text: '@here etiketi eklendi! Sadece çevrimiçi kullanıcılara bildirim gönderir.' },
-    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'YENİ', color: 'text-primary', text: 'Açık tema artık tam işlevsel! Ayarlardan Koyu/Açık/Sistem arasında geçiş yapabilirsiniz.' },
+    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'YENİ', color: 'text-primary', text: 'Sunucu özel emojileri artık mention içinde de çalışıyor! :emoji: her yerde render edilir.' },
+    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'YENİ', color: 'text-primary', text: 'DM arayüzü tamamen yenilendi! Mesaj baloncukları, online göstergesi ve mobil optimizasyon.' },
   ];
 
   return (

@@ -1,40 +1,37 @@
 
 
-## Plan: Özel Emoji Render + DM Arayüz İyileştirme + v0.3.1
+## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
 
-Seçtiğiniz özellikler çok kapsamlı — hepsini tek sürümde yapmak yerine, v0.3.1'de **emoji render düzeltmesi + DM arayüz iyileştirmesi** yapacağım. Diğer özellikler (hoş geldin mesajı, slow mode, oto-mod, özel durum mesajı, ses ayarları, bildirim sesleri, DM arama/tepki/sabitleme/profil paneli) sonraki sürümlerde sırasıyla eklenecek.
+### 1. Black Screen Root Cause (CRITICAL)
 
----
+**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
 
-### 1. Sunucu Emoji Render Düzeltmesi
+**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
 
-**Sorun:** `renderMessageContent` içindeki `processCustomEmojis` fonksiyonu sadece doğrudan string olan elementlere uygulanıyor. Mention span'ları (`@user`, `@everyone`) içindeki `:emoji:` metinleri dönüştürülmüyor.
+### 2. Server Deletion — Cascade via Foreign Keys
 
-**Çözüm** (`src/components/ChatArea.tsx`):
-- `processCustomEmojis`'i recursive hale getir — React element children'larını da dolaşsın
-- `elements.map` içindeki render'da tüm elementleri `processCustomEmojis`'ten geçir
-- Mention span'ları içindeki text node'larına da emoji dönüşümü uygula
+Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
 
-### 2. DM Arayüz İyileştirmesi
+**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
+- `channels.server_id → servers.id ON DELETE CASCADE`
+- `messages.server_id → servers.id ON DELETE CASCADE`
+- `messages.channel_id → channels.id ON DELETE CASCADE`
+- `server_members.server_id → servers.id ON DELETE CASCADE`
+- `server_invites.server_id → servers.id ON DELETE CASCADE`
 
-**`src/components/DMChatArea.tsx`** — Masaüstü + Mobil:
+Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
 
-- **Header**: Kullanıcı durumu (online/offline) göstergesi, kullanıcı adı altına username ekleme
-- **Mesaj baloncukları**: Kendi mesajların sağa hizalı, farklı renk (Discord DM stili)
-- **Input alanı**: Daha fazla boşluk, butonlar arası düzgün hizalama
-- **Mobil**: Header'da safe-area padding, input alanında mobil-optimize boyutlar
-- **Başlangıç alanı**: Daha kompakt avatar + açıklama, görsel iyileştirme
-- **Mesaj aksiyonları (düzenle/sil)**: Mobilde long-press veya her zaman görünür ikonlar
+### 3. DM Real-time — Typing Channel Broadcast Fix
 
-### 3. Sürüm Güncellemesi
+In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
 
-- `ReleaseNotesModal.tsx`: `CURRENT_VERSION = '0.3.1'`
-- `changelogData.ts`: v0.3.1 girişi
+**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
 
-| Dosya | Değişiklik |
+### File Changes
+
+| File | Change |
 |---|---|
-| `src/components/ChatArea.tsx` | `processCustomEmojis` recursive + tüm text node'lara uygula |
-| `src/components/DMChatArea.tsx` | DM arayüzü iyileştirme (header, mesaj stili, mobil uyum) |
-| `src/components/ReleaseNotesModal.tsx` | v0.3.1 |
-| `src/data/changelogData.ts` | v0.3.1 sürüm notu |
+| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
+| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
+| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
 
