@@ -685,7 +685,49 @@ const ServerSettings = () => {
                       className="bg-input border-border w-28 font-mono text-sm h-8"
                       maxLength={7}
                     />
-                    <span className="text-xs text-muted-foreground">HEX renk kodu</span>
+                    <Input
+                      value={hexInput}
+                      onChange={e => handleHexInputChange(e.target.value)}
+                      placeholder="#3498DB"
+                      className="bg-input border-border w-28 font-mono text-sm h-8"
+                      maxLength={7}
+                    />
+                    <input
+                      type="color"
+                      value={newRoleColor}
+                      onChange={e => { setNewRoleColor(e.target.value); setHexInput(e.target.value); }}
+                      className="w-8 h-8 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
+                      title="Renk seç"
+                    />
+                    <span className="text-xs text-muted-foreground">Renk seçici</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Editing role color */}
+              {editingRole && isOwner && (
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3 mb-2">
+                  <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Palette className="w-4 h-4" />
+                    {editingRole.name} — Renk Düzenle
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full border-2 border-border shrink-0" style={{ backgroundColor: editingRole.color }} />
+                    <input
+                      type="color"
+                      value={editingRole.color}
+                      onChange={async (e) => {
+                        const color = e.target.value;
+                        await supabase.from('server_roles').update({ color } as any).eq('id', editingRole.id);
+                        setEditingRole({ ...editingRole, color });
+                        setRoles(prev => prev.map(r => r.id === editingRole.id ? { ...r, color } : r));
+                      }}
+                      className="w-8 h-8 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
+                    />
+                    <span className="text-xs text-muted-foreground">{editingRole.color}</span>
+                  </div>
+                </div>
+              )}
                   </div>
                 </div>
               )}
