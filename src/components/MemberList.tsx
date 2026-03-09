@@ -3,7 +3,7 @@ import { ArrowLeft, Moon, Crown } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import UserProfileCard from './UserProfileCard';
 
-interface MemberListProps { members: DbMember[]; isMobile?: boolean; onBack?: () => void; serverId?: string; }
+interface MemberListProps { members: DbMember[]; isMobile?: boolean; onBack?: () => void; serverId?: string; premiumUsers?: Set<string>; }
 
 const statusColor: Record<string, string> = { online: 'bg-status-online', idle: 'bg-status-idle', dnd: 'bg-status-dnd', offline: 'bg-muted-foreground' };
 
