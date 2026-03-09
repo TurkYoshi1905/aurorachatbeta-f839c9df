@@ -554,6 +554,33 @@ const ServerSettings = () => {
                   </Button>
                 )}
               </div>
+
+              {/* Server Stats */}
+              {serverStats && (
+                <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-sm font-semibold text-foreground">Sunucu İstatistikleri</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="text-center p-3 rounded-lg bg-secondary/50">
+                      <p className="text-2xl font-bold text-foreground">{serverStats.members}</p>
+                      <p className="text-xs text-muted-foreground">Üye</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-secondary/50">
+                      <p className="text-2xl font-bold text-foreground">{serverStats.channels}</p>
+                      <p className="text-xs text-muted-foreground">Kanal</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-secondary/50">
+                      <p className="text-2xl font-bold text-foreground">{serverStats.roles}</p>
+                      <p className="text-xs text-muted-foreground">Rol</p>
+                    </div>
+                  </div>
+                  {serverStats.created_at && (
+                    <p className="text-xs text-muted-foreground">Oluşturulma: {formatDate(serverStats.created_at)}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
