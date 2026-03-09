@@ -1125,6 +1125,7 @@ const Index = () => {
   if (isMobile) {
     return (
       <div className="h-screen flex flex-col overflow-hidden pb-14" style={{ height: '100dvh' }}>
+        <NotificationPermissionBanner />
         <div className="flex-1 min-h-0 overflow-hidden">
           {mobileView === 'channels' && (
             <ChannelList
