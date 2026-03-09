@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DbMessage, DbReaction, DbMember } from '@/pages/Index';
 import { Hash, Users, Pin, Bell, Search, SmilePlus, PlusCircle, Gift, ImagePlus, Send, ArrowLeft, Trash2, Pencil, Check, X, Lock, SendHorizontal, Reply, CornerDownRight, MessageSquare } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
