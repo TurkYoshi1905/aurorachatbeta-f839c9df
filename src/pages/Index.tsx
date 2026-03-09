@@ -400,11 +400,24 @@ const Index = () => {
             // Check for @mention notification
             if (m.content && userRef.current && profile?.username) {
               const mentionPattern = `@${profile.username}`;
-              if (m.content.includes(mentionPattern) && document.hidden) {
-                if (Notification.permission === 'granted') {
-                  new Notification(`${m.author_name} seni etiketledi`, { body: m.content, icon: '/favicon.ico' });
-                } else if (Notification.permission === 'default') {
-                  Notification.requestPermission();
+              if (m.content.includes(mentionPattern)) {
+                // Insert notification record
+                supabase.from('notifications').insert({
+                  user_id: userRef.current,
+                  type: 'mention',
+                  title: `${m.author_name} seni etiketledi`,
+                  body: m.content,
+                  server_id: m.server_id,
+                  channel_id: m.channel_id,
+                  message_id: m.id,
+                } as any).then(() => {});
+
+                if (document.hidden) {
+                  if (Notification.permission === 'granted') {
+                    new Notification(`${m.author_name} seni etiketledi`, { body: m.content, icon: '/favicon.ico' });
+                  } else if (Notification.permission === 'default') {
+                    Notification.requestPermission();
+                  }
                 }
               }
             }
