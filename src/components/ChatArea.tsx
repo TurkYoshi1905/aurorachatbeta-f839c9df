@@ -105,6 +105,9 @@ export const renderMessageContent = (content: string, currentUserId?: string, se
               if (mp === 'everyone') {
                 return <span key={j} className="bg-amber-500/20 text-amber-400 rounded px-1 font-semibold cursor-pointer hover:bg-amber-500/30">@everyone</span>;
               }
+              if (mp === 'here') {
+                return <span key={j} className="bg-emerald-500/20 text-emerald-400 rounded px-1 font-semibold cursor-pointer hover:bg-emerald-500/30">@here</span>;
+              }
               return <span key={j} className="bg-primary/20 text-primary rounded px-1 font-medium cursor-pointer hover:bg-primary/30">@{mp}</span>;
             }
             return <span key={j}>{mp}</span>;

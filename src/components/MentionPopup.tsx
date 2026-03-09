@@ -69,13 +69,15 @@ const MentionPopup = ({ query, members, onSelect, onClose, position }: MentionPo
           <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] font-medium overflow-hidden shrink-0">
             {m.id === '__everyone__' ? (
               <Bell className="w-3.5 h-3.5 text-amber-400" />
+            ) : m.id === '__here__' ? (
+              <Bell className="w-3.5 h-3.5 text-emerald-400" />
             ) : m.avatarUrl ? (
               <img src={m.avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
               m.avatar
             )}
           </div>
-          <span className="truncate">{m.id === '__everyone__' ? '@everyone' : m.name}</span>
+          <span className="truncate">{m.id === '__everyone__' ? '@everyone' : m.id === '__here__' ? '@here' : m.name}</span>
         </button>
       ))}
     </div>

@@ -23,7 +23,8 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'YENİ', color: 'text-primary', text: '@everyone etiketi artık Discord gibi çalışıyor! Tüm sunucu üyelerine bildirim gönderir.' },
+    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'YENİ', color: 'text-primary', text: '@here etiketi eklendi! Sadece çevrimiçi kullanıcılara bildirim gönderir.' },
+    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'YENİ', color: 'text-primary', text: 'Açık tema artık tam işlevsel! Ayarlardan Koyu/Açık/Sistem arasında geçiş yapabilirsiniz.' },
   ];
 
   return (

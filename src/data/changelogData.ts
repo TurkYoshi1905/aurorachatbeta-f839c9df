@@ -16,6 +16,24 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.3.0',
+    date: '9 Mart 2026',
+    summary: '@here etiketi ve açık tema desteği eklendi.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          '@here etiketi: sadece çevrimiçi kullanıcılara bildirim gönderir',
+          '@here otomatik tamamlama desteği ve yeşil vurgulama stili',
+          'Açık tema (Light Mode) tam işlevsel hale getirildi',
+          'Tema tercihi sayfa yenilemelerinde korunuyor',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.9',
     date: '9 Mart 2026',
     summary: '@everyone etiketi artık Discord gibi çalışıyor.',
