@@ -1216,6 +1216,7 @@ const Index = () => {
   return (
     <div className="h-screen flex overflow-hidden">
       <ReleaseNotesModal />
+      <NotificationPermissionBanner />
       <ServerSidebar activeServer={activeServer} onServerChange={handleServerChange} servers={servers} onServerCreated={handleServerCreated} />
       <ChannelList
         serverName={server.name}
