@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { executeBotCommand } from '@/utils/botCommands';
 import MessageSearchPanel from '@/components/MessageSearchPanel';
 import NotificationPanel from '@/components/NotificationPanel';
+import NotificationPermissionBanner from '@/components/NotificationPermissionBanner';
 
 export interface DbMessage {
   id: string;
