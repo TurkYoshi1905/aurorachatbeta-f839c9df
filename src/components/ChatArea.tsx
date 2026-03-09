@@ -628,7 +628,7 @@ const ChatArea = ({ channelName, channelId, messages, onSendMessage, onDeleteMes
                 </div>
               </PopoverContent>
             </Popover>
-            <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+            <input type="file" ref={fileInputRef} accept="*" multiple className="hidden" onChange={handleFileSelect} />
 
             <div className="flex-1 relative">
               <input
