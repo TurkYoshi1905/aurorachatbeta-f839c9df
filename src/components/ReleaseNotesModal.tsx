@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Sparkles, Search, Bell, Crown, Smartphone } from 'lucide-react';
 
-const CURRENT_VERSION = '0.2.6';
+const CURRENT_VERSION = '0.2.7';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {

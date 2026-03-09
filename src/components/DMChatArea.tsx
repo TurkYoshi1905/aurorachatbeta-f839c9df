@@ -30,12 +30,13 @@ const formatTimestamp = (dateStr: string) => {
 const uploadFiles = async (files: File[], userId: string, messageId: string, context: 'dm' | 'channels'): Promise<string[]> => {
   const urls: string[] = [];
   for (const file of files) {
-    const ext = file.name.split('.').pop() || 'jpg';
-    const path = `${userId}/${context}/${messageId}/${crypto.randomUUID()}.${ext}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${userId}/${context}/${messageId}/${crypto.randomUUID()}_${safeName}`;
     const { error } = await supabase.storage.from('message_attachments').upload(path, file);
     if (!error) {
       const { data } = supabase.storage.from('message_attachments').getPublicUrl(path);
-      urls.push(data.publicUrl);
+      const urlWithMeta = `${data.publicUrl}?originalName=${encodeURIComponent(file.name)}&size=${file.size}`;
+      urls.push(urlWithMeta);
     }
   }
   return urls;
