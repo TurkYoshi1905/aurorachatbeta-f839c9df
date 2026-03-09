@@ -19,6 +19,8 @@ import ReleaseNotesModal from '@/components/ReleaseNotesModal';
 import { useVoiceChannel } from '@/hooks/useVoiceChannel';
 import { toast } from 'sonner';
 import { executeBotCommand } from '@/utils/botCommands';
+import MessageSearchPanel from '@/components/MessageSearchPanel';
+import NotificationPanel from '@/components/NotificationPanel';
 
 export interface DbMessage {
   id: string;
