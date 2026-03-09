@@ -16,6 +16,24 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.2.9',
+    date: '9 Mart 2026',
+    summary: '@everyone etiketi artık Discord gibi çalışıyor.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          '@everyone etiketi: tüm sunucu üyelerini etiketler ve bildirim gönderir',
+          '@everyone otomatik tamamlama desteği (mention popup)',
+          '@everyone mesajları özel sarı/turuncu stil ile vurgulanır',
+          'suppress_everyone ayarına göre bildirim bastırma desteği',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.8',
     date: '9 Mart 2026',
     summary: 'Profil kartlarında kullanıcı durumu artık gerçek zamanlı olarak güncelleniyor.',

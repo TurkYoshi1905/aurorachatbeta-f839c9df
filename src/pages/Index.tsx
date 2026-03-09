@@ -393,26 +393,46 @@ const Index = () => {
               });
               return;
             }
-            // Check for @mention notification
-            if (m.content && userRef.current && profile?.username) {
-              const mentionPattern = `@${profile.username}`;
-              if (m.content.includes(mentionPattern)) {
-                // Insert notification record
-                supabase.from('notifications').insert({
-                  user_id: userRef.current,
-                  type: 'mention',
-                  title: `${m.author_name} seni etiketledi`,
-                  body: m.content,
-                  server_id: m.server_id,
-                  channel_id: m.channel_id,
-                  message_id: m.id,
-                } as any).then(() => {});
+            // Check for @mention or @everyone notification
+            if (m.content && userRef.current) {
+              const isEveryone = m.content.includes('@everyone');
+              const isMentioned = profile?.username && m.content.includes(`@${profile.username}`);
 
-                if (document.hidden) {
-                  if (Notification.permission === 'granted') {
-                    new Notification(`${m.author_name} seni etiketledi`, { body: m.content, icon: '/favicon.ico' });
-                  } else if (Notification.permission === 'default') {
-                    Notification.requestPermission();
+              if (isEveryone || isMentioned) {
+                // Check suppress_everyone setting
+                let suppress = false;
+                if (isEveryone && !isMentioned) {
+                  const { data: notifSettings } = await supabase
+                    .from('notification_settings')
+                    .select('suppress_everyone')
+                    .eq('user_id', userRef.current)
+                    .or(`server_id.eq.${m.server_id},channel_id.eq.${m.channel_id}`)
+                    .limit(1)
+                    .maybeSingle();
+                  if (notifSettings?.suppress_everyone) suppress = true;
+                }
+
+                if (!suppress) {
+                  const title = isEveryone && !isMentioned
+                    ? `${m.author_name} herkesi etiketledi`
+                    : `${m.author_name} seni etiketledi`;
+
+                  supabase.from('notifications').insert({
+                    user_id: userRef.current,
+                    type: 'mention',
+                    title,
+                    body: m.content,
+                    server_id: m.server_id,
+                    channel_id: m.channel_id,
+                    message_id: m.id,
+                  } as any).then(() => {});
+
+                  if (document.hidden) {
+                    if (Notification.permission === 'granted') {
+                      new Notification(title, { body: m.content, icon: '/favicon.ico' });
+                    } else if (Notification.permission === 'default') {
+                      Notification.requestPermission();
+                    }
                   }
                 }
               }
