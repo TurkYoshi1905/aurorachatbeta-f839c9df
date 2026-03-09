@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { X, Settings, Users, Shield, ScrollText, Trash2, Camera, UserMinus, Plus, ArrowUp, ArrowDown, ChevronDown, Hash, Volume2, SmilePlus, Upload, Pencil, Check } from 'lucide-react';
+import { X, Settings, Users, Shield, ScrollText, Trash2, Camera, UserMinus, Plus, ArrowUp, ArrowDown, ChevronDown, Hash, Volume2, SmilePlus, Upload, Pencil, Check, Ban, BarChart3, Filter, Palette } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -14,8 +14,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 interface Member { id: string; user_id: string; display_name: string; avatar_url: string | null; roles: { id: string; name: string; color: string }[]; }
 interface Role { id: string; name: string; color: string; position: number; permissions: Record<string, boolean>; }
-interface AuditLog { id: string; action: string; user_id: string; target_type: string | null; details: any; created_at: string; user_name?: string; }
+interface AuditLog { id: string; action: string; user_id: string; target_type: string | null; details: any; created_at: string; user_name?: string; user_avatar?: string | null; }
 interface ServerEmoji { id: string; name: string; image_url: string; uploaded_by: string; created_at: string; }
+interface BanEntry { id: string; user_id: string; banned_by: string; reason: string | null; created_at: string; user_name?: string; user_avatar?: string | null; banned_by_name?: string; }
 
 const PRESET_COLORS = ['#E74C3C', '#E91E63', '#9B59B6', '#8E44AD', '#3498DB', '#2196F3', '#1ABC9C', '#2ECC71', '#F1C40F', '#FF9800', '#E67E22', '#95A5A6', '#607D8B', '#99AAB5'];
 const MAX_EMOJIS = 50;
@@ -77,6 +78,9 @@ const ServerSettings = () => {
   const [categories, setCategories] = useState<{ id: string; name: string; position: number }[]>([]);
   const [channelsList, setChannelsList] = useState<{ id: string; name: string; type: string; position: number; category_id: string | null }[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [bans, setBans] = useState<BanEntry[]>([]);
+  const [auditFilter, setAuditFilter] = useState<string>('all');
+  const [serverStats, setServerStats] = useState<{ members: number; channels: number; roles: number; created_at: string } | null>(null);
 
   const tabs = [
     { id: 'general', label: t('serverSettings.general'), icon: Settings },
@@ -84,6 +88,7 @@ const ServerSettings = () => {
     { id: 'emojis', label: 'Emojiler', icon: SmilePlus },
     { id: 'roles', label: t('serverSettings.rolesTab') || 'Roller', icon: Shield },
     { id: 'members', label: t('serverSettings.membersTab'), icon: Users },
+    { id: 'bans', label: 'Yasaklar', icon: Ban },
     { id: 'audit', label: t('serverSettings.auditTab') || 'Denetim Kaydı', icon: ScrollText },
     { id: 'danger', label: t('serverSettings.dangerZone'), icon: Trash2 },
   ];
@@ -284,20 +289,49 @@ const ServerSettings = () => {
 
   const fetchAuditLogs = useCallback(async () => {
     if (!serverId) return;
-    const { data } = await supabase.from('audit_logs').select('*').eq('server_id', serverId).order('created_at', { ascending: false }).limit(100);
+    const { data } = await supabase.from('audit_logs').select('*').eq('server_id', serverId).order('created_at', { ascending: false }).limit(200);
     if (data) {
       const userIds = [...new Set((data as any[]).map(l => l.user_id))];
-      const { data: profiles } = await supabase.from('profiles').select('user_id, display_name').in('user_id', userIds);
+      const { data: profiles } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', userIds);
       setAuditLogs((data as any[]).map(l => ({
         ...l,
         user_name: profiles?.find(p => p.user_id === l.user_id)?.display_name || 'Kullanıcı',
+        user_avatar: profiles?.find(p => p.user_id === l.user_id)?.avatar_url || null,
       })));
     }
+  }, [serverId]);
+
+  const fetchBans = useCallback(async () => {
+    if (!serverId) return;
+    const { data } = await supabase.from('server_bans').select('*').eq('server_id', serverId).order('created_at', { ascending: false });
+    if (data) {
+      const userIds = [...new Set((data as any[]).flatMap(b => [b.user_id, b.banned_by]))];
+      const { data: profiles } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', userIds);
+      setBans((data as any[]).map(b => ({
+        ...b,
+        user_name: profiles?.find(p => p.user_id === b.user_id)?.display_name || 'Kullanıcı',
+        user_avatar: profiles?.find(p => p.user_id === b.user_id)?.avatar_url || null,
+        banned_by_name: profiles?.find(p => p.user_id === b.banned_by)?.display_name || 'Kullanıcı',
+      })));
+    }
+  }, [serverId]);
+
+  const fetchServerStats = useCallback(async () => {
+    if (!serverId) return;
+    const [{ count: memberCount }, { count: channelCount }, { count: roleCount }, { data: server }] = await Promise.all([
+      supabase.from('server_members').select('*', { count: 'exact', head: true }).eq('server_id', serverId),
+      supabase.from('channels').select('*', { count: 'exact', head: true }).eq('server_id', serverId),
+      supabase.from('server_roles').select('*', { count: 'exact', head: true }).eq('server_id', serverId),
+      supabase.from('servers').select('created_at').eq('id', serverId).single(),
+    ]);
+    setServerStats({ members: memberCount || 0, channels: channelCount || 0, roles: roleCount || 0, created_at: server?.created_at || '' });
   }, [serverId]);
 
   useEffect(() => { fetchRoles(); }, [fetchRoles]);
   useEffect(() => { if (activeTab === 'members') fetchMembers(); }, [activeTab, fetchMembers]);
   useEffect(() => { if (activeTab === 'audit') fetchAuditLogs(); }, [activeTab, fetchAuditLogs]);
+  useEffect(() => { if (activeTab === 'bans') fetchBans(); }, [activeTab, fetchBans]);
+  useEffect(() => { if (activeTab === 'general') fetchServerStats(); }, [activeTab, fetchServerStats]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (window.history.length > 1) navigate(-1); else navigate('/'); } };
@@ -402,12 +436,48 @@ const ServerSettings = () => {
     return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
+  const handleUnban = async (banId: string, bannedUserId: string) => {
+    const { error } = await supabase.from('server_bans').delete().eq('id', banId);
+    if (error) { toast.error('Yasak kaldırılamadı'); return; }
+    toast.success('Yasak kaldırıldı');
+    fetchBans();
+    if (user && serverId) await supabase.from('audit_logs').insert({ server_id: serverId, user_id: user.id, action: 'member_unbanned', target_type: 'member', target_id: bannedUserId });
+  };
+
   const actionLabels: Record<string, string> = {
     role_created: '🛡️ Rol oluşturdu',
     role_assigned: '🎭 Rol atadı',
     member_kicked: '👢 Üye attı',
     member_joined: '📥 Sunucuya katıldı',
     member_left: '📤 Sunucudan ayrıldı',
+    server_updated: '⚙️ Sunucuyu güncelledi',
+    channel_created: '📢 Kanal oluşturdu',
+    channel_deleted: '🗑️ Kanal sildi',
+    emoji_added: '😀 Emoji ekledi',
+    emoji_deleted: '❌ Emoji sildi',
+    member_banned: '🔨 Üye yasakladı',
+    member_unbanned: '✅ Yasağı kaldırdı',
+  };
+
+  const auditActionTypes = ['all', ...Object.keys(actionLabels)];
+
+  const filteredAuditLogs = auditFilter === 'all' ? auditLogs : auditLogs.filter(l => l.action === auditFilter);
+
+  const groupLogsByDate = (logs: AuditLog[]) => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+    const groups: { label: string; logs: AuditLog[] }[] = [
+      { label: 'Bugün', logs: [] },
+      { label: 'Dün', logs: [] },
+      { label: 'Daha Eski', logs: [] },
+    ];
+    for (const log of logs) {
+      const d = new Date(log.created_at); d.setHours(0, 0, 0, 0);
+      if (d.getTime() === today.getTime()) groups[0].logs.push(log);
+      else if (d.getTime() === yesterday.getTime()) groups[1].logs.push(log);
+      else groups[2].logs.push(log);
+    }
+    return groups.filter(g => g.logs.length > 0);
   };
 
   return (
@@ -484,6 +554,33 @@ const ServerSettings = () => {
                   </Button>
                 )}
               </div>
+
+              {/* Server Stats */}
+              {serverStats && (
+                <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-sm font-semibold text-foreground">Sunucu İstatistikleri</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="text-center p-3 rounded-lg bg-secondary/50">
+                      <p className="text-2xl font-bold text-foreground">{serverStats.members}</p>
+                      <p className="text-xs text-muted-foreground">Üye</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-secondary/50">
+                      <p className="text-2xl font-bold text-foreground">{serverStats.channels}</p>
+                      <p className="text-xs text-muted-foreground">Kanal</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-secondary/50">
+                      <p className="text-2xl font-bold text-foreground">{serverStats.roles}</p>
+                      <p className="text-xs text-muted-foreground">Rol</p>
+                    </div>
+                  </div>
+                  {serverStats.created_at && (
+                    <p className="text-xs text-muted-foreground">Oluşturulma: {formatDate(serverStats.created_at)}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -588,7 +685,39 @@ const ServerSettings = () => {
                       className="bg-input border-border w-28 font-mono text-sm h-8"
                       maxLength={7}
                     />
-                    <span className="text-xs text-muted-foreground">HEX renk kodu</span>
+                    <input
+                      type="color"
+                      value={newRoleColor}
+                      onChange={e => { setNewRoleColor(e.target.value); setHexInput(e.target.value); }}
+                      className="w-8 h-8 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
+                      title="Renk seç"
+                    />
+                    <span className="text-xs text-muted-foreground">Renk seçici</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Editing role color */}
+              {editingRole && isOwner && (
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3 mb-2">
+                  <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Palette className="w-4 h-4" />
+                    {editingRole.name} — Renk Düzenle
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full border-2 border-border shrink-0" style={{ backgroundColor: editingRole.color }} />
+                    <input
+                      type="color"
+                      value={editingRole.color}
+                      onChange={async (e) => {
+                        const color = e.target.value;
+                        await supabase.from('server_roles').update({ color } as any).eq('id', editingRole.id);
+                        setEditingRole({ ...editingRole, color });
+                        setRoles(prev => prev.map(r => r.id === editingRole.id ? { ...r, color } : r));
+                      }}
+                      className="w-8 h-8 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
+                    />
+                    <span className="text-xs text-muted-foreground">{editingRole.color}</span>
                   </div>
                 </div>
               )}
@@ -704,30 +833,95 @@ const ServerSettings = () => {
             </div>
           )}
 
+          {/* Bans Tab */}
+          {activeTab === 'bans' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Yasaklar</h2>
+                <span className="text-sm text-muted-foreground">{bans.length} yasaklı</span>
+              </div>
+              <div className="space-y-2">
+                {bans.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Yasaklı kullanıcı yok</p>
+                ) : (
+                  bans.map(ban => (
+                    <div key={ban.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-card">
+                      {ban.user_avatar ? (
+                        <img src={ban.user_avatar} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-medium shrink-0">{ban.user_name?.charAt(0)?.toUpperCase()}</div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{ban.user_name}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {ban.reason ? `Sebep: ${ban.reason}` : 'Sebep belirtilmemiş'} • Yasaklayan: {ban.banned_by_name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">{formatDate(ban.created_at)}</p>
+                      </div>
+                      {isOwner && (
+                        <Button variant="outline" size="sm" onClick={() => handleUnban(ban.id, ban.user_id)}>
+                          Yasağı Kaldır
+                        </Button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Audit Logs */}
           {activeTab === 'audit' && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">{t('serverSettings.auditTab') || 'Denetim Kaydı'}</h2>
-              <div className="space-y-2">
-                {auditLogs.length === 0 ? (
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">{t('serverSettings.auditTab') || 'Denetim Kaydı'}</h2>
+                <span className="text-sm text-muted-foreground">{filteredAuditLogs.length} kayıt</span>
+              </div>
+
+              {/* Filter */}
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <select
+                  value={auditFilter}
+                  onChange={e => setAuditFilter(e.target.value)}
+                  className="text-xs bg-secondary border border-border rounded px-2 py-1.5 text-foreground"
+                >
+                  <option value="all">Tümü</option>
+                  {Object.entries(actionLabels).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-4">
+                {filteredAuditLogs.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Henüz kayıt yok</p>
                 ) : (
-                  auditLogs.map(log => (
-                    <div key={log.id} className="flex items-start gap-3 px-3 py-2.5 rounded-lg border border-border bg-card">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground">
-                          <span className="font-medium">{log.user_name}</span>
-                          {' '}<span className="text-muted-foreground">{actionLabels[log.action] || log.action}</span>
-                        </p>
-                        {log.details && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {log.details.name && `Ad: ${log.details.name}`}
-                            {log.details.color && ` • Renk: ${log.details.color}`}
-                          </p>
-                        )}
-                      </div>
-                      <span className="text-[11px] text-muted-foreground shrink-0">{formatDate(log.created_at)}</span>
+                  groupLogsByDate(filteredAuditLogs).map(group => (
+                    <div key={group.label} className="space-y-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">{group.label}</p>
+                      {group.logs.map(log => (
+                        <div key={log.id} className="flex items-start gap-3 px-3 py-2.5 rounded-lg border border-border bg-card">
+                          {log.user_avatar ? (
+                            <img src={log.user_avatar} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 mt-0.5" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-medium shrink-0 mt-0.5">{log.user_name?.charAt(0)?.toUpperCase()}</div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground">
+                              <span className="font-medium">{log.user_name}</span>
+                              {' '}<span className="text-muted-foreground">{actionLabels[log.action] || log.action}</span>
+                            </p>
+                            {log.details && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {log.details.name && `Ad: ${log.details.name}`}
+                                {log.details.color && ` • Renk: ${log.details.color}`}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-muted-foreground shrink-0">{formatDate(log.created_at)}</span>
+                        </div>
+                      ))}
                     </div>
                   ))
                 )}

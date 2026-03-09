@@ -91,25 +91,30 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProf
     fetchData();
   }, [open, userId, serverId]);
 
-  // Realtime presence for this user
+  // Realtime presence for this user — subscribe to the shared presence-room
   useEffect(() => {
     if (!open || !userId) return;
-    const channel = supabase.channel(`profile-presence-${userId}`);
-    channel.on('presence', { event: 'sync' }, () => {
+    const channel = supabase.channel('presence-room');
+
+    const syncHandler = () => {
       const state = channel.presenceState();
-      const entries = Object.values(state).flat() as any[];
-      const found = entries.find((e: any) => e.user_id === userId);
-      if (found) setUserStatus(found.status || 'online');
-    }).subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        // Check global presence channel for the user's status
-        const globalChannel = supabase.channel('global-presence');
-        const globalState = globalChannel.presenceState();
-        const allEntries = Object.values(globalState).flat() as any[];
-        const found = allEntries.find((e: any) => e.user_id === userId);
-        if (found) setUserStatus(found.status || 'online');
+      let found = false;
+      for (const presences of Object.values(state)) {
+        const entries = presences as any[];
+        const match = entries.find((e: any) => e.user_id === userId);
+        if (match) {
+          setUserStatus(match.status || 'online');
+          found = true;
+          break;
+        }
       }
+      if (!found) setUserStatus('offline');
+    };
+
+    channel.on('presence', { event: 'sync' }, syncHandler).subscribe((status) => {
+      if (status === 'SUBSCRIBED') syncHandler();
     });
+
     return () => { supabase.removeChannel(channel); };
   }, [open, userId]);
 

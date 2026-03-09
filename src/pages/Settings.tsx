@@ -22,6 +22,42 @@ import {
 } from '@/components/ui/dialog';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
+const PasswordChangeSection = () => {
+  const { t } = useTranslation();
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changing, setChanging] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) { toast.error('Şifre en az 6 karakter olmalı'); return; }
+    if (newPassword !== confirmPassword) { toast.error('Şifreler eşleşmiyor'); return; }
+    setChanging(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setChanging(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Şifre başarıyla güncellendi');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 md:p-5 space-y-3">
+      <div className="flex items-center gap-2">
+        <Lock className="w-4 h-4 text-muted-foreground" />
+        <p className="text-sm font-semibold text-foreground">Şifre Değiştir</p>
+      </div>
+      <p className="text-xs text-muted-foreground">Hesabınızın güvenliği için şifrenizi değiştirin.</p>
+      <div className="space-y-2">
+        <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Yeni şifre" className="bg-input border-border" />
+        <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Yeni şifre (tekrar)" className="bg-input border-border" />
+      </div>
+      <Button size="sm" onClick={handleChangePassword} disabled={changing || !newPassword || !confirmPassword}>
+        {changing ? <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : 'Şifreyi Güncelle'}
+      </Button>
+    </div>
+  );
+};
+
 const TwoFactorSection = () => {
   const { t } = useTranslation();
   const [showDialog, setShowDialog] = useState(false);
@@ -413,6 +449,10 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Password Change */}
+              <PasswordChangeSection />
+
               <div className="rounded-xl border border-destructive/30 bg-card p-4 md:p-5 space-y-3">
                 <p className="text-sm font-semibold text-foreground">{t('settings.deleteAccount')}</p>
                 <p className="text-xs text-muted-foreground">{t('settings.deleteAccountDesc')}</p>
