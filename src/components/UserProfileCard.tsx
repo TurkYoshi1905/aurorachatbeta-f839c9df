@@ -52,7 +52,7 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage, status: ex
     const fetchData = async () => {
       const { data: prof } = await supabase
         .from('profiles')
-        .select('display_name, username, avatar_url, created_at, bio, banner_color')
+        .select('display_name, username, avatar_url, created_at, bio, banner_color, has_premium_badge')
         .eq('user_id', userId)
         .maybeSingle();
       if (prof) setProfile(prof as ProfileData);
