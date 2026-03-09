@@ -285,6 +285,118 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          channel_id: string | null
+          created_at: string | null
+          id: string
+          mute_until: string | null
+          notify_level: string | null
+          server_id: string | null
+          suppress_everyone: boolean | null
+          suppress_roles: boolean | null
+          user_id: string
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string | null
+          id?: string
+          mute_until?: string | null
+          notify_level?: string | null
+          server_id?: string | null
+          suppress_everyone?: boolean | null
+          suppress_roles?: boolean | null
+          user_id: string
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string | null
+          id?: string
+          mute_until?: string | null
+          notify_level?: string | null
+          server_id?: string | null
+          suppress_everyone?: boolean | null
+          suppress_roles?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_settings_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          channel_id: string | null
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message_id: string | null
+          server_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          channel_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_id?: string | null
+          server_id?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          channel_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_id?: string | null
+          server_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
