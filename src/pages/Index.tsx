@@ -1239,12 +1239,13 @@ const Index = () => {
       />
       <ChatArea
         channelName={channel.name}
+        channelId={activeChannel}
         messages={messages}
         onSendMessage={handleSendMessage}
         onDeleteMessage={handleDeleteMessage}
         onEditMessage={handleEditMessage}
         onRetryMessage={handleRetryMessage}
-        onToggleMembers={() => setShowMembers((p) => !p)}
+        onToggleMembers={() => { setShowMembers((p) => !p); setShowSearchPanel(false); setShowNotificationPanel(false); }}
         showMembers={showMembers}
         isOwner={isOwner}
         reactions={reactions}
@@ -1261,6 +1262,8 @@ const Index = () => {
         onOpenThread={handleOpenThread}
         userPermissions={userPermissions}
         serverEmojis={serverEmojis}
+        onToggleSearch={() => { setShowSearchPanel(p => !p); setShowNotificationPanel(false); setShowMembers(false); }}
+        onToggleNotifications={() => { setShowNotificationPanel(p => !p); setShowSearchPanel(false); setShowMembers(false); }}
       />
       {activeThread ? (
         <ThreadPanel
