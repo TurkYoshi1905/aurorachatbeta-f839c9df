@@ -23,9 +23,9 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <MessageSquare className="w-5 h-5 text-primary" />, tag: 'MENÜ', color: 'text-primary', text: 'Mobil mesaj menüsü başlığı artık doğru görünüyor.' },
-    { icon: <Shield className="w-5 h-5 text-status-online" />, tag: 'DURUM', color: 'text-status-online', text: 'Boşta durumu artık ay ikonu ile gösteriliyor ve arka plan algılama aktif.' },
-    { icon: <UserCircle className="w-5 h-5 text-accent" />, tag: 'PROFİL', color: 'text-accent', text: 'Profil kartında tarihler dilinize göre, durum gerçek zamanlı gösteriliyor.' },
+    { icon: <Search className="w-5 h-5 text-primary" />, tag: 'ARAMA', color: 'text-primary', text: 'Filtreli mesaj arama: gönderen, tarih, içerik türü ve kanal bazlı arama.' },
+    { icon: <Bell className="w-5 h-5 text-status-online" />, tag: 'BİLDİRİM', color: 'text-status-online', text: 'Kanal bazlı bildirim ayarları: susturma, seviye ve @everyone bastırma.' },
+    { icon: <BellRing className="w-5 h-5 text-accent" />, tag: 'GEÇMİŞ', color: 'text-accent', text: 'Gerçek zamanlı bildirim geçmişi: etiketlemeler ve yanıtlar anında görünür.' },
   ];
 
   return (

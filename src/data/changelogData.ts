@@ -16,6 +16,26 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.2.4',
+    date: '9 Mart 2026',
+    summary: 'Filtreli mesaj arama, kanal bazlı bildirim ayarları ve gerçek zamanlı bildirim geçmişi.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Filtreli Mesaj Arama: Gönderen, tarih aralığı, içerik türü (dosya/link/sabitlenmiş) ve kanal bazlı arama',
+          'Bildirim Ayarları: Kanal bazlı bildirim seviyesi (tümü/etiketlemeler/kapalı)',
+          'Kanal Susturma: 15dk, 1sa, 8sa, 24sa veya süresiz susturma seçenekleri',
+          '@everyone/@here bastırma toggle\'ı',
+          'Bildirim Geçmişi: Etiketlemeler, yanıtlar ve sabitleme bildirimleri gerçek zamanlı',
+          'Okunmamış bildirim sayacı ve tümünü okundu işaretle butonu',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.3',
     date: '9 Mart 2026',
     summary: 'Mobil menü başlığı düzeltmesi, bildirim izni, boşta ay ikonu ve profil kartı tarih lokalizasyonu.',
