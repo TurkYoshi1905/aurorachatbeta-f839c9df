@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Sparkles, Smartphone } from 'lucide-react';
 
-const CURRENT_VERSION = '0.2.7';
+const CURRENT_VERSION = '0.2.8';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {
@@ -23,8 +23,7 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'DOSYA', color: 'text-primary', text: 'Dosya ekleri artık orijinal dosya adı ve boyutuyla görünüyor.' },
-    { icon: <Smartphone className="w-5 h-5 text-status-online" />, tag: 'MOBİL', color: 'text-status-online', text: 'Mobil arama ve bildirim butonları artık çalışıyor (alt sayfa).' },
+    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'DURUM', color: 'text-primary', text: 'Profil kartlarında kullanıcı durumu artık gerçek zamanlı güncelleniyor.' },
   ];
 
   return (

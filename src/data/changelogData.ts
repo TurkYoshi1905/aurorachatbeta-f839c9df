@@ -16,6 +16,21 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.2.8',
+    date: '9 Mart 2026',
+    summary: 'Profil kartlarında kullanıcı durumu artık gerçek zamanlı olarak güncelleniyor.',
+    sections: [
+      {
+        title: 'Düzeltmeler',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Profil kartlarında kullanıcı durumu (çevrimiçi/meşgul/boşta/çevrimdışı) gerçek zamanlı güncelleniyor',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.7',
     date: '9 Mart 2026',
     summary: 'Dosya ekleri artık orijinal dosya adı ve boyutuyla görünüyor. Mobil arama ve bildirim butonları çalışır hale getirildi.',
