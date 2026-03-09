@@ -611,7 +611,7 @@ const Settings = () => {
                 </div>
 
                 {/* Premium Plan */}
-                <div className="rounded-xl border-2 border-status-idle bg-card p-5 space-y-4 relative overflow-hidden">
+                <div className="rounded-xl border-2 bg-card p-5 space-y-4 relative overflow-hidden" style={{ animation: 'rgb-border 3s linear infinite' }}>
                   <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-status-idle to-primary" />
                   <div className="absolute top-3 right-3">
                     <span className="text-[10px] font-bold uppercase tracking-wider bg-status-idle/20 text-status-idle px-2 py-0.5 rounded-full">Popüler</span>

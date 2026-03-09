@@ -119,7 +119,10 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage, status: ex
       {/* Info */}
       <div className="px-4 pt-2 pb-4 space-y-3">
         <div>
-          <h3 className="text-lg font-bold text-foreground">{profile?.display_name || '...'}</h3>
+          <h3 className="text-lg font-bold text-foreground flex items-center gap-1.5">
+            {profile?.display_name || '...'}
+            {profile?.has_premium_badge && <Crown className="w-4 h-4 text-status-idle fill-status-idle/30" />}
+          </h3>
           <p className="text-sm text-muted-foreground">@{profile?.username || '...'}</p>
         </div>
 

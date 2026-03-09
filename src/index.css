@@ -73,6 +73,16 @@
   }
 }
 
+@keyframes rgb-border {
+  0% { border-color: hsl(0 100% 50%); box-shadow: 0 0 15px hsl(0 100% 50% / 0.3); }
+  16% { border-color: hsl(300 100% 50%); box-shadow: 0 0 15px hsl(300 100% 50% / 0.3); }
+  33% { border-color: hsl(240 100% 60%); box-shadow: 0 0 15px hsl(240 100% 60% / 0.3); }
+  50% { border-color: hsl(180 100% 50%); box-shadow: 0 0 15px hsl(180 100% 50% / 0.3); }
+  66% { border-color: hsl(120 100% 40%); box-shadow: 0 0 15px hsl(120 100% 40% / 0.3); }
+  83% { border-color: hsl(60 100% 50%); box-shadow: 0 0 15px hsl(60 100% 50% / 0.3); }
+  100% { border-color: hsl(0 100% 50%); box-shadow: 0 0 15px hsl(0 100% 50% / 0.3); }
+}
+
 @layer utilities {
   .aurora-glow {
     box-shadow: 0 0 20px hsl(var(--aurora-glow) / 0.15);

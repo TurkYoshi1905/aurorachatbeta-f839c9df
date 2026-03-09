@@ -1,0 +1,1 @@
+ALTER TABLE profiles ADD COLUMN has_premium_badge boolean NOT NULL DEFAULT false;

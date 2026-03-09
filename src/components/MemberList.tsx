@@ -56,6 +56,7 @@ const MemberList = ({ members, isMobile, onBack, serverId, premiumUsers }: Membe
             )}
             {member.roleColor && member.name}
           </p>
+          {premiumUsers?.has(member.id) && <Crown className="w-3 h-3 text-status-idle fill-status-idle/30 shrink-0" />}
         </div>
         {member.role && (
           <span className="ml-auto text-[9px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold" style={member.roleColor ? { color: member.roleColor, borderColor: member.roleColor + '40', borderWidth: 1 } : undefined}>
