@@ -1275,6 +1275,41 @@ const Index = () => {
           messageContent={activeThread.content}
           onClose={() => setActiveThread(null)}
         />
+      ) : showSearchPanel ? (
+        <MessageSearchPanel
+          serverId={activeServer}
+          channelId={activeChannel}
+          channelName={channel.name}
+          members={members.map(m => ({ id: m.id, name: m.name }))}
+          onClose={() => setShowSearchPanel(false)}
+          onJumpToMessage={(msgId) => {
+            const el = document.getElementById(`msg-${msgId}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.classList.add('bg-primary/10');
+              setTimeout(() => el.classList.remove('bg-primary/10'), 2000);
+            }
+          }}
+        />
+      ) : showNotificationPanel ? (
+        <NotificationPanel
+          onClose={() => setShowNotificationPanel(false)}
+          onNavigate={(sId, cId, mId) => {
+            if (sId !== activeServer) setActiveServer(sId);
+            setActiveChannel(cId);
+            setShowNotificationPanel(false);
+            if (mId) {
+              setTimeout(() => {
+                const el = document.getElementById(`msg-${mId}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  el.classList.add('bg-primary/10');
+                  setTimeout(() => el.classList.remove('bg-primary/10'), 2000);
+                }
+              }, 500);
+            }
+          }}
+        />
       ) : (
         showMembers && <MemberList members={members} serverId={activeServer} />
       )}
