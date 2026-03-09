@@ -436,12 +436,48 @@ const ServerSettings = () => {
     return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
+  const handleUnban = async (banId: string, bannedUserId: string) => {
+    const { error } = await supabase.from('server_bans').delete().eq('id', banId);
+    if (error) { toast.error('Yasak kaldırılamadı'); return; }
+    toast.success('Yasak kaldırıldı');
+    fetchBans();
+    if (user && serverId) await supabase.from('audit_logs').insert({ server_id: serverId, user_id: user.id, action: 'member_unbanned', target_type: 'member', target_id: bannedUserId });
+  };
+
   const actionLabels: Record<string, string> = {
     role_created: '🛡️ Rol oluşturdu',
     role_assigned: '🎭 Rol atadı',
     member_kicked: '👢 Üye attı',
     member_joined: '📥 Sunucuya katıldı',
     member_left: '📤 Sunucudan ayrıldı',
+    server_updated: '⚙️ Sunucuyu güncelledi',
+    channel_created: '📢 Kanal oluşturdu',
+    channel_deleted: '🗑️ Kanal sildi',
+    emoji_added: '😀 Emoji ekledi',
+    emoji_deleted: '❌ Emoji sildi',
+    member_banned: '🔨 Üye yasakladı',
+    member_unbanned: '✅ Yasağı kaldırdı',
+  };
+
+  const auditActionTypes = ['all', ...Object.keys(actionLabels)];
+
+  const filteredAuditLogs = auditFilter === 'all' ? auditLogs : auditLogs.filter(l => l.action === auditFilter);
+
+  const groupLogsByDate = (logs: AuditLog[]) => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+    const groups: { label: string; logs: AuditLog[] }[] = [
+      { label: 'Bugün', logs: [] },
+      { label: 'Dün', logs: [] },
+      { label: 'Daha Eski', logs: [] },
+    ];
+    for (const log of logs) {
+      const d = new Date(log.created_at); d.setHours(0, 0, 0, 0);
+      if (d.getTime() === today.getTime()) groups[0].logs.push(log);
+      else if (d.getTime() === yesterday.getTime()) groups[1].logs.push(log);
+      else groups[2].logs.push(log);
+    }
+    return groups.filter(g => g.logs.length > 0);
   };
 
   return (
