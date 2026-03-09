@@ -15,9 +15,11 @@ const MentionPopup = ({ query, members, onSelect, onClose, position }: MentionPo
   const ref = useRef<HTMLDivElement>(null);
 
   const showEveryone = 'everyone'.includes(query.toLowerCase()) || query === '';
+  const showHere = 'here'.includes(query.toLowerCase()) || query === '';
 
   const filtered = [
     ...(showEveryone ? [{ id: '__everyone__', name: 'everyone', avatar: '', avatarUrl: null, status: 'online' as const }] : []),
+    ...(showHere ? [{ id: '__here__', name: 'here', avatar: '', avatarUrl: null, status: 'online' as const }] : []),
     ...members.filter((m) =>
       m.name.toLowerCase().includes(query.toLowerCase())
     ).slice(0, 7),
