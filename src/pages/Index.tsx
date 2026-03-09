@@ -1175,6 +1175,8 @@ const Index = () => {
               onOpenThread={handleOpenThread}
               userPermissions={userPermissions}
               serverEmojis={serverEmojis}
+              onToggleSearch={() => { setShowSearchPanel(p => !p); setShowNotificationPanel(false); }}
+              onToggleNotifications={() => { setShowNotificationPanel(p => !p); setShowSearchPanel(false); }}
             />
           )}
           {mobileView === 'members' && (
