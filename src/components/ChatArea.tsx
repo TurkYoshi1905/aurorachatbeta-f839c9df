@@ -375,15 +375,14 @@ const ChatArea = ({ channelName, channelId, messages, onSendMessage, onDeleteMes
                   </ScrollArea>
                 </PopoverContent>
               </Popover>
-              <button className="hover:text-foreground transition-colors"><Bell className="w-4 h-4" /></button>
+              <button onClick={onToggleNotifications} className="hover:text-foreground transition-colors"><Bell className="w-4 h-4" /></button>
             </>
           )}
           <button onClick={onToggleMembers} className={`hover:text-foreground transition-colors ${showMembers ? 'text-foreground' : ''}`}><Users className="w-4 h-4" /></button>
           {!isMobile && (
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input type="text" placeholder={t('chat.search')} className="bg-server-bg rounded-md pl-7 pr-2 py-1 text-xs w-36 focus:w-48 transition-all outline-none text-foreground placeholder:text-muted-foreground" />
-            </div>
+            <button onClick={onToggleSearch} className="hover:text-foreground transition-colors">
+              <Search className="w-4 h-4" />
+            </button>
           )}
         </div>
       </div>
