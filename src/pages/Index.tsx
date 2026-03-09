@@ -1153,6 +1153,7 @@ const Index = () => {
           {mobileView === 'chat' && (
             <ChatArea
               channelName={channel.name}
+              channelId={activeChannel}
               messages={messages}
               onSendMessage={handleSendMessage}
               onDeleteMessage={handleDeleteMessage}
