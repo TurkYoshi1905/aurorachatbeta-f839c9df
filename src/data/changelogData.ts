@@ -16,6 +16,25 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.2.5',
+    date: '9 Mart 2026',
+    summary: 'Dosya ekleri (Discord tarzı embed), AuroraChat Premium sistemi, mobil ayarlar yeniden tasarımı ve profil kartı düzeltmesi.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Dosya Ekleri: Tüm dosya türleri destekleniyor, Discord tarzı embed görünümü',
+          'Dosya indirme güvenlik uyarısı ve "bir daha gösterme" seçeneği',
+          'AuroraChat Premium: Basic (10 TL/ay) ve Premium (30 TL/ay) üyelik planları',
+          'Mobil ayarlar Discord tarzı dikey liste + alt sayfa + geri butonu',
+          'Profil kartı gerçek zamanlı durum gösterimi düzeltildi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.4',
     date: '9 Mart 2026',
     summary: 'Filtreli mesaj arama, kanal bazlı bildirim ayarları ve gerçek zamanlı bildirim geçmişi.',
