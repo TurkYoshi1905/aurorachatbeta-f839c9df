@@ -1,13 +1,13 @@
 import { DbMember } from '@/pages/Index';
-import { ArrowLeft, Moon } from 'lucide-react';
+import { ArrowLeft, Moon, Crown } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import UserProfileCard from './UserProfileCard';
 
-interface MemberListProps { members: DbMember[]; isMobile?: boolean; onBack?: () => void; serverId?: string; }
+interface MemberListProps { members: DbMember[]; isMobile?: boolean; onBack?: () => void; serverId?: string; premiumUsers?: Set<string>; }
 
 const statusColor: Record<string, string> = { online: 'bg-status-online', idle: 'bg-status-idle', dnd: 'bg-status-dnd', offline: 'bg-muted-foreground' };
 
-const MemberList = ({ members, isMobile, onBack, serverId }: MemberListProps) => {
+const MemberList = ({ members, isMobile, onBack, serverId, premiumUsers }: MemberListProps) => {
   const { t } = useTranslation();
 
   const roleGroups: { roleName: string; roleColor: string; position: number; members: DbMember[] }[] = [];
@@ -56,6 +56,7 @@ const MemberList = ({ members, isMobile, onBack, serverId }: MemberListProps) =>
             )}
             {member.roleColor && member.name}
           </p>
+          {premiumUsers?.has(member.id) && <Crown className="w-3 h-3 text-status-idle fill-status-idle/30 shrink-0" />}
         </div>
         {member.role && (
           <span className="ml-auto text-[9px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold" style={member.roleColor ? { color: member.roleColor, borderColor: member.roleColor + '40', borderWidth: 1 } : undefined}>

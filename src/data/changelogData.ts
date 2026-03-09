@@ -16,6 +16,24 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.2.6',
+    date: '9 Mart 2026',
+    summary: 'Mobilde filtreli mesaj arama ve bildirim ayarları, Premium rozet sistemi, RGB animasyonlu Premium kartı.',
+    sections: [
+      {
+        title: 'Yeni Özellikler',
+        icon: Sparkles,
+        color: 'text-primary',
+        items: [
+          'Filtreli mesaj arama ve bildirim ayarları artık mobil arayüzde de erişilebilir',
+          'Premium rozet: kullanıcı adının yanında altın taç ikonu (profil kartı + üye listesi)',
+          'Premium kartında RGB gökkuşağı animasyonlu köşeler',
+          'Profil veritabanına has_premium_badge alanı eklendi',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.5',
     date: '9 Mart 2026',
     summary: 'Dosya ekleri (Discord tarzı embed), AuroraChat Premium sistemi, mobil ayarlar yeniden tasarımı ve profil kartı düzeltmesi.',

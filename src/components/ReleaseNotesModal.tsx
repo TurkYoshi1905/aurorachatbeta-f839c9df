@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, FileText, Crown, Smartphone } from 'lucide-react';
+import { Sparkles, Search, Bell, Crown, Smartphone } from 'lucide-react';
 
-const CURRENT_VERSION = '0.2.5';
+const CURRENT_VERSION = '0.2.6';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {
@@ -23,9 +23,9 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <FileText className="w-5 h-5 text-primary" />, tag: 'DOSYA', color: 'text-primary', text: 'Tüm dosya türleri destekleniyor: Discord tarzı embed, dosya adı, boyut ve güvenli indirme.' },
-    { icon: <Crown className="w-5 h-5 text-status-idle" />, tag: 'PREMİUM', color: 'text-status-idle', text: 'AuroraChat Basic ve Premium üyelik planları eklendi (yakında aktif).' },
-    { icon: <Smartphone className="w-5 h-5 text-status-online" />, tag: 'MOBİL', color: 'text-status-online', text: 'Mobil ayarlar Discord tarzı dikey liste + alt sayfa yapısına geçti.' },
+    { icon: <Search className="w-5 h-5 text-primary" />, tag: 'MOBİL', color: 'text-primary', text: 'Filtreli mesaj arama ve bildirim ayarları artık mobilde de mevcut.' },
+    { icon: <Crown className="w-5 h-5 text-status-idle" />, tag: 'PREMİUM', color: 'text-status-idle', text: 'Premium rozet sistemi: kullanıcı adının yanında altın taç ikonu.' },
+    { icon: <Smartphone className="w-5 h-5 text-status-online" />, tag: 'RGB', color: 'text-status-online', text: 'Premium kartında RGB animasyonlu köşeler eklendi.' },
   ];
 
   return (

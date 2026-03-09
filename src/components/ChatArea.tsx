@@ -341,49 +341,43 @@ const ChatArea = ({ channelName, channelId, messages, onSendMessage, onDeleteMes
         <Hash className="w-5 h-5 text-muted-foreground" />
         <span className="font-semibold text-foreground">{channelName}</span>
         <div className="ml-auto flex items-center gap-3 text-muted-foreground">
-          {!isMobile && (
-            <>
-              <Popover open={showPinnedPanel} onOpenChange={setShowPinnedPanel}>
-                <PopoverTrigger asChild>
-                  <button className={`hover:text-foreground transition-colors relative ${showPinnedPanel ? 'text-foreground' : ''}`}>
-                    <Pin className="w-4 h-4" />
-                    {pinnedMessages.length > 0 && (
-                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary text-primary-foreground text-[8px] flex items-center justify-center font-bold">{pinnedMessages.length}</span>
-                    )}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent side="bottom" align="end" className="w-80 p-0 max-h-96">
-                  <div className="p-3 border-b border-border">
-                    <h3 className="font-semibold text-sm text-foreground">{t('chat.pinnedMessages')}</h3>
-                  </div>
-                  <ScrollArea className="max-h-80">
-                    {pinnedMessages.length === 0 ? (
-                      <p className="p-4 text-sm text-muted-foreground text-center">{t('chat.noPinnedMessages')}</p>
-                    ) : (
-                      <div className="p-2 space-y-2">
-                        {pinnedMessages.map(msg => (
-                          <div key={msg.id} className="p-2 rounded-md bg-secondary/50 hover:bg-secondary/80 cursor-pointer transition-colors" onClick={() => { scrollToMessage(msg.id); setShowPinnedPanel(false); }}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-medium text-foreground">{msg.author}</span>
-                              <span className="text-[10px] text-muted-foreground">{msg.timestamp}</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground line-clamp-2">{msg.content}</p>
-                          </div>
-                        ))}
+          <Popover open={showPinnedPanel} onOpenChange={setShowPinnedPanel}>
+            <PopoverTrigger asChild>
+              <button className={`hover:text-foreground transition-colors relative ${showPinnedPanel ? 'text-foreground' : ''}`}>
+                <Pin className="w-4 h-4" />
+                {pinnedMessages.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary text-primary-foreground text-[8px] flex items-center justify-center font-bold">{pinnedMessages.length}</span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="bottom" align="end" className="w-80 p-0 max-h-96">
+              <div className="p-3 border-b border-border">
+                <h3 className="font-semibold text-sm text-foreground">{t('chat.pinnedMessages')}</h3>
+              </div>
+              <ScrollArea className="max-h-80">
+                {pinnedMessages.length === 0 ? (
+                  <p className="p-4 text-sm text-muted-foreground text-center">{t('chat.noPinnedMessages')}</p>
+                ) : (
+                  <div className="p-2 space-y-2">
+                    {pinnedMessages.map(msg => (
+                      <div key={msg.id} className="p-2 rounded-md bg-secondary/50 hover:bg-secondary/80 cursor-pointer transition-colors" onClick={() => { scrollToMessage(msg.id); setShowPinnedPanel(false); }}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-medium text-foreground">{msg.author}</span>
+                          <span className="text-[10px] text-muted-foreground">{msg.timestamp}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{msg.content}</p>
                       </div>
-                    )}
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
-              <button onClick={onToggleNotifications} className="hover:text-foreground transition-colors"><Bell className="w-4 h-4" /></button>
-            </>
-          )}
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
+          <button onClick={onToggleNotifications} className="hover:text-foreground transition-colors"><Bell className="w-4 h-4" /></button>
           <button onClick={onToggleMembers} className={`hover:text-foreground transition-colors ${showMembers ? 'text-foreground' : ''}`}><Users className="w-4 h-4" /></button>
-          {!isMobile && (
-            <button onClick={onToggleSearch} className="hover:text-foreground transition-colors">
-              <Search className="w-4 h-4" />
-            </button>
-          )}
+          <button onClick={onToggleSearch} className="hover:text-foreground transition-colors">
+            <Search className="w-4 h-4" />
+          </button>
         </div>
       </div>
 

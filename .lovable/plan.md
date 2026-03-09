@@ -1,74 +1,37 @@
 
 
-## Plan: v0.2.6 — Mobil Arama & Bildirim, Premium Rozet, RGB Animasyon
+## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
 
-### 1. Mobilde Filtreli Mesaj Arama & Bildirim Ayarları
+### 1. Black Screen Root Cause (CRITICAL)
 
-**Problem:** `ChatArea.tsx` satır 344 ve 382'de `{!isMobile && (...)}` bloğu search ve notification butonlarını mobilde gizliyor.
+**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
 
-**Çözüm:** Bu butonları `!isMobile` koşulunun dışına çıkar. Mobilde de Search, Bell ve Pin ikonları header'da görünsün. Bildirim ayarları popover'ı (`NotificationSettingsPopover`) ve mesaj arama paneli (`MessageSearchPanel`) zaten responsive — sadece tetikleme butonları eklenmeli.
+**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
 
-**Dosya:** `src/components/ChatArea.tsx` — header'daki `!isMobile` koşullarını kaldır/düzenle.
+### 2. Server Deletion — Cascade via Foreign Keys
 
----
+Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
 
-### 2. Profiles Tablosuna `has_premium_badge` Kolonu
+**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
+- `channels.server_id → servers.id ON DELETE CASCADE`
+- `messages.server_id → servers.id ON DELETE CASCADE`
+- `messages.channel_id → channels.id ON DELETE CASCADE`
+- `server_members.server_id → servers.id ON DELETE CASCADE`
+- `server_invites.server_id → servers.id ON DELETE CASCADE`
 
-**DB Migration:**
-```sql
-ALTER TABLE profiles ADD COLUMN has_premium_badge boolean NOT NULL DEFAULT false;
-```
+Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
 
-Kullanıcının rozet durumunu buradan okuyacağız.
+### 3. DM Real-time — Typing Channel Broadcast Fix
 
----
+In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
 
-### 3. Premium Rozet — UserProfileCard & MemberList
+**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
 
-- `UserProfileCard.tsx`: Profil verisini çekerken `has_premium_badge` de al. Display name yanına Crown/Zap ikonu ekle (altın rengi).
-- `MemberList.tsx`: Üye adının yanına küçük premium rozet ikonu ekle (profil verisinden `has_premium_badge` kontrolü).
-- `ProfileData` interface'ine `has_premium_badge: boolean` ekle.
+### File Changes
 
-**Dosyalar:** `UserProfileCard.tsx`, `MemberList.tsx`
-
----
-
-### 4. Premium Sayfası RGB Animasyonlu Köşeler
-
-`Settings.tsx`'teki Premium kartına (özellikle Premium plan kartına) CSS ile RGB/gökkuşağı animasyonlu border ekle. `index.css`'e keyframe tanımla:
-
-```css
-@keyframes rgb-border {
-  0% { border-color: #ff0000; }
-  33% { border-color: #00ff00; }
-  66% { border-color: #0000ff; }
-  100% { border-color: #ff0000; }
-}
-```
-
-Premium kartına `animate-[rgb-border_3s_linear_infinite]` class'ı veya inline style uygula.
-
-**Dosyalar:** `src/pages/Settings.tsx`, `src/index.css`
-
----
-
-### 5. v0.2.6 Sürüm Notu
-
-- `ReleaseNotesModal.tsx`: `CURRENT_VERSION = '0.2.6'`
-- `changelogData.ts`: v0.2.6 girişi (mobil arama/bildirim, premium rozet, RGB animasyon)
-
----
-
-### Dosya Değişiklikleri
-
-| Dosya | Değişiklik |
+| File | Change |
 |---|---|
-| `src/components/ChatArea.tsx` | Search, Bell, Pin butonlarını mobilde de göster |
-| `src/components/UserProfileCard.tsx` | `has_premium_badge` al, rozet göster |
-| `src/components/MemberList.tsx` | Premium rozet ikonu |
-| `src/pages/Settings.tsx` | Premium kartına RGB animasyonlu border |
-| `src/index.css` | RGB border keyframe animasyonu |
-| `src/components/ReleaseNotesModal.tsx` | v0.2.6 |
-| `src/data/changelogData.ts` | v0.2.6 sürüm notları |
-| **DB Migration** | `has_premium_badge` kolonu profiles tablosuna |
+| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
+| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
+| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
 

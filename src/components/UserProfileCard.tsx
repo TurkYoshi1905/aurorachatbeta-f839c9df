@@ -6,7 +6,7 @@ import { useTranslation } from '@/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { tr as trLocale, enUS, ru as ruLocale, ja as jaLocale, de as deLocale } from 'date-fns/locale';
-import { MessageSquare, Moon, Circle, MinusCircle, EyeOff } from 'lucide-react';
+import { MessageSquare, Moon, Circle, MinusCircle, EyeOff, Crown } from 'lucide-react';
 import type { Language } from '@/i18n';
 
 interface UserProfileCardProps {
@@ -24,6 +24,7 @@ interface ProfileData {
   created_at: string;
   bio: string;
   banner_color: string;
+  has_premium_badge: boolean;
 }
 
 interface RoleData {
@@ -51,7 +52,7 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage, status: ex
     const fetchData = async () => {
       const { data: prof } = await supabase
         .from('profiles')
-        .select('display_name, username, avatar_url, created_at, bio, banner_color')
+        .select('display_name, username, avatar_url, created_at, bio, banner_color, has_premium_badge')
         .eq('user_id', userId)
         .maybeSingle();
       if (prof) setProfile(prof as ProfileData);
@@ -118,7 +119,10 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage, status: ex
       {/* Info */}
       <div className="px-4 pt-2 pb-4 space-y-3">
         <div>
-          <h3 className="text-lg font-bold text-foreground">{profile?.display_name || '...'}</h3>
+          <h3 className="text-lg font-bold text-foreground flex items-center gap-1.5">
+            {profile?.display_name || '...'}
+            {profile?.has_premium_badge && <Crown className="w-4 h-4 text-status-idle fill-status-idle/30" />}
+          </h3>
           <p className="text-sm text-muted-foreground">@{profile?.username || '...'}</p>
         </div>
 
