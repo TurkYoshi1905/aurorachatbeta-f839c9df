@@ -23,9 +23,8 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <Search className="w-5 h-5 text-primary" />, tag: 'MOBİL', color: 'text-primary', text: 'Filtreli mesaj arama ve bildirim ayarları artık mobilde de mevcut.' },
-    { icon: <Crown className="w-5 h-5 text-status-idle" />, tag: 'PREMİUM', color: 'text-status-idle', text: 'Premium rozet sistemi: kullanıcı adının yanında altın taç ikonu.' },
-    { icon: <Smartphone className="w-5 h-5 text-status-online" />, tag: 'RGB', color: 'text-status-online', text: 'Premium kartında RGB animasyonlu köşeler eklendi.' },
+    { icon: <Sparkles className="w-5 h-5 text-primary" />, tag: 'DOSYA', color: 'text-primary', text: 'Dosya ekleri artık orijinal dosya adı ve boyutuyla görünüyor.' },
+    { icon: <Smartphone className="w-5 h-5 text-status-online" />, tag: 'MOBİL', color: 'text-status-online', text: 'Mobil arama ve bildirim butonları artık çalışıyor (alt sayfa).' },
   ];
 
   return (
