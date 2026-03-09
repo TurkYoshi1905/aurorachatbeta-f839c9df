@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Search, Bell, BellRing } from 'lucide-react';
+import { Sparkles, FileText, Crown, Smartphone } from 'lucide-react';
 
-const CURRENT_VERSION = '0.2.4';
+const CURRENT_VERSION = '0.2.5';
 const STORAGE_KEY = 'aurorachat_seen_version';
 
 const ReleaseNotesModal = () => {
@@ -23,9 +23,9 @@ const ReleaseNotesModal = () => {
   };
 
   const notes = [
-    { icon: <Search className="w-5 h-5 text-primary" />, tag: 'ARAMA', color: 'text-primary', text: 'Filtreli mesaj arama: gönderen, tarih, içerik türü ve kanal bazlı arama.' },
-    { icon: <Bell className="w-5 h-5 text-status-online" />, tag: 'BİLDİRİM', color: 'text-status-online', text: 'Kanal bazlı bildirim ayarları: susturma, seviye ve @everyone bastırma.' },
-    { icon: <BellRing className="w-5 h-5 text-accent" />, tag: 'GEÇMİŞ', color: 'text-accent', text: 'Gerçek zamanlı bildirim geçmişi: etiketlemeler ve yanıtlar anında görünür.' },
+    { icon: <FileText className="w-5 h-5 text-primary" />, tag: 'DOSYA', color: 'text-primary', text: 'Tüm dosya türleri destekleniyor: Discord tarzı embed, dosya adı, boyut ve güvenli indirme.' },
+    { icon: <Crown className="w-5 h-5 text-status-idle" />, tag: 'PREMİUM', color: 'text-status-idle', text: 'AuroraChat Basic ve Premium üyelik planları eklendi (yakında aktif).' },
+    { icon: <Smartphone className="w-5 h-5 text-status-online" />, tag: 'MOBİL', color: 'text-status-online', text: 'Mobil ayarlar Discord tarzı dikey liste + alt sayfa yapısına geçti.' },
   ];
 
   return (

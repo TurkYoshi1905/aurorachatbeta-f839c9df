@@ -628,7 +628,7 @@ const ChatArea = ({ channelName, channelId, messages, onSendMessage, onDeleteMes
                 </div>
               </PopoverContent>
             </Popover>
-            <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+            <input type="file" ref={fileInputRef} accept="*" multiple className="hidden" onChange={handleFileSelect} />
 
             <div className="flex-1 relative">
               <input
@@ -656,7 +656,7 @@ const ChatArea = ({ channelName, channelId, messages, onSendMessage, onDeleteMes
         ) : (
           /* ===== DESKTOP INPUT BAR ===== */
           <div className="bg-input rounded-xl flex items-center px-4 gap-2 ring-1 ring-border focus-within:ring-primary/40 transition-all">
-            <input type="file" ref={fileInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+            <input type="file" ref={fileInputRef} accept="*" multiple className="hidden" onChange={handleFileSelect} />
             <button onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-foreground transition-colors"><PlusCircle className="w-5 h-5" /></button>
             <input ref={inputRef} type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => { if (e.key === 'Enter' && !showMentionPopup && !showSlashPopup) handleSend(); }} placeholder={t('chat.messagePlaceholder', { channel: channelName })} className="flex-1 bg-transparent py-3 text-sm outline-none text-foreground placeholder:text-muted-foreground" />
             <div className="flex items-center gap-2 text-muted-foreground">

@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, X, User, Shield, Megaphone, Camera, ExternalLink, Pencil, Check, XIcon, Calendar, Lock, Globe, Monitor, Sun, Moon as MoonIcon, QrCode, ShieldCheck } from 'lucide-react';
+import { LogOut, X, User, Shield, Megaphone, Camera, ExternalLink, Pencil, Check, XIcon, Calendar, Lock, Globe, Monitor, Sun, Moon as MoonIcon, QrCode, ShieldCheck, ArrowLeft, Crown, Star, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -197,7 +197,7 @@ const Settings = () => {
   const { profile, signOut, user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('account');
+  const [activeTab, setActiveTab] = useState(() => isMobile ? '__menu__' : 'account');
   const isMobile = useIsMobile();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -215,6 +215,7 @@ const Settings = () => {
     { id: 'account', label: t('settings.account'), icon: User },
     { id: 'privacy', label: t('settings.privacy'), icon: Shield },
     { id: 'appearance', label: t('settings.appearance'), icon: Globe },
+    { id: 'premium', label: 'AuroraChat Premium', icon: Crown },
     { id: 'changelog', label: t('settings.changelog'), icon: Megaphone },
   ];
 
@@ -334,23 +335,45 @@ const Settings = () => {
     { value: 'system', label: 'Sistem', icon: Monitor },
   ];
 
-  return (
-    <div className="h-screen flex flex-col md:flex-row bg-background text-foreground overflow-hidden">
-      {isMobile && (
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-sidebar overflow-x-auto shrink-0">
+  // Mobile: Discord-style vertical list + sub-page
+  if (isMobile && activeTab === '__menu__') {
+    return (
+      <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-sidebar shrink-0">
           <button onClick={() => navigate('/')} className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0">
             <X className="w-4 h-4" />
           </button>
+          <h1 className="text-lg font-semibold text-foreground">{t('settings.title')}</h1>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2">
           {tabs.map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors shrink-0 ${activeTab === tab.id ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+            >
+              <tab.icon className="w-5 h-5" />
+              <span className="font-medium">{tab.label}</span>
             </button>
           ))}
-          <button onClick={handleSignOut} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-destructive whitespace-nowrap shrink-0">
-            <LogOut className="w-4 h-4" />
-            {t('auth.logoutShort')}
+          <div className="border-t border-border my-2 mx-4" />
+          <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors">
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium">{t('auth.logout')}</span>
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen flex flex-col md:flex-row bg-background text-foreground overflow-hidden">
+      {isMobile && (
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-sidebar shrink-0">
+          <button onClick={() => setActiveTab('__menu__')} className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <h1 className="text-base font-semibold text-foreground">{tabs.find(t => t.id === activeTab)?.label || ''}</h1>
         </div>
       )}
 
@@ -542,6 +565,88 @@ const Settings = () => {
                       {profile?.language === lang.code && <Check className="w-4 h-4" />}
                     </button>
                   ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'premium' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Crown className="w-6 h-6 text-status-idle" />
+                AuroraChat Premium
+              </h2>
+              <p className="text-sm text-muted-foreground">AuroraChat deneyiminizi bir üst seviyeye taşıyın.</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Basic Plan */}
+                <div className="rounded-xl border border-border bg-card p-5 space-y-4 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/60 to-primary/20" />
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-bold text-foreground">Basic</h3>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-foreground">₺10</span>
+                    <span className="text-sm text-muted-foreground">/ay</span>
+                  </div>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-primary shrink-0" /> Özel profil rozeti
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-primary shrink-0" /> 10MB dosya yükleme limiti
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-primary shrink-0" /> Özel temalar
+                    </li>
+                  </ul>
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => toast.info('Şu anda henüz üyelik sistemi gelmedi ama yakında!')}
+                  >
+                    Basic Al
+                  </Button>
+                </div>
+
+                {/* Premium Plan */}
+                <div className="rounded-xl border-2 border-status-idle bg-card p-5 space-y-4 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-status-idle to-primary" />
+                  <div className="absolute top-3 right-3">
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-status-idle/20 text-status-idle px-2 py-0.5 rounded-full">Popüler</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-status-idle" />
+                    <h3 className="text-lg font-bold text-foreground">Premium</h3>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-foreground">₺30</span>
+                    <span className="text-sm text-muted-foreground">/ay</span>
+                  </div>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-status-idle shrink-0" /> Tüm Basic özellikleri
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-status-idle shrink-0" /> Animasyonlu avatar
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-status-idle shrink-0" /> Özel profil banner
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-status-idle shrink-0" /> 50MB dosya yükleme limiti
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-status-idle shrink-0" /> Öncelikli destek
+                    </li>
+                  </ul>
+                  <Button
+                    className="w-full bg-status-idle hover:bg-status-idle/90 text-white"
+                    onClick={() => toast.info('Şu anda henüz üyelik sistemi gelmedi ama yakında!')}
+                  >
+                    Premium Al
+                  </Button>
                 </div>
               </div>
             </div>

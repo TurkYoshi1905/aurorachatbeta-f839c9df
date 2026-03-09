@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { X, Settings, Users, Shield, ScrollText, Trash2, Camera, UserMinus, Plus, ArrowUp, ArrowDown, ChevronDown, Hash, Volume2, SmilePlus, Upload, Pencil, Check, Ban, BarChart3, Filter, Palette } from 'lucide-react';
+import { X, Settings, Users, Shield, ScrollText, Trash2, Camera, UserMinus, Plus, ArrowUp, ArrowDown, ChevronDown, Hash, Volume2, SmilePlus, Upload, Pencil, Check, Ban, BarChart3, Filter, Palette, ArrowLeft } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -48,7 +48,7 @@ const ServerSettings = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState(() => isMobile ? '__menu__' : 'general');
   const [serverName, setServerName] = useState('');
   const [serverIcon, setServerIcon] = useState('');
   const [ownerId, setOwnerId] = useState<string | null>(null);
@@ -480,19 +480,40 @@ const ServerSettings = () => {
     return groups.filter(g => g.logs.length > 0);
   };
 
-  return (
-    <div className="h-screen flex flex-col md:flex-row bg-background text-foreground overflow-hidden">
-      {isMobile && (
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-sidebar overflow-x-auto shrink-0">
+  // Mobile: Discord-style vertical list + sub-page
+  if (isMobile && activeTab === '__menu__') {
+    return (
+      <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-sidebar shrink-0">
           <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate('/'); }} className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0">
             <X className="w-4 h-4" />
           </button>
+          <h1 className="text-lg font-semibold text-foreground">{t('serverSettings.title')}</h1>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2">
           {tabs.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors shrink-0 ${activeTab === tab.id ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+            >
+              <tab.icon className="w-5 h-5" />
+              <span className="font-medium">{tab.label}</span>
             </button>
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen flex flex-col md:flex-row bg-background text-foreground overflow-hidden">
+      {isMobile && (
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-sidebar shrink-0">
+          <button onClick={() => setActiveTab('__menu__')} className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <h1 className="text-base font-semibold text-foreground">{tabs.find(t => t.id === activeTab)?.label || ''}</h1>
         </div>
       )}
 

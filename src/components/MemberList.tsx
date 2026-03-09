@@ -10,7 +10,6 @@ const statusColor: Record<string, string> = { online: 'bg-status-online', idle: 
 const MemberList = ({ members, isMobile, onBack, serverId }: MemberListProps) => {
   const { t } = useTranslation();
 
-  // Group members by their highest role
   const roleGroups: { roleName: string; roleColor: string; position: number; members: DbMember[] }[] = [];
   const noRoleMembers: DbMember[] = [];
 
@@ -27,7 +26,6 @@ const MemberList = ({ members, isMobile, onBack, serverId }: MemberListProps) =>
     }
   });
 
-  // Sort role groups by position (highest first)
   roleGroups.sort((a, b) => b.position - a.position);
 
   const online = members.filter((m) => m.status !== 'offline');
@@ -35,7 +33,7 @@ const MemberList = ({ members, isMobile, onBack, serverId }: MemberListProps) =>
   const hasRoles = roleGroups.length > 0;
 
   const renderMember = (member: DbMember) => (
-    <UserProfileCard key={member.id} userId={member.id} serverId={serverId}>
+    <UserProfileCard key={member.id} userId={member.id} serverId={serverId} status={member.status}>
       <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors">
         <div className="relative">
           <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm overflow-hidden">
@@ -68,7 +66,6 @@ const MemberList = ({ members, isMobile, onBack, serverId }: MemberListProps) =>
     </UserProfileCard>
   );
 
-  // If we have custom roles, show by role groups
   if (hasRoles) {
     const onlineNoRole = noRoleMembers.filter(m => m.status !== 'offline');
     const offlineAll = members.filter(m => m.status === 'offline');
