@@ -413,6 +413,10 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Password Change */}
+              <PasswordChangeSection />
+
               <div className="rounded-xl border border-destructive/30 bg-card p-4 md:p-5 space-y-3">
                 <p className="text-sm font-semibold text-foreground">{t('settings.deleteAccount')}</p>
                 <p className="text-xs text-muted-foreground">{t('settings.deleteAccountDesc')}</p>
