@@ -1,37 +1,35 @@
 
 
-## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
+## Plan: @everyone Etiket İşlevselliği + v0.2.9
 
-### 1. Black Screen Root Cause (CRITICAL)
+### Yapılacaklar
 
-**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
+**1. MentionPopup'a @everyone seçeneği ekle** (`src/components/MentionPopup.tsx`)
+- Filtrelenmiş üye listesinin başına sabit bir "everyone" seçeneği ekle (🔔 ikonu ile)
+- `query` boş veya "everyone" ile eşleşiyorsa göster
+- Seçildiğinde `onSelect("everyone")` çağır
 
-**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
+**2. @everyone mesaj render'ını özel stil ile göster** (`src/components/ChatArea.tsx` → `renderMessageContent`)
+- `@everyone` metnini özel stil ile render et: Discord gibi sarı/turuncu tonlu arka plan, bold
+- Mevcut `mentionRegex` zaten `@everyone`'ı yakalıyor, sadece "everyone" eşleşmesinde farklı stil uygula
 
-### 2. Server Deletion — Cascade via Foreign Keys
+**3. @everyone bildirim gönderimi** (`src/pages/Index.tsx` → realtime subscription)
+- Gelen mesajda `@everyone` varsa, mesajı gönderen kişi hariç tüm sunucu üyelerine bildirim oluştur
+- `notification_settings` tablosundaki `suppress_everyone` ayarını kontrol et — true ise o kullanıcıya bildirim gönderme
+- Bildirim tipi: `mention`, başlık: `{author} herkesi etiketledi`
+- Tarayıcı bildirimi de göster (sayfa gizliyse)
 
-Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
+**4. Sürüm güncellemesi**
+- `ReleaseNotesModal.tsx`: `CURRENT_VERSION = '0.2.9'`
+- `changelogData.ts`: v0.2.9 girişi — @everyone işlevselliği
 
-**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
-- `channels.server_id → servers.id ON DELETE CASCADE`
-- `messages.server_id → servers.id ON DELETE CASCADE`
-- `messages.channel_id → channels.id ON DELETE CASCADE`
-- `server_members.server_id → servers.id ON DELETE CASCADE`
-- `server_invites.server_id → servers.id ON DELETE CASCADE`
+### Dosyalar
 
-Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
-
-### 3. DM Real-time — Typing Channel Broadcast Fix
-
-In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
-
-**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
-
-### File Changes
-
-| File | Change |
+| Dosya | Değişiklik |
 |---|---|
-| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
-| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
-| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
+| `src/components/MentionPopup.tsx` | "everyone" seçeneğini listeye ekle |
+| `src/components/ChatArea.tsx` | `@everyone` için özel render stili |
+| `src/pages/Index.tsx` | `@everyone` bildirim mantığı (suppress_everyone kontrolü dahil) |
+| `src/components/ReleaseNotesModal.tsx` | v0.2.9 |
+| `src/data/changelogData.ts` | v0.2.9 sürüm notu |
 
