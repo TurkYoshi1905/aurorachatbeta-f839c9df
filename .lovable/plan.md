@@ -1,35 +1,37 @@
 
 
-## Plan: Mobil Arama & Bildirim Butonlarına İşlevsellik Ekleme
+## Plan: Black Screen Fix + Server Delete Cascade + DM Real-time Stabilization
 
-### Problem
-`Index.tsx` satır 1151-1178'deki mobil `ChatArea` render'ında `onToggleSearch` ve `onToggleNotifications` prop'ları geçirilmiyor. Butonlar var ama tıklayınca hiçbir şey olmuyor.
+### 1. Black Screen Root Cause (CRITICAL)
 
-Masaüstünde search ve notification panelleri yan panel olarak açılıyor. Mobilde bu yan paneller sığmaz — Sheet (alt sayfa) olarak açılmalı.
+**Line 828 of `src/pages/Index.tsx`**: `const { t } = useTranslation()` is called **after** three conditional returns (lines 788, 830, 844). This violates React's Rules of Hooks — hooks must be called unconditionally at the top of the component. This causes React to crash silently, producing a black screen.
 
-### Çözüm
+**Fix**: Move the `useTranslation()` call to the top of the component (next to the other hooks, around line 122). Replace all subsequent `t()` calls that already exist above the current hook call location with the moved reference.
 
-**Dosya: `src/pages/Index.tsx`**
+### 2. Server Deletion — Cascade via Foreign Keys
 
-1. Mobil `ChatArea`'ya eksik prop'ları ekle:
-   - `onToggleSearch` → `showSearchPanel` state'ini toggle et
-   - `onToggleNotifications` → `showNotificationPanel` state'ini toggle et
+Current deletion logic (ServerSettingsDialog.tsx lines 63-73) manually deletes messages, channels, invites, members, then the server. This is fragile — if RLS blocks any intermediate delete, the server remains.
 
-2. Mobil render bloğuna iki yeni `Sheet` ekle:
-   - **Arama Sheet:** `showSearchPanel` true ise açılır, `MessageSearchPanel` bileşenini içerir, `side="bottom"`, `h-[85dvh]`
-   - **Bildirim Sheet:** `showNotificationPanel` true ise açılır, `NotificationPanel` bileşenini içerir, aynı stil
+**Fix**: Add a SQL migration with `ON DELETE CASCADE` foreign keys:
+- `channels.server_id → servers.id ON DELETE CASCADE`
+- `messages.server_id → servers.id ON DELETE CASCADE`
+- `messages.channel_id → channels.id ON DELETE CASCADE`
+- `server_members.server_id → servers.id ON DELETE CASCADE`
+- `server_invites.server_id → servers.id ON DELETE CASCADE`
 
-### Değişiklik Detayı
+Then simplify `handleDelete` to a single `supabase.from('servers').delete().eq('id', serverId)`.
 
-```
-// Satır ~1177'ye ekle:
-onToggleSearch={() => setShowSearchPanel(p => !p)}
-onToggleNotifications={() => setShowNotificationPanel(p => !p)}
-```
+### 3. DM Real-time — Typing Channel Broadcast Fix
 
-Thread Sheet'inden sonra iki yeni Sheet bloğu eklenir (satır ~1198 civarı).
+In `Index.tsx` lines 623-633, `handleTypingStart` and `handleTypingStop` create a **new channel reference** via `supabase.channel(...)` instead of using the existing subscribed channel. This sends broadcasts on an unsubscribed channel, which Supabase silently drops.
 
-| Dosya | Değişiklik |
+**Fix**: Store the typing channel in a `useRef` (similar to how DMChatArea already does it) and use that ref in `handleTypingStart`/`handleTypingStop`.
+
+### File Changes
+
+| File | Change |
 |---|---|
-| `src/pages/Index.tsx` | Mobil ChatArea'ya onToggleSearch/onToggleNotifications ekle + 2 Sheet ekle |
+| SQL Migration | Add CASCADE foreign keys to channels, messages, server_members, server_invites |
+| `src/pages/Index.tsx` | Move `useTranslation()` to top; fix typing channel ref; simplify `handleTypingStart`/`handleTypingStop` |
+| `src/components/ServerSettingsDialog.tsx` | Simplify `handleDelete` to single server delete (cascade handles the rest) |
 
