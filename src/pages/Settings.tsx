@@ -335,23 +335,45 @@ const Settings = () => {
     { value: 'system', label: 'Sistem', icon: Monitor },
   ];
 
-  return (
-    <div className="h-screen flex flex-col md:flex-row bg-background text-foreground overflow-hidden">
-      {isMobile && (
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-sidebar overflow-x-auto shrink-0">
+  // Mobile: Discord-style vertical list + sub-page
+  if (isMobile && activeTab === '__menu__') {
+    return (
+      <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-sidebar shrink-0">
           <button onClick={() => navigate('/')} className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0">
             <X className="w-4 h-4" />
           </button>
+          <h1 className="text-lg font-semibold text-foreground">{t('settings.title')}</h1>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2">
           {tabs.map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors shrink-0 ${activeTab === tab.id ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+            >
+              <tab.icon className="w-5 h-5" />
+              <span className="font-medium">{tab.label}</span>
             </button>
           ))}
-          <button onClick={handleSignOut} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-destructive whitespace-nowrap shrink-0">
-            <LogOut className="w-4 h-4" />
-            {t('auth.logoutShort')}
+          <div className="border-t border-border my-2 mx-4" />
+          <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors">
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium">{t('auth.logout')}</span>
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen flex flex-col md:flex-row bg-background text-foreground overflow-hidden">
+      {isMobile && (
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-sidebar shrink-0">
+          <button onClick={() => setActiveTab('__menu__')} className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <h1 className="text-base font-semibold text-foreground">{tabs.find(t => t.id === activeTab)?.label || ''}</h1>
         </div>
       )}
 
