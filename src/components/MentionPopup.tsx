@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { DbMember } from '@/pages/Index';
+import { Bell } from 'lucide-react';
 
 interface MentionPopupProps {
   query: string;
@@ -13,9 +14,14 @@ const MentionPopup = ({ query, members, onSelect, onClose, position }: MentionPo
   const [selectedIndex, setSelectedIndex] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
-  const filtered = members.filter((m) =>
-    m.name.toLowerCase().includes(query.toLowerCase())
-  ).slice(0, 8);
+  const showEveryone = 'everyone'.includes(query.toLowerCase()) || query === '';
+
+  const filtered = [
+    ...(showEveryone ? [{ id: '__everyone__', name: 'everyone', avatar: '', avatarUrl: null, status: 'online' as const }] : []),
+    ...members.filter((m) =>
+      m.name.toLowerCase().includes(query.toLowerCase())
+    ).slice(0, 7),
+  ];
 
   useEffect(() => {
     setSelectedIndex(0);
