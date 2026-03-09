@@ -135,6 +135,7 @@ const MessageAttachments = ({ attachments }: MessageAttachmentsProps) => {
         <div className="flex flex-col gap-1.5 mt-1.5">
           {fileAttachments.map((url, i) => {
             const fileName = getFileName(url);
+            const fileSize = formatFileSize(url);
             return (
               <div key={`file-${i}`} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border/50 bg-secondary/40 max-w-sm">
                 <FileText className="w-8 h-8 text-primary shrink-0" />
@@ -142,6 +143,7 @@ const MessageAttachments = ({ attachments }: MessageAttachmentsProps) => {
                   <p className="text-sm text-primary font-medium truncate hover:underline cursor-pointer" onClick={() => handleDownload(url)}>
                     {fileName}
                   </p>
+                  {fileSize && <p className="text-[11px] text-muted-foreground">{fileSize}</p>}
                 </div>
                 <button
                   onClick={() => handleDownload(url)}
