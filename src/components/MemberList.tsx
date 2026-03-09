@@ -7,7 +7,7 @@ interface MemberListProps { members: DbMember[]; isMobile?: boolean; onBack?: ()
 
 const statusColor: Record<string, string> = { online: 'bg-status-online', idle: 'bg-status-idle', dnd: 'bg-status-dnd', offline: 'bg-muted-foreground' };
 
-const MemberList = ({ members, isMobile, onBack, serverId }: MemberListProps) => {
+const MemberList = ({ members, isMobile, onBack, serverId, premiumUsers }: MemberListProps) => {
   const { t } = useTranslation();
 
   const roleGroups: { roleName: string; roleColor: string; position: number; members: DbMember[] }[] = [];
