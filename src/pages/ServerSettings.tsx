@@ -330,6 +330,8 @@ const ServerSettings = () => {
   useEffect(() => { fetchRoles(); }, [fetchRoles]);
   useEffect(() => { if (activeTab === 'members') fetchMembers(); }, [activeTab, fetchMembers]);
   useEffect(() => { if (activeTab === 'audit') fetchAuditLogs(); }, [activeTab, fetchAuditLogs]);
+  useEffect(() => { if (activeTab === 'bans') fetchBans(); }, [activeTab, fetchBans]);
+  useEffect(() => { if (activeTab === 'general') fetchServerStats(); }, [activeTab, fetchServerStats]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (window.history.length > 1) navigate(-1); else navigate('/'); } };
