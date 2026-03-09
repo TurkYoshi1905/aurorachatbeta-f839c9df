@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { DbMember } from '@/pages/Index';
+import { Bell } from 'lucide-react';
 
 interface MentionPopupProps {
   query: string;
@@ -13,9 +14,14 @@ const MentionPopup = ({ query, members, onSelect, onClose, position }: MentionPo
   const [selectedIndex, setSelectedIndex] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
-  const filtered = members.filter((m) =>
-    m.name.toLowerCase().includes(query.toLowerCase())
-  ).slice(0, 8);
+  const showEveryone = 'everyone'.includes(query.toLowerCase()) || query === '';
+
+  const filtered = [
+    ...(showEveryone ? [{ id: '__everyone__', name: 'everyone', avatar: '', avatarUrl: null, status: 'online' as const }] : []),
+    ...members.filter((m) =>
+      m.name.toLowerCase().includes(query.toLowerCase())
+    ).slice(0, 7),
+  ];
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -59,13 +65,15 @@ const MentionPopup = ({ query, members, onSelect, onClose, position }: MentionPo
           }`}
         >
           <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] font-medium overflow-hidden shrink-0">
-            {m.avatarUrl ? (
+            {m.id === '__everyone__' ? (
+              <Bell className="w-3.5 h-3.5 text-amber-400" />
+            ) : m.avatarUrl ? (
               <img src={m.avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
               m.avatar
             )}
           </div>
-          <span className="truncate">{m.name}</span>
+          <span className="truncate">{m.id === '__everyone__' ? '@everyone' : m.name}</span>
         </button>
       ))}
     </div>
