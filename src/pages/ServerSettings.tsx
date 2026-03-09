@@ -289,15 +289,42 @@ const ServerSettings = () => {
 
   const fetchAuditLogs = useCallback(async () => {
     if (!serverId) return;
-    const { data } = await supabase.from('audit_logs').select('*').eq('server_id', serverId).order('created_at', { ascending: false }).limit(100);
+    const { data } = await supabase.from('audit_logs').select('*').eq('server_id', serverId).order('created_at', { ascending: false }).limit(200);
     if (data) {
       const userIds = [...new Set((data as any[]).map(l => l.user_id))];
-      const { data: profiles } = await supabase.from('profiles').select('user_id, display_name').in('user_id', userIds);
+      const { data: profiles } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', userIds);
       setAuditLogs((data as any[]).map(l => ({
         ...l,
         user_name: profiles?.find(p => p.user_id === l.user_id)?.display_name || 'Kullanıcı',
+        user_avatar: profiles?.find(p => p.user_id === l.user_id)?.avatar_url || null,
       })));
     }
+  }, [serverId]);
+
+  const fetchBans = useCallback(async () => {
+    if (!serverId) return;
+    const { data } = await supabase.from('server_bans').select('*').eq('server_id', serverId).order('created_at', { ascending: false });
+    if (data) {
+      const userIds = [...new Set((data as any[]).flatMap(b => [b.user_id, b.banned_by]))];
+      const { data: profiles } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', userIds);
+      setBans((data as any[]).map(b => ({
+        ...b,
+        user_name: profiles?.find(p => p.user_id === b.user_id)?.display_name || 'Kullanıcı',
+        user_avatar: profiles?.find(p => p.user_id === b.user_id)?.avatar_url || null,
+        banned_by_name: profiles?.find(p => p.user_id === b.banned_by)?.display_name || 'Kullanıcı',
+      })));
+    }
+  }, [serverId]);
+
+  const fetchServerStats = useCallback(async () => {
+    if (!serverId) return;
+    const [{ count: memberCount }, { count: channelCount }, { count: roleCount }, { data: server }] = await Promise.all([
+      supabase.from('server_members').select('*', { count: 'exact', head: true }).eq('server_id', serverId),
+      supabase.from('channels').select('*', { count: 'exact', head: true }).eq('server_id', serverId),
+      supabase.from('server_roles').select('*', { count: 'exact', head: true }).eq('server_id', serverId),
+      supabase.from('servers').select('created_at').eq('id', serverId).single(),
+    ]);
+    setServerStats({ members: memberCount || 0, channels: channelCount || 0, roles: roleCount || 0, created_at: server?.created_at || '' });
   }, [serverId]);
 
   useEffect(() => { fetchRoles(); }, [fetchRoles]);
