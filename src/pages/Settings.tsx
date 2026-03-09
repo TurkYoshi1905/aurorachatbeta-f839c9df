@@ -570,6 +570,88 @@ const Settings = () => {
             </div>
           )}
 
+          {activeTab === 'premium' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Crown className="w-6 h-6 text-status-idle" />
+                AuroraChat Premium
+              </h2>
+              <p className="text-sm text-muted-foreground">AuroraChat deneyiminizi bir üst seviyeye taşıyın.</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Basic Plan */}
+                <div className="rounded-xl border border-border bg-card p-5 space-y-4 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/60 to-primary/20" />
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-bold text-foreground">Basic</h3>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-foreground">₺10</span>
+                    <span className="text-sm text-muted-foreground">/ay</span>
+                  </div>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-primary shrink-0" /> Özel profil rozeti
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-primary shrink-0" /> 10MB dosya yükleme limiti
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-primary shrink-0" /> Özel temalar
+                    </li>
+                  </ul>
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => toast.info('Şu anda henüz üyelik sistemi gelmedi ama yakında!')}
+                  >
+                    Basic Al
+                  </Button>
+                </div>
+
+                {/* Premium Plan */}
+                <div className="rounded-xl border-2 border-status-idle bg-card p-5 space-y-4 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-status-idle to-primary" />
+                  <div className="absolute top-3 right-3">
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-status-idle/20 text-status-idle px-2 py-0.5 rounded-full">Popüler</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-status-idle" />
+                    <h3 className="text-lg font-bold text-foreground">Premium</h3>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-foreground">₺30</span>
+                    <span className="text-sm text-muted-foreground">/ay</span>
+                  </div>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-status-idle shrink-0" /> Tüm Basic özellikleri
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-status-idle shrink-0" /> Animasyonlu avatar
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-status-idle shrink-0" /> Özel profil banner
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-status-idle shrink-0" /> 50MB dosya yükleme limiti
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-status-idle shrink-0" /> Öncelikli destek
+                    </li>
+                  </ul>
+                  <Button
+                    className="w-full bg-status-idle hover:bg-status-idle/90 text-white"
+                    onClick={() => toast.info('Şu anda henüz üyelik sistemi gelmedi ama yakında!')}
+                  >
+                    Premium Al
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'changelog' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
