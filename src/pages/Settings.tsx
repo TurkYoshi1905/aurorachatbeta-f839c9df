@@ -215,6 +215,7 @@ const Settings = () => {
     { id: 'account', label: t('settings.account'), icon: User },
     { id: 'privacy', label: t('settings.privacy'), icon: Shield },
     { id: 'appearance', label: t('settings.appearance'), icon: Globe },
+    { id: 'premium', label: 'AuroraChat Premium', icon: Crown },
     { id: 'changelog', label: t('settings.changelog'), icon: Megaphone },
   ];
 
