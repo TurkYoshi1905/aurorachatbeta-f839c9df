@@ -15,7 +15,8 @@ const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ic
 
 const isImageUrl = (url: string) => {
   try {
-    const pathname = new URL(url).pathname.toLowerCase();
+    const cleanUrl = url.split('?')[0];
+    const pathname = new URL(cleanUrl).pathname.toLowerCase();
     return IMAGE_EXTENSIONS.some(ext => pathname.endsWith(`.${ext}`));
   } catch {
     return /\.(jpg|jpeg|png|gif|webp|bmp|svg|ico)(\?|$)/i.test(url);
@@ -24,7 +25,10 @@ const isImageUrl = (url: string) => {
 
 const getFileName = (url: string) => {
   try {
-    const pathname = new URL(url).pathname;
+    const parsed = new URL(url);
+    const originalName = parsed.searchParams.get('originalName');
+    if (originalName) return originalName;
+    const pathname = parsed.pathname;
     const name = pathname.split('/').pop() || 'file';
     return decodeURIComponent(name);
   } catch {
@@ -32,9 +36,19 @@ const getFileName = (url: string) => {
   }
 };
 
-const formatFileSize = (sizeStr?: string) => {
-  // We don't have actual size from URL, show generic
-  return '';
+const formatFileSize = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    const sizeStr = parsed.searchParams.get('size');
+    if (!sizeStr) return '';
+    const bytes = parseInt(sizeStr, 10);
+    if (isNaN(bytes)) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  } catch {
+    return '';
+  }
 };
 
 const MessageAttachments = ({ attachments }: MessageAttachmentsProps) => {
@@ -121,6 +135,7 @@ const MessageAttachments = ({ attachments }: MessageAttachmentsProps) => {
         <div className="flex flex-col gap-1.5 mt-1.5">
           {fileAttachments.map((url, i) => {
             const fileName = getFileName(url);
+            const fileSize = formatFileSize(url);
             return (
               <div key={`file-${i}`} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border/50 bg-secondary/40 max-w-sm">
                 <FileText className="w-8 h-8 text-primary shrink-0" />
@@ -128,6 +143,7 @@ const MessageAttachments = ({ attachments }: MessageAttachmentsProps) => {
                   <p className="text-sm text-primary font-medium truncate hover:underline cursor-pointer" onClick={() => handleDownload(url)}>
                     {fileName}
                   </p>
+                  {fileSize && <p className="text-[11px] text-muted-foreground">{fileSize}</p>}
                 </div>
                 <button
                   onClick={() => handleDownload(url)}

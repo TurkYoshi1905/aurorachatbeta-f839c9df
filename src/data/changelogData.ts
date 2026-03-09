@@ -16,6 +16,23 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
+    version: '0.2.7',
+    date: '9 Mart 2026',
+    summary: 'Dosya ekleri artık orijinal dosya adı ve boyutuyla görünüyor. Mobil arama ve bildirim butonları çalışır hale getirildi.',
+    sections: [
+      {
+        title: 'Düzeltmeler',
+        icon: Bug,
+        color: 'text-destructive',
+        items: [
+          'Dosya ekleri artık UUID yerine orijinal dosya adıyla gösteriliyor',
+          'Dosya boyutu bilgisi eklendi (KB/MB formatında)',
+          'Mobil arama ve bildirim butonları artık çalışıyor (Sheet olarak açılıyor)',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.6',
     date: '9 Mart 2026',
     summary: 'Mobilde filtreli mesaj arama ve bildirim ayarları, Premium rozet sistemi, RGB animasyonlu Premium kartı.',
