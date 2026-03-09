@@ -14,6 +14,7 @@ interface UserProfileCardProps {
   serverId?: string;
   children: React.ReactNode;
   onSendMessage?: (userId: string) => void;
+  status?: string;
 }
 
 interface ProfileData {
@@ -32,14 +33,7 @@ interface RoleData {
 
 const dateLocaleMap: Record<string, any> = { tr: trLocale, en: enUS, az: trLocale, ru: ruLocale, ja: jaLocale, de: deLocale };
 
-const statusConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-  online: { icon: <Circle className="w-3 h-3 text-status-online fill-status-online" />, label: 'Çevrimiçi', color: 'text-status-online' },
-  idle: { icon: <Moon className="w-3 h-3 text-status-idle fill-status-idle" />, label: 'Boşta', color: 'text-status-idle' },
-  dnd: { icon: <MinusCircle className="w-3 h-3 text-status-dnd fill-status-dnd" />, label: 'Rahatsız Etmeyin', color: 'text-status-dnd' },
-  offline: { icon: <EyeOff className="w-3 h-3 text-muted-foreground" />, label: 'Çevrimdışı', color: 'text-muted-foreground' },
-};
-
-const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProfileCardProps) => {
+const UserProfileCard = ({ userId, serverId, children, onSendMessage, status: externalStatus }: UserProfileCardProps) => {
   const { t, language } = useTranslation();
   const isMobile = useIsMobile();
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -47,7 +41,7 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProf
   const [joinedAt, setJoinedAt] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
-  const [userStatus, setUserStatus] = useState<string>('offline');
+  const userStatus = externalStatus || 'offline';
 
   useEffect(() => {
     if (!open || !userId) return;
@@ -90,33 +84,6 @@ const UserProfileCard = ({ userId, serverId, children, onSendMessage }: UserProf
     };
     fetchData();
   }, [open, userId, serverId]);
-
-  // Realtime presence for this user — subscribe to the shared presence-room
-  useEffect(() => {
-    if (!open || !userId) return;
-    const channel = supabase.channel('presence-room');
-
-    const syncHandler = () => {
-      const state = channel.presenceState();
-      let found = false;
-      for (const presences of Object.values(state)) {
-        const entries = presences as any[];
-        const match = entries.find((e: any) => e.user_id === userId);
-        if (match) {
-          setUserStatus(match.status || 'online');
-          found = true;
-          break;
-        }
-      }
-      if (!found) setUserStatus('offline');
-    };
-
-    channel.on('presence', { event: 'sync' }, syncHandler).subscribe((status) => {
-      if (status === 'SUBSCRIBED') syncHandler();
-    });
-
-    return () => { supabase.removeChannel(channel); };
-  }, [open, userId]);
 
   const handleNoteChange = (val: string) => {
     setNote(val);
