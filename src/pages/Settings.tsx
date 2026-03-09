@@ -197,7 +197,7 @@ const Settings = () => {
   const { profile, signOut, user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('account');
+  const [activeTab, setActiveTab] = useState(() => isMobile ? '__menu__' : 'account');
   const isMobile = useIsMobile();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
